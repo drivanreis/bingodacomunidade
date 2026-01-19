@@ -1,0 +1,175 @@
+# ===========================================================================
+# .gitignore - Sistema de Bingo Comunitário
+# ===========================================================================
+
+# ============================================================================
+# Python
+# ============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments (NÃO MAIS USADO - Agora é Docker!)
+.venv/
+venv/
+env/
+ENV/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ============================================================================
+# Banco de Dados
+# ============================================================================
+# O banco SQLite é ignorado para não commitar dados de desenvolvimento
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/*.sqlite3
+*.db
+*.sqlite
+*.sqlite3
+
+# Mas mantemos a pasta data/ no git (vazia)
+!backend/data/.gitkeep
+
+# ============================================================================
+# Environment Variables
+# ============================================================================
+# Não precisamos mais de .env! Tudo está no docker-compose.yml
+.env
+.env.local
+.env.*.local
+.env.production
+
+# ============================================================================
+# IDE / Editor
+# ============================================================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Sublime
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================================
+# Logs
+# ============================================================================
+*.log
+logs/
+*.log.*
+
+# ============================================================================
+# Testing
+# ============================================================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ============================================================================
+# Docker
+# ============================================================================
+# Ignorar volumes e dados locais do Docker
+# docker-compose.override.yml  # Descomentar se usar override
+
+# ============================================================================
+# OS
+# ============================================================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================================================
+# Temporários
+# ============================================================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# ============================================================================
+# Segurança
+# ============================================================================
+# Chaves privadas, certificados, secrets
+*.pem
+*.key
+*.crt
+*.cer
+secrets/
+credentials/
+
+# ============================================================================
+# Node.js (para quando implementar frontend)
+# ============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# ============================================================================
+# Documentação gerada
+# ============================================================================
+docs/_build/
+site/
+
+# ============================================================================
+# Outros
+# ============================================================================
+.cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/

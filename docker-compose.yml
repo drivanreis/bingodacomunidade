@@ -1,0 +1,112 @@
+# ===========================================================================
+# Docker Compose - Sistema de Bingo Comunitário
+# ===========================================================================
+# Configuração TRANSPARENTE - Todas as variáveis visíveis aqui
+# Para iniciar: docker-compose up -d
+# Para parar: docker-compose down
+# Para ver logs: docker-compose logs -f backend
+
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bingo_backend
+    
+    # Porta exposta (acesse http://localhost:8000/docs)
+    ports:
+      - "8000:8000"
+    
+    # ========================================================================
+    # VARIÁVEIS DE AMBIENTE - CONFIGURAÇÃO TRANSPARENTE
+    # ========================================================================
+    environment:
+      # Banco de Dados
+      - USE_SQLITE=true                              # true=SQLite, false=PostgreSQL
+      - DATABASE_URL=sqlite:////app/data/bingo.db    # Caminho do arquivo SQLite
+      
+      # Timezone Oficial (Única Fonte de Verdade)
+      - TIMEZONE=America/Fortaleza
+      
+      # Seed Inicial - DADOS DO PROPRIETÁRIO
+      - SEED_ENABLED=true                            # Cria dados iniciais automaticamente
+      - OWNER_NAME=Administrador Sistema             # Nome do Super Admin
+      - OWNER_EMAIL=admin@bingodacomunidade.com.br   # Email do Super Admin
+      - OWNER_PASSWORD=Admin@2026                    # Senha inicial (MUDE EM PRODUÇÃO!)
+      
+      # Paróquia Padrão (criada automaticamente)
+      - PARISH_NAME=Paróquia São José                # Nome da paróquia
+      - PARISH_EMAIL=contato@paroquiasaojose.com.br  # Email da paróquia
+      - PARISH_PHONE=85999999999                     # Telefone
+      - PARISH_PIX=contato@paroquiasaojose.com.br    # Chave PIX da paróquia
+      - PARISH_CITY=Fortaleza                        # Cidade
+      - PARISH_STATE=CE                              # Estado
+      
+      # Configurações da API
+      - API_TITLE=Bingo da Comunidade - API
+      - API_VERSION=1.0.0
+      - LOG_LEVEL=info                               # debug, info, warning, error
+    
+    # ========================================================================
+    # VOLUMES - PERSISTÊNCIA DE DADOS
+    # ========================================================================
+    volumes:
+      # Banco SQLite persistente (NÃO SERÁ PERDIDO ao recriar container)
+      - ./backend/data:/app/data
+      
+      # Hot-reload em desenvolvimento (comente em produção)
+      - ./backend/src:/app/src
+    
+    # Política de reinicialização
+    restart: unless-stopped
+    
+    # Health check (verifica se API está saudável)
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/ping\")' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ========================================================================
+  # FRONTEND - Interface React com Vite
+  # ========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bingo_frontend
+    
+    # Porta do servidor Vite de desenvolvimento
+    ports:
+      - "5173:5173"
+    
+    # Variáveis de ambiente
+    environment:
+      - VITE_API_URL=http://localhost:8000  # URL do backend
+      - NODE_ENV=development
+    
+    # Volumes para hot-reload
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      # Previne sobrescrever node_modules do container
+      - /app/node_modules
+    
+    # Garante que backend está pronto antes do frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    
+    # Política de reinicialização
+    restart: unless-stopped
+
+# ===========================================================================
+# VOLUMES NOMEADOS (opcional - para backup mais fácil)
+# ===========================================================================
+# volumes:
+#   bingo_data:
+#     driver: local

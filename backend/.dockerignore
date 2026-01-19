@@ -1,0 +1,64 @@
+# ===========================================================================
+# .dockerignore - Arquivos ignorados no build do Docker
+# ===========================================================================
+# Evita copiar arquivos desnecessários para o container
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments (NÃO MAIS NECESSÁRIO!)
+.venv/
+venv/
+env/
+ENV/
+
+# Banco de dados local
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentação (não precisa no container)
+*.md
+Briefing.md
+Dev. Guide.md
+Readme.md
+DOCKER_QUICKSTART.md
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
