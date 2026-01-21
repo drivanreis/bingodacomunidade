@@ -1,6 +1,21 @@
 # 🚀 Guia de Comandos Rápidos
 
-Referência rápida para operações comuns do sistema.
+Referência rápida para operações comuns do sistema.  
+**Última Atualização:** 21/01/2026
+
+---
+
+## 🌐 URLs de Acesso
+
+```
+Frontend (Interface):     http://localhost:5173
+Backend API:              http://localhost:8000
+Documentação Swagger:     http://localhost:8000/docs
+```
+
+**Credenciais Padrão:**
+- Super Admin: `admin@bingodacomunidade.com.br` / `Admin@2026`
+- Parish Admin: `admin@paroquiasaojose.com.br` / `Admin@2026`
 
 ---
 
