@@ -3,8 +3,9 @@
  * 
  * Sistema de Bingo Comunitário - Segurança Nível Bancário
  * 
- * Centralizamos aqui todas as configurações que podem ser ajustadas
- * pelo Super Admin através do painel de configurações.
+ * NOTA: As configurações agora são carregadas do banco de dados
+ * através do serviço configService. Este arquivo mantém apenas
+ * os tipos e valores padrão de fallback.
  */
 
 export interface AppConfig {
@@ -74,11 +75,11 @@ export interface AppConfig {
 /**
  * Configurações padrão do sistema - SEGURANÇA NÍVEL BANCÁRIO
  * 
- * Estas configurações seguem as melhores práticas de segurança
- * para aplicações financeiras (Bingo lida com dinheiro real).
+ * Estas configurações servem como fallback caso o backend esteja indisponível.
+ * As configurações reais são carregadas do banco de dados via API.
  * 
- * IMPORTANTE: Essas configurações podem ser alteradas por Super Admin
- * através do painel de administração (futuramente sincronizadas com backend).
+ * IMPORTANTE: Para alterar configurações, use o painel de administração
+ * em /admin-site/settings (apenas Super Admin tem acesso).
  */
 export const defaultConfig: AppConfig = {
   // ============================================================================
@@ -127,31 +128,22 @@ export const defaultConfig: AppConfig = {
 /**
  * Obtém a configuração atual
  * 
- * TODO: Futuramente, buscar do localStorage ou backend
+ * IMPORTANTE: Esta função agora apenas retorna o fallback.
+ * Use configService.getAppConfig() para buscar do backend.
+ * 
+ * @deprecated Use configService.getAppConfig() para buscar configurações do backend
  */
 export const getAppConfig = (): AppConfig => {
-  // Por enquanto, retorna a configuração padrão
-  // Futuramente, verificará localStorage ou fará chamada ao backend
-  const savedConfig = localStorage.getItem('appConfig');
-  
-  if (savedConfig) {
-    try {
-      return { ...defaultConfig, ...JSON.parse(savedConfig) };
-    } catch {
-      return defaultConfig;
-    }
-  }
-  
+  console.warn('appConfig.getAppConfig() está deprecated. Use configService.getAppConfig()');
   return defaultConfig;
 };
 
 /**
- * Atualiza configurações (apenas localStorage por enquanto)
+ * Atualiza configurações (DEPRECATED)
  * 
- * TODO: Quando tivermos backend de configurações, sincronizar aqui
+ * @deprecated As configurações agora são gerenciadas via API backend.
+ * Use o painel de administração em /admin-site/settings
  */
 export const updateAppConfig = (newConfig: Partial<AppConfig>): void => {
-  const current = getAppConfig();
-  const updated = { ...current, ...newConfig };
-  localStorage.setItem('appConfig', JSON.stringify(updated));
+  console.error('updateAppConfig() está deprecated. Use o painel de administração /admin-site/settings');
 };

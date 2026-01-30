@@ -83,6 +83,38 @@ class StatusCartela(str, enum.Enum):
     PERDEDORA = "perdedora"       # Não venceu
 
 
+class TipoConfiguracao(str, enum.Enum):
+    """Tipo de dado da configuração."""
+    NUMBER = "number"     # Número (int ou float)
+    BOOLEAN = "boolean"   # Verdadeiro/Falso
+    STRING = "string"     # Texto
+
+
+class CategoriaConfiguracao(str, enum.Enum):
+    """Categoria da configuração."""
+    MENSAGENS = "mensagens"                 # Mensagens e notificações
+    SEGURANCA = "seguranca"                 # Segurança e autenticação
+    CARRINHO = "carrinho"                   # Carrinho de cartelas
+    FORMULARIOS = "formularios"             # Formulários e rascunhos
+    RECUPERACAO_SENHA = "recuperacao_senha" # Recuperação de senha
+
+
+class TipoFeedback(str, enum.Enum):
+    """Tipo de feedback do usuário."""
+    SUGESTAO = "sugestao"       # Sugestão de melhoria
+    ELOGIO = "elogio"           # Elogio/satisfação
+    RECLAMACAO = "reclamacao"   # Reclamação/problema
+    BUG = "bug"                 # Reporte de bug técnico
+
+
+class StatusFeedback(str, enum.Enum):
+    """Status do feedback."""
+    PENDENTE = "pendente"       # Aguardando análise
+    EM_ANALISE = "em_analise"   # Sendo analisado
+    RESOLVIDO = "resolvido"     # Resolvido/respondido
+    ARQUIVADO = "arquivado"     # Arquivado
+
+
 # ============================================================================
 # MODELO: PARÓQUIA
 # ============================================================================
@@ -364,6 +396,159 @@ class Cartela(Base):
 
 
 # ============================================================================
+# MODELO: CONFIGURAÇÃO
+# ============================================================================
+
+class Configuracao(Base):
+    """
+    Representa uma configuração global do sistema.
+    
+    Permite ao Super Admin ajustar parâmetros do sistema
+    via interface web, sem necessidade de editar código.
+    
+    Configurações incluem:
+    - Timeouts de sessão e mensagens
+    - Políticas de segurança (tentativas de login, bloqueios)
+    - Comportamento de carrinho de compras
+    - Configurações de formulários
+    - Tokens de recuperação de senha
+    """
+    __tablename__ = "configuracoes"
+    
+    # Primary Key (chave única da configuração)
+    chave = Column(String(100), primary_key=True, index=True)
+    
+    # Valor da configuração (armazenado como string, interpretado conforme tipo)
+    valor = Column(String(500), nullable=False)
+    
+    # Tipo de dado (number, boolean, string)
+    tipo = Column(SQLEnum(TipoConfiguracao), nullable=False)
+    
+    # Categoria para organização na UI
+    categoria = Column(SQLEnum(CategoriaConfiguracao), nullable=False, index=True)
+    
+    # Descrição para exibir na interface
+    descricao = Column(Text, nullable=False)
+    
+    # Auditoria
+    alterado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="Última alteração (timezone: America/Fortaleza)"
+    )
+    alterado_por_id = Column(String(50), nullable=True)  # ID do Super Admin que alterou
+    
+    def __repr__(self):
+        return f"<Configuracao(chave={self.chave}, valor={self.valor})>"
+
+
+# ============================================================================
+# MODELO: FEEDBACK
+# ============================================================================
+
+class Feedback(Base):
+    """
+    Representa um feedback enviado por usuário.
+    
+    Sistema preparado para análise por IA no futuro:
+    - Campos estruturados para classificação automática
+    - Tags para categorização por ML
+    - Análise de sentimento
+    - Priorização inteligente
+    
+    Tipos de feedback:
+    - Sugestão: Ideias de melhoria
+    - Elogio: Satisfação com o sistema
+    - Reclamação: Problemas ou insatisfações
+    - Bug: Erros técnicos
+    """
+    __tablename__ = "feedbacks"
+    
+    # Primary Key (ID Temporal)
+    id = Column(String(50), primary_key=True, index=True)
+    
+    # Associação com usuário
+    usuario_id = Column(String(50), ForeignKey("usuarios.id"), nullable=False, index=True)
+    
+    # Tipo e conteúdo
+    tipo = Column(SQLEnum(TipoFeedback), nullable=False, index=True)
+    assunto = Column(String(200), nullable=False)
+    mensagem = Column(Text, nullable=False)
+    
+    # Avaliação de satisfação (1-5 estrelas)
+    satisfacao = Column(Integer, nullable=False)  # 1=péssimo, 5=excelente
+    
+    # Status do feedback
+    status = Column(SQLEnum(StatusFeedback), nullable=False, default=StatusFeedback.PENDENTE, index=True)
+    
+    # Resposta administrativa
+    resposta = Column(Text, nullable=True)
+    respondido_por_id = Column(String(50), ForeignKey("usuarios.id"), nullable=True)
+    respondido_em = Column(DateTime(timezone=True), nullable=True)
+    
+    # ========================================================================
+    # CAMPOS PARA ANÁLISE POR IA (FUTURO)
+    # ========================================================================
+    
+    # Tags automáticas geradas por IA
+    tags = Column(
+        JSON,
+        nullable=True,
+        default=[],
+        comment="Tags extraídas por IA: ['ui', 'performance', 'pagamento', etc]"
+    )
+    
+    # Análise de sentimento (-1 a 1: negativo, neutro, positivo)
+    sentimento_score = Column(Float, nullable=True, comment="Score de sentimento gerado por IA")
+    
+    # Categoria automática identificada por IA
+    categoria_ia = Column(
+        String(100),
+        nullable=True,
+        comment="Categoria identificada por IA: 'UX', 'Performance', 'Bug Crítico', etc"
+    )
+    
+    # Prioridade sugerida por IA (1-5)
+    prioridade_ia = Column(
+        Integer,
+        nullable=True,
+        comment="Prioridade sugerida por IA baseada em sentimento, tipo, urgência"
+    )
+    
+    # ========================================================================
+    # METADADOS
+    # ========================================================================
+    
+    # Contexto técnico (opcional)
+    user_agent = Column(String(500), nullable=True)  # Navegador/dispositivo
+    url_origem = Column(String(500), nullable=True)  # Página onde enviou feedback
+    
+    # Timestamps
+    criado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="Timestamp de criação (timezone: America/Fortaleza)"
+    )
+    atualizado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="Timestamp de atualização (timezone: America/Fortaleza)"
+    )
+    
+    # Relacionamentos
+    usuario = relationship("Usuario", foreign_keys=[usuario_id])
+    respondido_por = relationship("Usuario", foreign_keys=[respondido_por_id])
+    
+    def __repr__(self):
+        return f"<Feedback(id={self.id}, tipo={self.tipo}, usuario_id={self.usuario_id})>"
+
+
+# ============================================================================
 # EXPORTAÇÕES
 # ============================================================================
 
@@ -372,8 +557,14 @@ __all__ = [
     'TipoUsuario',
     'StatusSorteio',
     'StatusCartela',
+    'TipoConfiguracao',
+    'CategoriaConfiguracao',
+    'TipoFeedback',
+    'StatusFeedback',
     'Paroquia',
     'Usuario',
     'Sorteio',
     'Cartela',
+    'Configuracao',
+    'Feedback',
 ]

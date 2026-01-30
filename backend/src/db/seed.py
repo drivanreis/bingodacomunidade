@@ -17,7 +17,7 @@ import logging
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
-from src.models.models import Usuario, TipoUsuario, Paroquia
+from src.models.models import Usuario, TipoUsuario, Paroquia, Configuracao, TipoConfiguracao, CategoriaConfiguracao
 from src.utils.time_manager import generate_temporal_id_with_microseconds
 
 logger = logging.getLogger(__name__)
@@ -146,6 +146,129 @@ def seed_database(db: Session) -> bool:
         logger.info("  🌐 FIELs podem se cadastrar imediatamente em /auth/signup")
         logger.info("")
         logger.info("=" * 70)
+        
+        # ====================================================================
+        # CRIAR CONFIGURAÇÕES PADRÃO DO SISTEMA
+        # ====================================================================
+        
+        logger.info("🔧 Criando configurações padrão do sistema...")
+        
+        configs_default = [
+            # MENSAGENS E NOTIFICAÇÕES
+            Configuracao(
+                chave="errorMessageDuration",
+                valor="3.0",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="Duração de exibição de mensagens de erro (em segundos)"
+            ),
+            Configuracao(
+                chave="successMessageDuration",
+                valor="2.0",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="Duração de exibição de mensagens de sucesso (em segundos)"
+            ),
+            
+            # SEGURANÇA E AUTENTICAÇÃO
+            Configuracao(
+                chave="maxLoginAttempts",
+                valor="5",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.SEGURANCA,
+                descricao="Máximo de tentativas de login antes de bloquear temporariamente"
+            ),
+            Configuracao(
+                chave="lockoutDuration",
+                valor="15",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.SEGURANCA,
+                descricao="Tempo de bloqueio após exceder tentativas (em minutos)"
+            ),
+            Configuracao(
+                chave="tokenExpirationHours",
+                valor="16",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.SEGURANCA,
+                descricao="Tempo de validade do token JWT (em horas) - Máximo 16 horas"
+            ),
+            Configuracao(
+                chave="inactivityTimeout",
+                valor="15",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.SEGURANCA,
+                descricao="Tempo de inatividade antes de logout automático (em minutos)"
+            ),
+            Configuracao(
+                chave="inactivityWarningMinutes",
+                valor="2",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.SEGURANCA,
+                descricao="Avisar usuário X minutos antes de logout por inatividade"
+            ),
+            
+            # CARRINHO DE CARTELAS
+            Configuracao(
+                chave="cartExpirationMinutes",
+                valor="30",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.CARRINHO,
+                descricao="Tempo máximo que cartelas não pagas ficam no carrinho (em minutos)"
+            ),
+            Configuracao(
+                chave="autoCleanExpiredCarts",
+                valor="true",
+                tipo=TipoConfiguracao.BOOLEAN,
+                categoria=CategoriaConfiguracao.CARRINHO,
+                descricao="Limpar automaticamente carrinhos de jogos que já iniciaram"
+            ),
+            Configuracao(
+                chave="autoCleanFinishedGameCarts",
+                valor="true",
+                tipo=TipoConfiguracao.BOOLEAN,
+                categoria=CategoriaConfiguracao.CARRINHO,
+                descricao="Limpar automaticamente carrinhos de jogos finalizados"
+            ),
+            
+            # FORMULÁRIOS E RASCUNHOS
+            Configuracao(
+                chave="warnOnUnsavedForm",
+                valor="true",
+                tipo=TipoConfiguracao.BOOLEAN,
+                categoria=CategoriaConfiguracao.FORMULARIOS,
+                descricao="Avisar ao sair de formulário não salvo"
+            ),
+            Configuracao(
+                chave="autoSaveDraftSeconds",
+                valor="0",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.FORMULARIOS,
+                descricao="Salvar rascunho automaticamente a cada X segundos (0 = desabilitado)"
+            ),
+            
+            # RECUPERAÇÃO DE SENHA
+            Configuracao(
+                chave="passwordResetTokenMinutes",
+                valor="30",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.RECUPERACAO_SENHA,
+                descricao="Tempo de validade do token de recuperação de senha (em minutos)"
+            ),
+            Configuracao(
+                chave="emailVerificationTokenHours",
+                valor="24",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.RECUPERACAO_SENHA,
+                descricao="Tempo de validade do token de verificação de email (em horas)"
+            ),
+        ]
+        
+        for config in configs_default:
+            db.add(config)
+        
+        db.commit()
+        
+        logger.info(f"✓ {len(configs_default)} configurações padrão criadas")
         
         return True
         

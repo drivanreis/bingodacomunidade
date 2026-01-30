@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 interface Feedback {
-  id: number;
+  id: string;
+  usuario_id: string;
   usuario_nome: string;
   paroquia_nome?: string;
   tipo: 'sugestao' | 'elogio' | 'reclamacao' | 'bug';
@@ -14,10 +17,16 @@ interface Feedback {
   respondido_por?: string;
   criado_em: string;
   respondido_em?: string;
+  // Campos de IA (futuros)
+  tags?: string[];
+  sentimento_score?: number;
+  categoria_ia?: string;
+  prioridade_ia?: number;
 }
 
 const FeedbackSystem: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('todos');
@@ -33,57 +42,8 @@ const FeedbackSystem: React.FC = () => {
   const loadFeedbacks = async () => {
     setLoading(true);
     try {
-      // Simula carregamento de feedbacks
-      // Na implementação real, isso viria de um endpoint
-      const mockFeedbacks: Feedback[] = [
-        {
-          id: 1,
-          usuario_nome: 'João Silva',
-          paroquia_nome: 'São José',
-          tipo: 'sugestao',
-          assunto: 'Melhorar interface de compra de cartelas',
-          mensagem: 'Seria interessante ter uma visualização prévia das cartelas antes da compra.',
-          satisfacao: 4,
-          status: 'pendente',
-          criado_em: new Date().toISOString()
-        },
-        {
-          id: 2,
-          usuario_nome: 'Maria Santos',
-          tipo: 'elogio',
-          assunto: 'Excelente sistema!',
-          mensagem: 'Parabéns pelo sistema, muito fácil de usar e intuitivo.',
-          satisfacao: 5,
-          status: 'resolvido',
-          resposta: 'Obrigado pelo feedback! Ficamos felizes que esteja gostando.',
-          respondido_por: 'Admin',
-          criado_em: new Date(Date.now() - 86400000).toISOString(),
-          respondido_em: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          id: 3,
-          usuario_nome: 'Pedro Costa',
-          paroquia_nome: 'São José',
-          tipo: 'bug',
-          assunto: 'Erro ao finalizar pagamento',
-          mensagem: 'Tentei finalizar o pagamento mas recebi erro 500.',
-          satisfacao: 2,
-          status: 'em_analise',
-          criado_em: new Date(Date.now() - 172800000).toISOString()
-        },
-        {
-          id: 4,
-          usuario_nome: 'Ana Paula',
-          tipo: 'reclamacao',
-          assunto: 'Demora no suporte',
-          mensagem: 'Enviei uma mensagem há 3 dias e ainda não obtive resposta.',
-          satisfacao: 2,
-          status: 'pendente',
-          criado_em: new Date(Date.now() - 259200000).toISOString()
-        }
-      ];
-
-      setFeedbacks(mockFeedbacks);
+      const response = await api.get('/feedbacks');
+      setFeedbacks(response.data);
     } catch (error) {
       console.error('Erro ao carregar feedbacks:', error);
       alert('Erro ao carregar feedbacks');
@@ -107,38 +67,29 @@ const FeedbackSystem: React.FC = () => {
     }
 
     try {
-      // Simula envio da resposta
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Atualiza o feedback localmente
-      setFeedbacks(feedbacks.map(f => 
-        f.id === selectedFeedback?.id 
-          ? { 
-              ...f, 
-              resposta, 
-              status: 'resolvido',
-              respondido_por: 'Admin',
-              respondido_em: new Date().toISOString()
-            } 
-          : f
-      ));
+      await api.put(`/feedbacks/${selectedFeedback?.id}/responder`, null, {
+        params: {
+          resposta: resposta.trim(),
+          respondido_por_id: user?.id
+        }
+      });
       
       alert('Resposta enviada com sucesso!');
       closeModal();
+      loadFeedbacks(); // Recarrega a lista
     } catch (error) {
       console.error('Erro ao enviar resposta:', error);
       alert('Erro ao enviar resposta');
     }
   };
 
-  const handleChangeStatus = async (id: number, newStatus: string) => {
+  const handleChangeStatus = async (id: string, newStatus: string) => {
     try {
-      // Simula mudança de status
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await api.put(`/feedbacks/${id}/status`, null, {
+        params: { novo_status: newStatus }
+      });
       
-      setFeedbacks(feedbacks.map(f => 
-        f.id === id ? { ...f, status: newStatus as Feedback['status'] } : f
-      ));
+      loadFeedbacks(); // Recarrega a lista
     } catch (error) {
       console.error('Erro ao alterar status:', error);
       alert('Erro ao alterar status');
@@ -328,7 +279,9 @@ const FeedbackSystem: React.FC = () => {
       {filteredFeedbacks.length === 0 ? (
         <div className="card">
           <div className="card-body text-center py-5">
+            <i className="bi bi-inbox fs-1 text-muted mb-3"></i>
             <p className="text-muted">Nenhum feedback encontrado</p>
+            <p className="text-muted small">Os feedbacks dos usuários aparecerão aqui</p>
           </div>
         </div>
       ) : (
@@ -378,7 +331,7 @@ const FeedbackSystem: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="d-flex gap-2">
+                  <div className="d-flex gap-2 flex-wrap">
                     <button
                       className="btn btn-sm btn-primary"
                       onClick={() => handleResponder(feedback)}

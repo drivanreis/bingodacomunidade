@@ -11,8 +11,9 @@ from typing import List
 from datetime import datetime
 
 from src.db.base import get_db
-from src.models.models import Paroquia, Usuario, Sorteio, TipoUsuario
+from src.models.models import Paroquia, Usuario, Sorteio, TipoUsuario, Configuracao, Feedback, TipoFeedback, StatusFeedback
 from src.utils.auth import hash_password
+from src.utils.time_manager import generate_temporal_id_with_microseconds
 
 router = APIRouter(tags=["Admin"])
 
@@ -437,4 +438,296 @@ def listar_jogos(db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao listar jogos: {str(e)}"
+        )
+
+
+# ============================================================================
+# CONFIGURAÇÕES - CRUD
+# ============================================================================
+
+@router.get("/configuracoes", tags=["Admin - Configurações"])
+def listar_configuracoes(db: Session = Depends(get_db)):
+    """Lista todas as configurações do sistema"""
+    try:
+        configs = db.query(Configuracao).all()
+        return [
+            {
+                "chave": c.chave,
+                "valor": c.valor,
+                "tipo": c.tipo.value,
+                "categoria": c.categoria.value,
+                "descricao": c.descricao,
+                "alterado_em": c.alterado_em.isoformat() if c.alterado_em else None,
+                "alterado_por_id": c.alterado_por_id
+            }
+            for c in configs
+        ]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao listar configurações: {str(e)}"
+        )
+
+
+@router.put("/configuracoes/{chave}", tags=["Admin - Configurações"])
+def atualizar_configuracao(
+    chave: str,
+    valor: str,
+    db: Session = Depends(get_db)
+):
+    """Atualiza o valor de uma configuração"""
+    try:
+        config = db.query(Configuracao).filter(Configuracao.chave == chave).first()
+        
+        if not config:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Configuração '{chave}' não encontrada"
+            )
+        
+        # Atualiza o valor
+        config.valor = valor
+        config.alterado_em = datetime.now()
+        # TODO: Pegar ID do usuário autenticado do token JWT
+        # config.alterado_por_id = usuario_id_do_token
+        
+        db.commit()
+        db.refresh(config)
+        
+        return {
+            "chave": config.chave,
+            "valor": config.valor,
+            "tipo": config.tipo.value,
+            "categoria": config.categoria.value,
+            "descricao": config.descricao,
+            "alterado_em": config.alterado_em.isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao atualizar configuração: {str(e)}"
+        )
+
+
+# ============================================================================
+# FEEDBACKS - CRUD
+# ============================================================================
+
+@router.post("/feedbacks", tags=["Feedbacks"])
+def criar_feedback(
+    usuario_id: str,
+    tipo: str,
+    assunto: str,
+    mensagem: str,
+    satisfacao: int,
+    user_agent: str = None,
+    url_origem: str = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Cria um novo feedback (usado por qualquer usuário autenticado).
+    
+    Parâmetros preparados para análise futura por IA.
+    """
+    try:
+        # Valida satisfacao
+        if satisfacao < 1 or satisfacao > 5:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Satisfação deve ser entre 1 e 5"
+            )
+        
+        # Valida tipo
+        try:
+            tipo_enum = TipoFeedback(tipo)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tipo inválido. Use: {', '.join([t.value for t in TipoFeedback])}"
+            )
+        
+        # Verifica se usuário existe
+        usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+        if not usuario:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuário não encontrado"
+            )
+        
+        # Cria feedback
+        feedback = Feedback(
+            id=generate_temporal_id_with_microseconds('FDB'),
+            usuario_id=usuario_id,
+            tipo=tipo_enum,
+            assunto=assunto,
+            mensagem=mensagem,
+            satisfacao=satisfacao,
+            status=StatusFeedback.PENDENTE,
+            user_agent=user_agent,
+            url_origem=url_origem,
+            tags=[],  # Futuramente preenchido por IA
+            sentimento_score=None,  # Futuramente calculado por IA
+            categoria_ia=None,  # Futuramente classificado por IA
+            prioridade_ia=None  # Futuramente calculado por IA
+        )
+        
+        db.add(feedback)
+        db.commit()
+        db.refresh(feedback)
+        
+        return {
+            "id": feedback.id,
+            "tipo": feedback.tipo.value,
+            "assunto": feedback.assunto,
+            "status": feedback.status.value,
+            "criado_em": feedback.criado_em.isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao criar feedback: {str(e)}"
+        )
+
+
+@router.get("/feedbacks", tags=["Admin - Feedbacks"])
+def listar_feedbacks(db: Session = Depends(get_db)):
+    """Lista todos os feedbacks (apenas Super Admin)"""
+    try:
+        feedbacks = db.query(Feedback).order_by(Feedback.criado_em.desc()).all()
+        
+        resultado = []
+        for f in feedbacks:
+            # Busca dados do usuário
+            usuario = db.query(Usuario).filter(Usuario.id == f.usuario_id).first()
+            usuario_nome = usuario.nome if usuario else "Usuário Desconhecido"
+            
+            # Busca paróquia do usuário (se tiver)
+            paroquia_nome = None
+            if usuario and usuario.paroquia_id:
+                paroquia = db.query(Paroquia).filter(Paroquia.id == usuario.paroquia_id).first()
+                paroquia_nome = paroquia.nome if paroquia else None
+            
+            # Busca quem respondeu (se foi respondido)
+            respondido_por_nome = None
+            if f.respondido_por_id:
+                respondido_por = db.query(Usuario).filter(Usuario.id == f.respondido_por_id).first()
+                respondido_por_nome = respondido_por.nome if respondido_por else None
+            
+            resultado.append({
+                "id": f.id,
+                "usuario_id": f.usuario_id,
+                "usuario_nome": usuario_nome,
+                "paroquia_nome": paroquia_nome,
+                "tipo": f.tipo.value,
+                "assunto": f.assunto,
+                "mensagem": f.mensagem,
+                "satisfacao": f.satisfacao,
+                "status": f.status.value,
+                "resposta": f.resposta,
+                "respondido_por": respondido_por_nome,
+                "respondido_em": f.respondido_em.isoformat() if f.respondido_em else None,
+                "criado_em": f.criado_em.isoformat(),
+                # Campos para IA (futuros)
+                "tags": f.tags or [],
+                "sentimento_score": f.sentimento_score,
+                "categoria_ia": f.categoria_ia,
+                "prioridade_ia": f.prioridade_ia
+            })
+        
+        return resultado
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao listar feedbacks: {str(e)}"
+        )
+
+
+@router.put("/feedbacks/{feedback_id}/responder", tags=["Admin - Feedbacks"])
+def responder_feedback(
+    feedback_id: str,
+    resposta: str,
+    respondido_por_id: str,
+    db: Session = Depends(get_db)
+):
+    """Responde a um feedback (apenas Super Admin)"""
+    try:
+        feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+        
+        if not feedback:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Feedback não encontrado"
+            )
+        
+        # Atualiza feedback
+        feedback.resposta = resposta
+        feedback.respondido_por_id = respondido_por_id
+        feedback.respondido_em = datetime.now()
+        feedback.status = StatusFeedback.RESOLVIDO
+        
+        db.commit()
+        db.refresh(feedback)
+        
+        return {
+            "id": feedback.id,
+            "status": feedback.status.value,
+            "resposta": feedback.resposta,
+            "respondido_em": feedback.respondido_em.isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao responder feedback: {str(e)}"
+        )
+
+
+@router.put("/feedbacks/{feedback_id}/status", tags=["Admin - Feedbacks"])
+def atualizar_status_feedback(
+    feedback_id: str,
+    novo_status: str,
+    db: Session = Depends(get_db)
+):
+    """Atualiza o status de um feedback"""
+    try:
+        feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+        
+        if not feedback:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Feedback não encontrado"
+            )
+        
+        # Valida status
+        try:
+            status_enum = StatusFeedback(novo_status)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Status inválido. Use: {', '.join([s.value for s in StatusFeedback])}"
+            )
+        
+        feedback.status = status_enum
+        db.commit()
+        db.refresh(feedback)
+        
+        return {
+            "id": feedback.id,
+            "status": feedback.status.value
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao atualizar status: {str(e)}"
         )

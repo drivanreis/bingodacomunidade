@@ -1,35 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
-interface Settings {
-  sistema_nome: string;
-  sistema_descricao: string;
-  manutencao_ativo: boolean;
-  manutencao_mensagem: string;
-  email_notificacoes: string;
-  max_cartelas_por_jogo: number;
-  valor_minimo_cartela: number;
-  tempo_confirmacao_pagamento: number;
-  permitir_cadastro_publico: boolean;
-  requer_confirmacao_email: boolean;
+interface Configuracao {
+  chave: string;
+  valor: string;
+  tipo: 'number' | 'boolean' | 'string';
+  categoria: 'mensagens' | 'seguranca' | 'carrinho' | 'formularios' | 'recuperacao_senha';
+  descricao: string;
+  alterado_em?: string;
+}
+
+interface ConfigsPorCategoria {
+  mensagens: Configuracao[];
+  seguranca: Configuracao[];
+  carrinho: Configuracao[];
+  formularios: Configuracao[];
+  recuperacao_senha: Configuracao[];
 }
 
 const SystemSettings: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [settings, setSettings] = useState<Settings>({
-    sistema_nome: 'Bingo da Comunidade',
-    sistema_descricao: 'Sistema de gerenciamento de bingos paroquiais',
-    manutencao_ativo: false,
-    manutencao_mensagem: 'Sistema em manutenção. Voltamos em breve!',
-    email_notificacoes: '',
-    max_cartelas_por_jogo: 100,
-    valor_minimo_cartela: 5.0,
-    tempo_confirmacao_pagamento: 30,
-    permitir_cadastro_publico: true,
-    requer_confirmacao_email: false
-  });
+  const [configs, setConfigs] = useState<Configuracao[]>([]);
+  const [editedValues, setEditedValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadSettings();
@@ -38,59 +33,195 @@ const SystemSettings: React.FC = () => {
   const loadSettings = async () => {
     setLoading(true);
     try {
-      // Simula carregamento de configurações
-      // Na implementação real, isso viria de um endpoint
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await api.get('/configuracoes');
+      setConfigs(response.data);
       
-      // Por enquanto, mantém os valores padrão
-      console.log('Configurações carregadas');
+      // Inicializa valores editáveis
+      const initialValues: Record<string, string> = {};
+      response.data.forEach((config: Configuracao) => {
+        initialValues[config.chave] = config.valor;
+      });
+      setEditedValues(initialValues);
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
+      alert('Erro ao carregar configurações do sistema');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setSaved(false);
-
+  const handleSave = async (chave: string) => {
     try {
-      // Simula salvamento
-      // Na implementação real, isso enviaria para um endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const valor = editedValues[chave];
+      await api.put(`/configuracoes/${chave}`, null, {
+        params: { valor }
+      });
       
-      console.log('Configurações salvas:', settings);
+      // Atualiza a lista local
+      setConfigs(prev => prev.map(c => 
+        c.chave === chave ? { ...c, valor, alterado_em: new Date().toISOString() } : c
+      ));
+      
       setSaved(true);
-      
-      setTimeout(() => setSaved(false), 3000);
+      setTimeout(() => setSaved(false), 2000);
     } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
-      alert('Erro ao salvar configurações');
-    } finally {
-      setLoading(false);
+      console.error(`Erro ao salvar ${chave}:`, error);
+      alert(`Erro ao salvar configuração`);
     }
   };
 
-  const handleReset = () => {
-    if (!confirm('Tem certeza que deseja restaurar as configurações padrão?')) {
-      return;
-    }
+  const handleChange = (chave: string, valor: string) => {
+    setEditedValues(prev => ({ ...prev, [chave]: valor }));
+  };
 
-    setSettings({
-      sistema_nome: 'Bingo da Comunidade',
-      sistema_descricao: 'Sistema de gerenciamento de bingos paroquiais',
-      manutencao_ativo: false,
-      manutencao_mensagem: 'Sistema em manutenção. Voltamos em breve!',
-      email_notificacoes: '',
-      max_cartelas_por_jogo: 100,
-      valor_minimo_cartela: 5.0,
-      tempo_confirmacao_pagamento: 30,
-      permitir_cadastro_publico: true,
-      requer_confirmacao_email: false
+  const groupByCategory = (): ConfigsPorCategoria => {
+    const grouped: ConfigsPorCategoria = {
+      mensagens: [],
+      seguranca: [],
+      carrinho: [],
+      formularios: [],
+      recuperacao_senha: []
+    };
+
+    configs.forEach(config => {
+      grouped[config.categoria].push(config);
     });
+
+    return grouped;
   };
+
+  const renderConfigField = (config: Configuracao) => {
+    const currentValue = editedValues[config.chave] || config.valor;
+    const hasChanged = currentValue !== config.valor;
+
+    if (config.tipo === 'boolean') {
+      return (
+        <div className="mb-4 pb-3 border-bottom">
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <div className="form-check form-switch">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id={config.chave}
+                  checked={currentValue === 'true'}
+                  onChange={(e) => handleChange(config.chave, e.target.checked ? 'true' : 'false')}
+                />
+                <label className="form-check-label fw-bold" htmlFor={config.chave}>
+                  {formatLabel(config.chave)}
+                </label>
+              </div>
+              <small className="text-muted d-block ms-4">{config.descricao}</small>
+            </div>
+            {hasChanged && (
+              <button
+                className="btn btn-sm btn-primary"
+                onClick={() => handleSave(config.chave)}
+              >
+                <i className="bi bi-check-lg"></i> Salvar
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (config.tipo === 'number') {
+      return (
+        <div className="mb-4 pb-3 border-bottom">
+          <label className="form-label fw-bold">{formatLabel(config.chave)}</label>
+          <small className="text-muted d-block mb-2">{config.descricao}</small>
+          <div className="d-flex gap-2">
+            <input
+              type="number"
+              className="form-control"
+              value={currentValue}
+              onChange={(e) => handleChange(config.chave, e.target.value)}
+              step={config.chave.includes('Duration') ? '0.1' : '1'}
+              min="0"
+            />
+            {hasChanged && (
+              <button
+                className="btn btn-primary"
+                onClick={() => handleSave(config.chave)}
+              >
+                <i className="bi bi-check-lg"></i> Salvar
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // string
+    return (
+      <div className="mb-4 pb-3 border-bottom">
+        <label className="form-label fw-bold">{formatLabel(config.chave)}</label>
+        <small className="text-muted d-block mb-2">{config.descricao}</small>
+        <div className="d-flex gap-2">
+          <input
+            type="text"
+            className="form-control"
+            value={currentValue}
+            onChange={(e) => handleChange(config.chave, e.target.value)}
+          />
+          {hasChanged && (
+            <button
+              className="btn btn-primary"
+              onClick={() => handleSave(config.chave)}
+            >
+              <i className="bi bi-check-lg"></i> Salvar
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const formatLabel = (chave: string): string => {
+    // Converte camelCase para Título Com Espaços
+    return chave
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+  };
+
+  const getCategoryTitle = (categoria: string): string => {
+    const titles: Record<string, string> = {
+      mensagens: 'Mensagens e Notificações',
+      seguranca: 'Segurança e Autenticação',
+      carrinho: 'Carrinho de Cartelas',
+      formularios: 'Formulários e Rascunhos',
+      recuperacao_senha: 'Recuperação de Senha'
+    };
+    return titles[categoria] || categoria;
+  };
+
+  const getCategoryIcon = (categoria: string): string => {
+    const icons: Record<string, string> = {
+      mensagens: 'bi-chat-dots',
+      seguranca: 'bi-shield-lock',
+      carrinho: 'bi-cart3',
+      formularios: 'bi-file-earmark-text',
+      recuperacao_senha: 'bi-key'
+    };
+    return icons[categoria] || 'bi-gear';
+  };
+
+  const grouped = groupByCategory();
+
+  if (loading && configs.length === 0) {
+    return (
+      <div className="container mt-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
+          </div>
+          <p className="mt-3">Carregando configurações...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mt-4">
@@ -109,205 +240,104 @@ const SystemSettings: React.FC = () => {
       {saved && (
         <div className="alert alert-success alert-dismissible fade show" role="alert">
           <i className="bi bi-check-circle me-2"></i>
-          Configurações salvas com sucesso!
+          Configuração salva com sucesso!
           <button type="button" className="btn-close" onClick={() => setSaved(false)}></button>
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        {/* Informações Gerais */}
-        <div className="card mb-4">
-          <div className="card-header">
-            <h5 className="mb-0">Informações Gerais</h5>
-          </div>
-          <div className="card-body">
-            <div className="mb-3">
-              <label className="form-label">Nome do Sistema</label>
-              <input
-                type="text"
-                className="form-control"
-                value={settings.sistema_nome}
-                onChange={(e) => setSettings({...settings, sistema_nome: e.target.value})}
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Descrição</label>
-              <textarea
-                className="form-control"
-                rows={3}
-                value={settings.sistema_descricao}
-                onChange={(e) => setSettings({...settings, sistema_descricao: e.target.value})}
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">E-mail para Notificações</label>
-              <input
-                type="email"
-                className="form-control"
-                value={settings.email_notificacoes}
-                onChange={(e) => setSettings({...settings, email_notificacoes: e.target.value})}
-                placeholder="admin@exemplo.com"
-              />
-              <small className="text-muted">E-mail que receberá notificações do sistema</small>
-            </div>
-          </div>
-        </div>
+      <div className="alert alert-info mb-4">
+        <i className="bi bi-info-circle me-2"></i>
+        <strong>Configurações Centralizadas:</strong> Todas as alterações são salvas individualmente e aplicadas imediatamente no sistema.
+      </div>
 
-        {/* Modo de Manutenção */}
+      {/* Mensagens e Notificações */}
+      {grouped.mensagens.length > 0 && (
         <div className="card mb-4">
-          <div className="card-header">
-            <h5 className="mb-0">Modo de Manutenção</h5>
+          <div className="card-header bg-primary text-white">
+            <h5 className="mb-0">
+              <i className={`${getCategoryIcon('mensagens')} me-2`}></i>
+              {getCategoryTitle('mensagens')}
+            </h5>
           </div>
           <div className="card-body">
-            <div className="mb-3">
-              <div className="form-check form-switch">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="manutencaoSwitch"
-                  checked={settings.manutencao_ativo}
-                  onChange={(e) => setSettings({...settings, manutencao_ativo: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="manutencaoSwitch">
-                  Ativar Modo de Manutenção
-                </label>
-              </div>
-              <small className="text-muted">
-                Quando ativo, apenas administradores poderão acessar o sistema
-              </small>
-            </div>
-            {settings.manutencao_ativo && (
-              <div className="mb-3">
-                <label className="form-label">Mensagem de Manutenção</label>
-                <textarea
-                  className="form-control"
-                  rows={2}
-                  value={settings.manutencao_mensagem}
-                  onChange={(e) => setSettings({...settings, manutencao_mensagem: e.target.value})}
-                />
-              </div>
-            )}
+            {grouped.mensagens.map(config => (
+              <div key={config.chave}>{renderConfigField(config)}</div>
+            ))}
           </div>
         </div>
+      )}
 
-        {/* Configurações de Jogos */}
+      {/* Segurança e Autenticação */}
+      {grouped.seguranca.length > 0 && (
         <div className="card mb-4">
-          <div className="card-header">
-            <h5 className="mb-0">Configurações de Jogos</h5>
+          <div className="card-header bg-danger text-white">
+            <h5 className="mb-0">
+              <i className={`${getCategoryIcon('seguranca')} me-2`}></i>
+              {getCategoryTitle('seguranca')}
+            </h5>
           </div>
           <div className="card-body">
-            <div className="row">
-              <div className="col-md-4 mb-3">
-                <label className="form-label">Máximo de Cartelas por Jogo</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={settings.max_cartelas_por_jogo}
-                  onChange={(e) => setSettings({...settings, max_cartelas_por_jogo: parseInt(e.target.value)})}
-                  min="1"
-                />
-              </div>
-              <div className="col-md-4 mb-3">
-                <label className="form-label">Valor Mínimo da Cartela (R$)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={settings.valor_minimo_cartela}
-                  onChange={(e) => setSettings({...settings, valor_minimo_cartela: parseFloat(e.target.value)})}
-                  min="0"
-                  step="0.50"
-                />
-              </div>
-              <div className="col-md-4 mb-3">
-                <label className="form-label">Tempo Confirmação Pagamento (min)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={settings.tempo_confirmacao_pagamento}
-                  onChange={(e) => setSettings({...settings, tempo_confirmacao_pagamento: parseInt(e.target.value)})}
-                  min="5"
-                />
-              </div>
+            <div className="alert alert-warning">
+              <i className="bi bi-exclamation-triangle me-2"></i>
+              <strong>Configurações de Segurança Nível Bancário:</strong> Altere com cuidado. Estas configurações afetam a segurança de todo o sistema.
             </div>
+            {grouped.seguranca.map(config => (
+              <div key={config.chave}>{renderConfigField(config)}</div>
+            ))}
           </div>
         </div>
+      )}
 
-        {/* Configurações de Usuários */}
+      {/* Carrinho de Cartelas */}
+      {grouped.carrinho.length > 0 && (
         <div className="card mb-4">
-          <div className="card-header">
-            <h5 className="mb-0">Configurações de Usuários</h5>
+          <div className="card-header bg-success text-white">
+            <h5 className="mb-0">
+              <i className={`${getCategoryIcon('carrinho')} me-2`}></i>
+              {getCategoryTitle('carrinho')}
+            </h5>
           </div>
           <div className="card-body">
-            <div className="mb-3">
-              <div className="form-check form-switch">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="cadastroPublico"
-                  checked={settings.permitir_cadastro_publico}
-                  onChange={(e) => setSettings({...settings, permitir_cadastro_publico: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="cadastroPublico">
-                  Permitir Cadastro Público
-                </label>
-              </div>
-              <small className="text-muted">
-                Permite que usuários se cadastrem sem aprovação prévia
-              </small>
-            </div>
-            <div className="mb-3">
-              <div className="form-check form-switch">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="confirmarEmail"
-                  checked={settings.requer_confirmacao_email}
-                  onChange={(e) => setSettings({...settings, requer_confirmacao_email: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="confirmarEmail">
-                  Requerer Confirmação de E-mail
-                </label>
-              </div>
-              <small className="text-muted">
-                Usuários precisam confirmar o e-mail antes de usar o sistema
-              </small>
-            </div>
+            {grouped.carrinho.map(config => (
+              <div key={config.chave}>{renderConfigField(config)}</div>
+            ))}
           </div>
         </div>
+      )}
 
-        {/* Botões de Ação */}
+      {/* Formulários e Rascunhos */}
+      {grouped.formularios.length > 0 && (
         <div className="card mb-4">
+          <div className="card-header bg-info text-white">
+            <h5 className="mb-0">
+              <i className={`${getCategoryIcon('formularios')} me-2`}></i>
+              {getCategoryTitle('formularios')}
+            </h5>
+          </div>
           <div className="card-body">
-            <div className="d-flex justify-content-between">
-              <button 
-                type="button" 
-                className="btn btn-outline-warning"
-                onClick={handleReset}
-                disabled={loading}
-              >
-                Restaurar Padrões
-              </button>
-              <button 
-                type="submit" 
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <i className="bi bi-save me-2"></i>
-                    Salvar Configurações
-                  </>
-                )}
-              </button>
-            </div>
+            {grouped.formularios.map(config => (
+              <div key={config.chave}>{renderConfigField(config)}</div>
+            ))}
           </div>
         </div>
-      </form>
+      )}
+
+      {/* Recuperação de Senha */}
+      {grouped.recuperacao_senha.length > 0 && (
+        <div className="card mb-4">
+          <div className="card-header bg-warning">
+            <h5 className="mb-0">
+              <i className={`${getCategoryIcon('recuperacao_senha')} me-2`}></i>
+              {getCategoryTitle('recuperacao_senha')}
+            </h5>
+          </div>
+          <div className="card-body">
+            {grouped.recuperacao_senha.map(config => (
+              <div key={config.chave}>{renderConfigField(config)}</div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

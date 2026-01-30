@@ -23,6 +23,7 @@ import Reports from './pages/Reports';
 import SystemSettings from './pages/SystemSettings';
 import AuditLog from './pages/AuditLog';
 import FeedbackSystem from './pages/FeedbackSystem';
+import SendFeedback from './pages/SendFeedback';
 
 import Home from './pages/Home';
 import Games from './pages/Games';
@@ -125,6 +126,14 @@ function App() {
             element={
               <PrivateRoute>
                 <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/feedback"
+            element={
+              <PrivateRoute>
+                <SendFeedback />
               </PrivateRoute>
             }
           />

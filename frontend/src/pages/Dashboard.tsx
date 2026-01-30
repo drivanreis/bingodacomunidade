@@ -143,6 +143,17 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Botão Flutuante de Feedback */}
+      <button 
+        onClick={() => navigate('/feedback')}
+        style={styles.feedbackButton}
+        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        title="Enviar Feedback"
+      >
+        💬
+      </button>
     </div>
   );
 };
@@ -293,6 +304,25 @@ const styles = {
     height: '12px',
     borderRadius: '50%',
   },
+  feedbackButton: {
+    position: 'fixed',
+    bottom: '30px',
+    right: '30px',
+    width: '60px',
+    height: '60px',
+    borderRadius: '50%',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    fontSize: '28px',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(0, 123, 255, 0.4)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.3s ease',
+    zIndex: 1000,
+  } as React.CSSProperties,
 };
 
 export default Dashboard;
