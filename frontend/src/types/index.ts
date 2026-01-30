@@ -4,27 +4,33 @@
  */
 
 // ============================================================================
-// ENUMS
+// TIPOS
 // ============================================================================
 
-export enum TipoUsuario {
-  SUPER_ADMIN = 'super_admin',
-  PARISH_ADMIN = 'parish_admin',
-  FIEL = 'fiel',
-}
+export type TipoUsuario = 'super_admin' | 'parish_admin' | 'fiel';
 
-export enum StatusSorteio {
-  AGENDADO = 'agendado',
-  EM_ANDAMENTO = 'em_andamento',
-  FINALIZADO = 'finalizado',
-  CANCELADO = 'cancelado',
-}
+export const TipoUsuario = {
+  SUPER_ADMIN: 'super_admin' as const,
+  PARISH_ADMIN: 'parish_admin' as const,
+  FIEL: 'fiel' as const,
+};
 
-export enum StatusCartela {
-  ATIVA = 'ativa',
-  VENCEDORA = 'vencedora',
-  PERDEDORA = 'perdedora',
-}
+export type StatusSorteio = 'agendado' | 'em_andamento' | 'finalizado' | 'cancelado';
+
+export const StatusSorteio = {
+  AGENDADO: 'agendado' as const,
+  EM_ANDAMENTO: 'em_andamento' as const,
+  FINALIZADO: 'finalizado' as const,
+  CANCELADO: 'cancelado' as const,
+};
+
+export type StatusCartela = 'ativa' | 'vencedora' | 'perdedora';
+
+export const StatusCartela = {
+  ATIVA: 'ativa' as const,
+  VENCEDORA: 'vencedora' as const,
+  PERDEDORA: 'perdedora' as const,
+};
 
 // ============================================================================
 // INTERFACES - PARÓQUIA

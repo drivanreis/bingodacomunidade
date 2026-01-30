@@ -10,8 +10,11 @@
 | Documento | Descrição | Público |
 |-----------|-----------|---------|
 | [START_HERE.md](START_HERE.md) | **COMECE AQUI** - Instalação em 4 passos | 🌟 Todos |
+| [LEIA_ISTO_PRIMEIRO.md](LEIA_ISTO_PRIMEIRO.md) | **🚨 ERRO? Leia isto ANTES de pedir ajuda** | 🆘 Todos |
 | [COMANDOS_RAPIDOS.md](COMANDOS_RAPIDOS.md) | Referência rápida de comandos | 👨‍💻 Dev |
 | [TESTES_SISTEMA.md](TESTES_SISTEMA.md) | 10 passos para validar instalação | ✅ Todos |
+| [QUEM_RESOLVE_O_QUE.md](QUEM_RESOLVE_O_QUE.md) | **Guia: Admin da Paróquia vs Desenvolvedor** | 🧒 Todos (até crianças!) |
+| [FLUXOGRAMA_SUPORTE.md](FLUXOGRAMA_SUPORTE.md) | **Fluxograma visual de suporte** | 🎨 Visual |
 
 ---
 
@@ -49,8 +52,12 @@
 
 | Documento | Descrição | Público |
 |-----------|-----------|---------|
+| [SEGURANCA_NIVEL_BANCARIO.md](SEGURANCA_NIVEL_BANCARIO.md) | **🔒 Sistema de segurança completo** | 🏦 Crítico |
+| [SISTEMA_PRIMEIRO_ACESSO.md](SISTEMA_PRIMEIRO_ACESSO.md) | **🚀 Primeiro acesso seguro (NOVO!)** | 🔐 Crítico |
+| [DEPLOY_PRODUCAO.md](DEPLOY_PRODUCAO.md) | **📦 Deploy em produção (NOVO!)** | 🚀 DevOps |
 | [FASE2_AUTENTICACAO.md](FASE2_AUTENTICACAO.md) | Endpoints de autenticação | 🔒 Backend Dev |
 | [VALIDACAO_CPF.md](VALIDACAO_CPF.md) | Algoritmo Módulo 11 explicado | 🧮 Dev |
+| [MENSAGENS_ERRO.md](MENSAGENS_ERRO.md) | **Guia completo de mensagens de erro** | 🧒 Todos (até crianças!) |
 | [FASE2_INICIADA.md](FASE2_INICIADA.md) | Status da Fase 2 | 📊 Gestão |
 
 ---

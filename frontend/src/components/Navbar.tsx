@@ -7,6 +7,18 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   if (!user) return null;
 
@@ -33,7 +45,7 @@ const Navbar: React.FC = () => {
         </div>
 
         {/* Desktop Menu */}
-        <div style={styles.desktopMenu}>
+        <div style={{...styles.desktopMenu, display: isMobile ? 'none' : 'flex'}}>
           {filteredItems.map((item) => (
             <button
               key={item.path}
@@ -53,7 +65,7 @@ const Navbar: React.FC = () => {
 
         {/* Mobile Menu Button */}
         <button
-          style={styles.mobileMenuButton}
+          style={{...styles.mobileMenuButton, display: isMobile ? 'block' : 'none'}}
           onClick={() => setMenuOpen(!menuOpen)}
         >
           ☰
@@ -61,8 +73,8 @@ const Navbar: React.FC = () => {
       </div>
 
       {/* Mobile Menu */}
-      {menuOpen && (
-        <div style={styles.mobileMenu}>
+      {menuOpen && isMobile && (
+        <div style={{...styles.mobileMenu, display: 'flex'}}>
           {filteredItems.map((item) => (
             <button
               key={item.path}
@@ -158,7 +170,6 @@ const styles = {
     color: '#333',
   },
   mobileMenu: {
-    display: 'none',
     flexDirection: 'column' as const,
     gap: '5px',
     padding: '10px 20px',
@@ -195,25 +206,5 @@ const styles = {
     marginTop: '5px',
   },
 };
-
-// Media query for mobile
-if (typeof window !== 'undefined') {
-  const mediaQuery = window.matchMedia('(max-width: 768px)');
-  
-  const updateStyles = (e: MediaQueryListEvent | MediaQueryList) => {
-    if (e.matches) {
-      Object.assign(styles.desktopMenu, { display: 'none' });
-      Object.assign(styles.mobileMenuButton, { display: 'block' });
-      Object.assign(styles.mobileMenu, { display: 'flex' });
-    } else {
-      Object.assign(styles.desktopMenu, { display: 'flex' });
-      Object.assign(styles.mobileMenuButton, { display: 'none' });
-      Object.assign(styles.mobileMenu, { display: 'none' });
-    }
-  };
-  
-  updateStyles(mediaQuery);
-  mediaQuery.addEventListener('change', updateStyles);
-}
 
 export default Navbar;

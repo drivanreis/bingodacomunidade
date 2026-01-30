@@ -1,75 +1,188 @@
 /**
- * Página Home
+ * Página Home - Portal da Comunidade
  * 
- * Página pública inicial do sistema
+ * Foco: Família, União, Pertencimento
  */
 
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-export function Home() {
+export default function Home() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
   return (
     <div style={styles.container}>
+      {/* HERO: Família em Primeiro Lugar */}
       <div style={styles.hero}>
-        <h1 style={styles.title}>🎉 Bingo da Comunidade</h1>
-        <p style={styles.subtitle}>
-          Sistema completo de gestão de bingos para paróquias
-        </p>
-        <p style={styles.description}>
-          Transparência, segurança e facilidade para sua comunidade
+        <h1 style={styles.mainTitle}>Sua Paróquia, Sua Comunidade, Sua Festa!</h1>
+        <p style={styles.heroSubtitle}>
+          Mais que um jogo: uma ferramenta de evangelização que reúne famílias, fortalece laços e apoia sua paróquia
         </p>
         
-        <div style={styles.buttonGroup}>
+        <div style={styles.heroButtons}>
           {isAuthenticated ? (
             <button 
               onClick={() => navigate('/dashboard')} 
               style={styles.primaryButton}
             >
-              Ir para Dashboard
+              🏠 Acessar Minha Conta
             </button>
           ) : (
             <>
               <button 
-                onClick={() => navigate('/login')} 
+                onClick={() => navigate('/signup')} 
                 style={styles.primaryButton}
               >
-                Fazer Login
+                🎉 Participar Agora
               </button>
               <button 
-                onClick={() => alert('Funcionalidade em desenvolvimento')} 
+                onClick={() => navigate('/login')} 
                 style={styles.secondaryButton}
               >
-                Criar Conta
+                Já Participo
               </button>
             </>
           )}
         </div>
       </div>
 
-      <div style={styles.features}>
-        <div style={styles.feature}>
-          <div style={styles.featureIcon}>🔒</div>
-          <h3 style={styles.featureTitle}>Segurança</h3>
-          <p style={styles.featureText}>Autenticação JWT e criptografia de dados</p>
+      {/* SEÇÃO: Para a Comunidade */}
+      <div style={styles.communitySection}>
+        <h2 style={styles.sectionTitle}>✨ Mais que um Bingo, uma Comunidade</h2>
+        
+        <div style={styles.benefitsGrid}>
+          <div style={styles.benefitCard}>
+            <div style={styles.benefitIcon}>💒</div>
+            <h3 style={styles.benefitTitle}>Evangeliza e Une</h3>
+            <p style={styles.benefitText}>
+              Ferramenta de retenção de fé que reúne famílias, fortalece comunidade e mantém viva a tradição cristã
+            </p>
+          </div>
+
+          <div style={styles.benefitCard}>
+            <div style={styles.benefitIcon}>🎊</div>
+            <h3 style={styles.benefitTitle}>Diversão para Todos</h3>
+            <p style={styles.benefitText}>
+              Eventos que unem gerações: avós, pais, filhos e netos, todos juntos!
+            </p>
+          </div>
+
+          <div style={styles.benefitCard}>
+            <div style={styles.benefitIcon}>⛪</div>
+            <h3 style={styles.benefitTitle}>Ajuda Real</h3>
+            <p style={styles.benefitText}>
+              Cada cartela apoia projetos da sua paróquia: reformas, eventos, ações sociais
+            </p>
+          </div>
+
+          <div style={styles.benefitCard}>
+            <div style={styles.benefitIcon}>🏆</div>
+            <h3 style={styles.benefitTitle}>Prêmios Incríveis</h3>
+            <p style={styles.benefitText}>
+              Concorra a prêmios enquanto apoia sua comunidade. Todo mundo ganha!
+            </p>
+          </div>
         </div>
-        <div style={styles.feature}>
-          <div style={styles.featureIcon}>👁️</div>
-          <h3 style={styles.featureTitle}>Transparência</h3>
-          <p style={styles.featureText}>Todos podem verificar os resultados</p>
+      </div>
+
+      {/* SEÇÃO: Como Funciona */}
+      <div style={styles.howItWorksSection}>
+        <h2 style={styles.sectionTitle}>📋 Como Participar</h2>
+        
+        <div style={styles.stepsContainer}>
+          <div style={styles.step}>
+            <div style={styles.stepNumber}>1</div>
+            <h3 style={styles.stepTitle}>Cadastre-se</h3>
+            <p style={styles.stepText}>Simples e rápido, em menos de 2 minutos</p>
+          </div>
+
+          <div style={styles.stepArrow}>→</div>
+
+          <div style={styles.step}>
+            <div style={styles.stepNumber}>2</div>
+            <h3 style={styles.stepTitle}>Escolha sua Cartela</h3>
+            <p style={styles.stepText}>Várias opções de jogos disponíveis</p>
+          </div>
+
+          <div style={styles.stepArrow}>→</div>
+
+          <div style={styles.step}>
+            <div style={styles.stepNumber}>3</div>
+            <h3 style={styles.stepTitle}>Participe do Sorteio</h3>
+            <p style={styles.stepText}>Acompanhe ao vivo com a comunidade</p>
+          </div>
+
+          <div style={styles.stepArrow}>→</div>
+
+          <div style={styles.step}>
+            <div style={styles.stepNumber}>4</div>
+            <h3 style={styles.stepTitle}>Ganhe e Ajude!</h3>
+            <p style={styles.stepText}>Prêmios para você, recursos para a paróquia</p>
+          </div>
         </div>
-        <div style={styles.feature}>
-          <div style={styles.featureIcon}>💰</div>
-          <h3 style={styles.featureTitle}>Risco Zero</h3>
-          <p style={styles.featureText}>Sistema de pagamento seguro via PIX</p>
+
+        <div style={styles.ctaContainer}>
+          <button 
+            onClick={() => navigate('/signup')} 
+            style={styles.ctaButton}
+          >
+            Começar Agora - É Grátis! 🎉
+          </button>
         </div>
-        <div style={styles.feature}>
-          <div style={styles.featureIcon}>⚡</div>
-          <h3 style={styles.featureTitle}>Tempo Real</h3>
-          <p style={styles.featureText}>Acompanhe prêmios crescendo ao vivo</p>
+      </div>
+
+      {/* SEÇÃO: Depoimentos */}
+      <div style={styles.testimonialsSection}>
+        <h2 style={styles.sectionTitle}>💬 O que nossa comunidade diz</h2>
+        
+        <div style={styles.testimonialsGrid}>
+          <div style={styles.testimonialCard}>
+            <p style={styles.testimonialText}>
+              "Participar do bingo da paróquia virou tradição na nossa família. 
+              É um momento de união e ainda ajudamos nas obras da igreja!"
+            </p>
+            <p style={styles.testimonialAuthor}>— Maria Silva, Paroquiana há 15 anos</p>
+          </div>
+
+          <div style={styles.testimonialCard}>
+            <p style={styles.testimonialText}>
+              "Conheci pessoas maravilhosas nos eventos. Agora temos um grupo 
+              de amigos que se encontra toda semana!"
+            </p>
+            <p style={styles.testimonialAuthor}>— João Santos, Novo na comunidade</p>
+          </div>
+
+          <div style={styles.testimonialCard}>
+            <p style={styles.testimonialText}>
+              "É emocionante ver a paróquia crescer com a ajuda de todos. 
+              Cada bingo é uma celebração da nossa fé e união."
+            </p>
+            <p style={styles.testimonialAuthor}>— Padre Roberto, Pároco</p>
+          </div>
         </div>
+      </div>
+
+      {/* RODAPÉ: Segurança (discreto) */}
+      <div style={styles.securityFooter}>
+        <div style={styles.securityContent}>
+          <h3 style={styles.securityTitle}>🔒 Ambiente Seguro e Confiável</h3>
+          <div style={styles.securityBadges}>
+            <span style={styles.badge}>✓ Transações Protegidas</span>
+            <span style={styles.badge}>✓ Dados Criptografados</span>
+            <span style={styles.badge}>✓ Transparência Total</span>
+            <span style={styles.badge}>✓ Suporte Dedicado</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.footer}>
+        <p style={styles.footerText}>
+          💙 Feito com amor para nossa comunidade
+        </p>
+        <p style={styles.footerSubtext}>
+          © 2026 Bingo da Comunidade - Unindo famílias, fortalecendo paróquias
+        </p>
       </div>
     </div>
   )
@@ -78,90 +191,236 @@ export function Home() {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    backgroundColor: '#f8f9fa',
   },
+  
+  // HERO SECTION
   hero: {
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    padding: '100px 20px 80px',
     textAlign: 'center' as const,
-    padding: '100px 20px',
     color: 'white',
   },
-  title: {
+  mainTitle: {
     fontSize: '48px',
     fontWeight: 'bold',
-    margin: '0 0 20px 0',
-    textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+    marginBottom: '20px',
+    lineHeight: '1.2',
+    textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
   },
-  subtitle: {
-    fontSize: '24px',
-    margin: '0 0 10px 0',
+  heroSubtitle: {
+    fontSize: '22px',
+    marginBottom: '40px',
     opacity: 0.95,
+    maxWidth: '800px',
+    margin: '0 auto 40px',
+    lineHeight: '1.5',
   },
-  description: {
-    fontSize: '18px',
-    margin: '0 0 40px 0',
-    opacity: 0.9,
-  },
-  buttonGroup: {
+  heroButtons: {
     display: 'flex',
     gap: '20px',
     justifyContent: 'center',
     flexWrap: 'wrap' as const,
   },
   primaryButton: {
-    padding: '16px 40px',
+    padding: '18px 45px',
     fontSize: '18px',
     fontWeight: 'bold',
     color: '#667eea',
-    background: 'white',
+    backgroundColor: 'white',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '50px',
     cursor: 'pointer',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+    transition: 'all 0.3s',
   },
   secondaryButton: {
-    padding: '16px 40px',
+    padding: '18px 45px',
     fontSize: '18px',
     fontWeight: 'bold',
     color: 'white',
-    background: 'transparent',
-    border: '2px solid white',
-    borderRadius: '8px',
+    backgroundColor: 'transparent',
+    border: '3px solid white',
+    borderRadius: '50px',
     cursor: 'pointer',
-    transition: 'transform 0.2s, background 0.2s',
+    transition: 'all 0.3s',
   },
-  features: {
+
+  // COMMUNITY SECTION
+  communitySection: {
+    padding: '80px 20px',
+    backgroundColor: 'white',
+  },
+  sectionTitle: {
+    textAlign: 'center' as const,
+    fontSize: '36px',
+    color: '#333',
+    marginBottom: '60px',
+    fontWeight: 'bold',
+  },
+  benefitsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '40px',
+    maxWidth: '1200px',
+    margin: '0 auto',
+  },
+  benefitCard: {
+    textAlign: 'center' as const,
+    padding: '30px',
+  },
+  benefitIcon: {
+    fontSize: '64px',
+    marginBottom: '20px',
+  },
+  benefitTitle: {
+    fontSize: '24px',
+    color: '#667eea',
+    marginBottom: '15px',
+    fontWeight: 'bold',
+  },
+  benefitText: {
+    fontSize: '16px',
+    color: '#666',
+    lineHeight: '1.8',
+  },
+
+  // HOW IT WORKS
+  howItWorksSection: {
+    padding: '80px 20px',
+    backgroundColor: '#f8f9fa',
+  },
+  stepsContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'wrap' as const,
+    gap: '20px',
+    maxWidth: '1400px',
+    margin: '0 auto 60px',
+  },
+  step: {
+    textAlign: 'center' as const,
+    maxWidth: '200px',
+  },
+  stepNumber: {
+    width: '60px',
+    height: '60px',
+    borderRadius: '50%',
+    backgroundColor: '#667eea',
+    color: 'white',
+    fontSize: '28px',
+    fontWeight: 'bold',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 15px',
+    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+  },
+  stepTitle: {
+    fontSize: '18px',
+    color: '#333',
+    marginBottom: '10px',
+    fontWeight: 'bold',
+  },
+  stepText: {
+    fontSize: '14px',
+    color: '#666',
+  },
+  stepArrow: {
+    fontSize: '32px',
+    color: '#667eea',
+    fontWeight: 'bold',
+  },
+  ctaContainer: {
+    textAlign: 'center' as const,
+  },
+  ctaButton: {
+    padding: '20px 60px',
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: 'white',
+    backgroundColor: '#667eea',
+    border: 'none',
+    borderRadius: '50px',
+    cursor: 'pointer',
+    boxShadow: '0 8px 20px rgba(102, 126, 234, 0.4)',
+    transition: 'all 0.3s',
+  },
+
+  // TESTIMONIALS
+  testimonialsSection: {
+    padding: '80px 20px',
+    backgroundColor: 'white',
+  },
+  testimonialsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: '30px',
     maxWidth: '1200px',
     margin: '0 auto',
-    padding: '60px 20px',
   },
-  feature: {
-    background: 'white',
-    borderRadius: '12px',
+  testimonialCard: {
+    backgroundColor: '#f8f9fa',
     padding: '30px',
-    textAlign: 'center' as const,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    borderRadius: '15px',
+    borderLeft: '5px solid #667eea',
   },
-  featureIcon: {
-    fontSize: '48px',
-    marginBottom: '20px',
-  },
-  featureTitle: {
-    fontSize: '20px',
-    fontWeight: 'bold',
+  testimonialText: {
+    fontSize: '16px',
     color: '#333',
-    margin: '0 0 10px 0',
+    fontStyle: 'italic',
+    lineHeight: '1.8',
+    marginBottom: '15px',
   },
-  featureText: {
+  testimonialAuthor: {
     fontSize: '14px',
-    color: '#666',
-    margin: 0,
-    lineHeight: '1.6',
+    color: '#667eea',
+    fontWeight: 'bold',
+  },
+
+  // SECURITY FOOTER
+  securityFooter: {
+    backgroundColor: '#2d3748',
+    padding: '40px 20px',
+    color: 'white',
+  },
+  securityContent: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    textAlign: 'center' as const,
+  },
+  securityTitle: {
+    fontSize: '20px',
+    marginBottom: '20px',
+    opacity: 0.9,
+  },
+  securityBadges: {
+    display: 'flex',
+    justifyContent: 'center',
+    flexWrap: 'wrap' as const,
+    gap: '15px',
+  },
+  badge: {
+    padding: '8px 20px',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: '20px',
+    fontSize: '14px',
+  },
+
+  // FOOTER
+  footer: {
+    textAlign: 'center' as const,
+    padding: '30px 20px',
+    backgroundColor: '#1a202c',
+    color: 'white',
+  },
+  footerText: {
+    fontSize: '18px',
+    marginBottom: '10px',
+  },
+  footerSubtext: {
+    fontSize: '14px',
+    opacity: 0.7,
   },
 }
-
-export default Home
-

@@ -6,12 +6,11 @@ Define todas as entidades do sistema usando SQLAlchemy ORM.
 Regras de Ouro:
 - Todas as PKs são Strings (IDs temporais)
 - Todos os timestamps usam timezone de Fortaleza
-- JSONB para estruturas complexas (cartelas)
+- JSON para estruturas complexas (cartelas)
 - Hash de integridade em entidades críticas
 """
 
-from sqlalchemy import Column, String, Float, DateTime, Boolean, Integer, ForeignKey, Text, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, String, Float, DateTime, Boolean, Integer, ForeignKey, Text, Enum as SQLEnum, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from typing import Optional
@@ -26,10 +25,47 @@ from src.utils.time_manager import FORTALEZA_TZ
 # ============================================================================
 
 class TipoUsuario(str, enum.Enum):
-    """Tipo de usuário no sistema."""
-    SUPER_ADMIN = "super_admin"      # Administrador Master (O Guardião)
-    PARISH_ADMIN = "parish_admin"    # Administrador da Paróquia (O Operador)
-    FIEL = "fiel"                    # Participante (O Fiel)
+    """
+    Hierarquia de Usuários do Sistema
+    
+    SUPER_ADMIN (Nível 1 - Guardião da Infraestrutura)
+    └── Gerencia configurações globais
+    └── Cria/gerencia outros SUPER_ADMINs
+    └── Cadastra primeiro usuário de cada paróquia
+    
+    PAROQUIA_ADMIN (Nível 2 - Administrador Paroquial)
+    └── Criado pelo SUPER_ADMIN
+    └── Gerencia usuários da paróquia
+    └── Pode criar outros PAROQUIA_ADMINs
+    └── Define papéis operacionais
+    └── Pode banir FIELs
+    
+    PAROQUIA_CAIXA (Nível 3 - Operacional)
+    └── Criado pelo PAROQUIA_ADMIN
+    └── Recebe e envia PIX
+    └── Não gerencia usuários
+    
+    PAROQUIA_RECEPCAO (Nível 3 - Operacional)
+    └── Criado pelo PAROQUIA_ADMIN
+    └── Cadastra participantes presenciais
+    └── Não gerencia finanças
+    
+    PAROQUIA_BINGO (Nível 3 - Operacional)
+    └── Criado pelo PAROQUIA_ADMIN
+    └── Conduz sorteios
+    └── Não gerencia usuários ou finanças
+    
+    FIEL (Nível 4 - Participante)
+    └── Auto-cadastro (rota pública)
+    └── Participa de bingos
+    └── Pode ser banido por PAROQUIA_ADMIN
+    """
+    SUPER_ADMIN = "super_admin"           # Nível 1: Guardião do Sistema
+    PAROQUIA_ADMIN = "paroquia_admin"     # Nível 2: Administrador Paroquial
+    PAROQUIA_CAIXA = "paroquia_caixa"     # Nível 3: Operador Financeiro
+    PAROQUIA_RECEPCAO = "paroquia_recepcao"  # Nível 3: Operador de Cadastro
+    PAROQUIA_BINGO = "paroquia_bingo"     # Nível 3: Operador de Sorteios
+    FIEL = "fiel"                         # Nível 4: Participante Comum
 
 
 class StatusSorteio(str, enum.Enum):
@@ -139,8 +175,28 @@ class Usuario(Base):
     # Autenticação (simplificado por enquanto)
     senha_hash = Column(String(255), nullable=True)  # Hash bcrypt
     
+    # Recuperação de Senha
+    token_recuperacao = Column(String(100), nullable=True, index=True)  # Token único para recuperação
+    token_expiracao = Column(DateTime(timezone=True), nullable=True)    # Validade do token (1 hora)
+    
+    # Verificação de Email
+    email_verificado = Column(Boolean, default=False, nullable=False)  # Email foi verificado?
+    token_verificacao_email = Column(String(100), nullable=True, index=True)  # Token para verificar email
+    token_verificacao_expiracao = Column(DateTime(timezone=True), nullable=True)  # Validade do token (24 horas)
+    
+    # Segurança de Login
+    tentativas_login = Column(Integer, default=0, nullable=False)  # Contador de falhas
+    bloqueado_ate = Column(DateTime(timezone=True), nullable=True) # Timestamp de desbloqueio
+    
     # Status
     ativo = Column(Boolean, default=True, nullable=False)
+    banido = Column(Boolean, default=False, nullable=False)  # Banido pela paróquia
+    motivo_banimento = Column(Text, nullable=True)  # Razão do banimento
+    banido_por_id = Column(String(50), nullable=True)  # ID do admin que baniu
+    banido_em = Column(DateTime(timezone=True), nullable=True)  # Quando foi banido
+    
+    # Bootstrap (usuário temporário)
+    is_bootstrap = Column(Boolean, default=False, nullable=False)  # Marca Admin/admin123
     
     # Timestamps
     criado_em = Column(
@@ -215,8 +271,8 @@ class Sorteio(Base):
     
     # Integridade e Auditoria
     hash_integridade = Column(String(64), nullable=True, index=True)  # SHA-256 dos dados críticos
-    pedras_sorteadas = Column(JSONB, nullable=True, default=[])       # Lista de pedras sorteadas
-    vencedores_ids = Column(JSONB, nullable=True, default=[])         # IDs dos vencedores
+    pedras_sorteadas = Column(JSON, nullable=True, default=[])       # Lista de pedras sorteadas
+    vencedores_ids = Column(JSON, nullable=True, default=[])         # IDs dos vencedores
     
     # Timestamps
     criado_em = Column(
@@ -252,7 +308,7 @@ class Cartela(Base):
     Representa uma cartela de bingo comprada por um fiel.
     
     A cartela contém:
-    - Matriz de números (JSONB)
+    - Matriz de números (JSON)
     - Rastreamento de números marcados
     - Associação com usuário e sorteio
     """
@@ -267,12 +323,12 @@ class Cartela(Base):
     
     # Dados da Cartela
     numeros = Column(
-        JSONB, 
+        JSON, 
         nullable=False,
         comment="Matriz 5x5 de números do bingo. Formato: [[n1,n2,n3,n4,n5], [n6,n7,...], ...]"
     )
     numeros_marcados = Column(
-        JSONB,
+        JSON,
         nullable=False,
         default=[],
         comment="Lista de números já sorteados que estão nesta cartela"

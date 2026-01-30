@@ -5,7 +5,8 @@
  * Backend: FastAPI rodando em http://localhost:8000
  */
 
-import axios, { AxiosInstance, AxiosError } from 'axios'
+import axios, { AxiosError } from 'axios'
+import type { AxiosInstance } from 'axios'
 import type {
   Paroquia,
   Usuario,
@@ -55,6 +56,15 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiError>) => {
+    // Log detalhado para o administrador (Console do Navegador)
+    console.error('❌ [API Error Interceptor]', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+
     // Se 401 Unauthorized, limpa token e redireciona para login
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token')
@@ -62,8 +72,44 @@ api.interceptors.response.use(
       window.location.href = '/login'
     }
 
-    // Retorna mensagem de erro estruturada
-    const errorMessage = error.response?.data?.detail || 'Erro desconhecido'
+    let errorMessage = 'Ocorreu um erro inesperado.';
+
+    if (error.response) {
+      // O servidor respondeu com um status fora da faixa 2xx
+      const status = error.response.status;
+      const detail = error.response.data?.detail;
+
+      if (status === 500) {
+        errorMessage = 'Erro interno do servidor. Nossa equipe técnica foi notificada.';
+        if (detail && typeof detail === 'string') {
+           // Em homologação, o backend pode enviar detalhes do erro 500
+           errorMessage = detail; 
+        }
+      } else if (status === 422) {
+        errorMessage = 'Dados inválidos. Verifique os campos preenchidos.';
+        if (Array.isArray(detail)) {
+          // Erros de validação do Pydantic
+          errorMessage = detail.map((e: any) => e.msg).join(', ');
+        } else if (typeof detail === 'string') {
+          errorMessage = detail;
+        }
+      } else if (detail && typeof detail === 'string') {
+        // Outros erros com mensagem clara do backend (400, 403, 404...)
+        errorMessage = detail;
+      } else {
+        errorMessage = `Erro ${status}: Não foi possível processar sua solicitação.`;
+      }
+    } else if (error.request) {
+      // A requisição foi feita mas não houve resposta (Erro de Rede / CORS)
+      errorMessage = 'Erro de conexão. Verifique sua internet ou se o servidor está online.';
+      if (error.message === 'Network Error') {
+         errorMessage = 'Servidor indisponível ou bloqueio de segurança (CORS).';
+      }
+    } else {
+      // Algo aconteceu ao configurar a requisição
+      errorMessage = error.message || 'Erro ao configurar requisição.';
+    }
+
     return Promise.reject(new Error(errorMessage))
   }
 )
@@ -93,6 +139,13 @@ export const authService = {
     localStorage.setItem('usuario', JSON.stringify(usuario))
 
     return response.data
+  },
+
+  /**
+   * Verifica email com token
+   */
+  verifyEmail: async (token: string): Promise<void> => {
+    await api.get(`/auth/verify-email`, { params: { token } })
   },
 
   /**

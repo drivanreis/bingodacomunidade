@@ -1,3 +1,0 @@
-# Este arquivo mantém a pasta data/ no Git (mesmo vazia)
-# O banco de dados SQLite será criado aqui: bingo.db
-# Mas não será commitado (está no .gitignore)

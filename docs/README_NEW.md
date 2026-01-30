@@ -3,35 +3,55 @@
 > **Sistema completo de gestão de bingos para paróquias e comunidades**  
 > Transparente • Seguro • Fácil de usar • Pronto para produção
 
-**Status:** ✅ 100% Funcional | **Versão:** 1.0.0 | **Data:** 21/01/2026
+**Status:** ✅ 100% Funcional | **Versão:** 1.0.0 | **Data:** 25/01/2026
+
+**🆕 NOVIDADE:** Sistema de Primeiro Acesso Seguro implementado!
 
 ---
 
 ## 🚀 Início Rápido (3 Comandos)
 
-```powershell
+```bash
 # 1. Clone o repositório
 git clone https://github.com/seu-usuario/bingodacomunidade.git
 cd bingodacomunidade
 
 # 2. Suba os containers
-docker compose up --build -d
+docker compose up -d --build
 
 # 3. Acesse o sistema
 # Frontend: http://localhost:5173
-# Backend:  http://localhost:8000
-# Docs:     http://localhost:8000/docs
+# Backend:  http://localhost:8000/docs
 ```
 
-**Credenciais padrão:**
-- Email: `admin@bingodacomunidade.com.br`
-- Senha: `Admin@2026`
+### 🔐 Primeiro Acesso (NOVO!)
+
+**Desenvolvimento (Padrão):**
+- Sistema cria 3 usuários de teste automaticamente
+- Login: CPF `111.444.777-35` / Senha `Fiel@123`
+
+**Produção:**
+1. Altere `SEED_ENABLED=false` no docker-compose.yml
+2. Acesse http://localhost:5173
+3. Tela de configuração aparece automaticamente
+4. Crie sua conta de Desenvolvedor
+5. Esta tela **só aparece uma vez**
+
+📚 **Documentação completa:** `SISTEMA_PRIMEIRO_ACESSO.md`
 
 ---
 
 ## 📋 Funcionalidades
 
 ### ✅ Implementado
+
+- **🔐 Segurança de Nível Bancário** (NOVO!)
+  - Primeiro acesso protegido (só funciona uma vez)
+  - Inatividade automática (15 minutos)
+  - Proteção brute-force (5 tentativas)
+  - Token JWT (16 horas)
+  - Verificação de email obrigatória
+  - Senha forte validada
 
 - **Autenticação JWT** - Login seguro com tokens
 - **Gestão de Jogos** - Criar, editar, listar e visualizar jogos

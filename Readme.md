@@ -4,18 +4,37 @@
 
 ---
 
+## ⛪ MISSÃO PASTORAL
+
+**Este sistema é uma ferramenta de evangelização e retenção de fé.**
+
+Em tempos onde jogos comunitários são banidos e a frieza digital afasta os fiéis, o **Bingo da Comunidade** reúne famílias, fortalece laços comunitários e financia obras concretas da paróquia.
+
+### 🔥 Evangelizar é Preciso
+
+O bingo **não é o fim** — é o **meio**:
+- 💒 Atração: Famílias se reúnem presencialmente
+- 🎊 Convivência: Comunidade se fortalece
+- ⛪ Testemunho: Transparência gera confiança
+- 🤝 Missão: Recursos financiam evangelização
+
+📖 **[Leia a documentação completa sobre a Missão Pastoral](MISSAO_PASTORAL.md)**
+
+---
+
 ## 📖 O QUE É ESTE SISTEMA?
 
 O **Sistema de Bingo Comunitário** é uma plataforma digital **gratuita e de código aberto**, projetada especificamente para **paróquias, igrejas e comunidades** que desejam realizar bingos beneficentes de forma **totalmente transparente, segura e justa**.
 
 ### 🌟 Nossa Visão
 
-Este não é um sistema de sorteio comum. É uma **máquina de confiança** onde:
+Este não é um sistema de sorteio comum. É uma **máquina de confiança e evangelização** onde:
 
-- 🙏 **O fiel se diverte** com segurança e transparência absoluta
-- ⛪ **A paróquia arrecada** recursos para suas obras e missões
-- 🔐 **A tecnologia garante justiça** — ninguém pode trapacear
+- 🙏 **O fiel se diverte e permanece na comunidade** com segurança e transparência absoluta
+- ⛪ **A paróquia arrecada e evangeliza** recursos para suas obras e missões sociais
+- 🔐 **A tecnologia garante justiça e confiança** — ninguém pode trapacear
 - 📊 **Cada centavo é auditável** — do início ao fim
+- 💒 **A comunidade se fortalece** — famílias reunidas em nome da fé
 
 ### 💎 O Diferencial
 

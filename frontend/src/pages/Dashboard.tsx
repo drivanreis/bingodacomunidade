@@ -33,7 +33,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div style={styles.infoItem}>
               <span style={styles.infoLabel}>Email:</span>
-              <span style={styles.infoValue}>{user?.email}</span>
+              <span style={styles.infoValue}>{user?.email || 'Não informado'}</span>
             </div>
             <div style={styles.infoItem}>
               <span style={styles.infoLabel}>Perfil:</span>

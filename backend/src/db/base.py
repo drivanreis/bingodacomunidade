@@ -9,7 +9,7 @@ Módulo responsável por:
 """
 
 from typing import Generator
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool
@@ -181,7 +181,7 @@ def verify_connection() -> bool:
     try:
         # Tenta executar uma query simples
         with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
+            result = conn.execute(text("SELECT 1"))
             result.fetchone()
         return True
     except Exception as e:

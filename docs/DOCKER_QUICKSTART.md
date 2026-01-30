@@ -61,27 +61,18 @@ Resposta rápida "pong"
 
 ---
 
-## 👤 CREDENCIAIS INICIAIS
+## 👤 PRIMEIRO ACESSO
 
-O sistema já vem com usuários pré-cadastrados!
+Na primeira vez que você acessar o sistema:
 
-### 👑 **Super Admin** (Guardião da Infraestrutura)
-- **Email:** `admin@bingodacomunidade.com.br`
-- **Senha:** `Admin@2026`
-- **Tipo:** Super Admin (acesso total)
+1. **O sistema detecta** que não existe nenhum administrador no banco
+2. **Tela especial aparece** para configuração inicial
+3. **Você cria** sua conta de desenvolvedor com seus dados reais
+4. **Após isso**, use suas credenciais para fazer login
 
-### ⛪ **Parish Admin** (Operador da Paróquia)
-- **Email:** `admin@paroquiasaojose.com.br`
-- **Senha:** `Admin@2026`
-- **Tipo:** Parish Admin
-- **Paróquia:** Paróquia São José
+🔒 **Segurança:** Esta tela só aparece uma vez. Depois que o primeiro admin é criado, ela nunca mais é exibida.
 
-### 🙏 **Fiel** (Exemplo de Participante)
-- **Email:** `joao.exemplo@email.com`
-- **Senha:** `Fiel@123`
-- **Tipo:** Fiel
-
-⚠️ **IMPORTANTE:** Mude essas senhas em produção!
+⚙️ **Modo Desenvolvimento:** Se `SEED_ENABLED=true`, o sistema cria usuários de teste automaticamente (apenas para desenvolvimento local).
 
 ---
 

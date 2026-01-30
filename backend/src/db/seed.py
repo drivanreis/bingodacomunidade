@@ -1,13 +1,15 @@
 """
 Database Seed - Carga Inicial de Dados
 ======================================
-Popula o banco de dados com dados iniciais necessários para
-o sistema funcionar imediatamente após a primeira execução.
+Cria usuário temporário de bootstrap que força configuração
+do primeiro SUPER_ADMIN.
 
-Dados criados:
-- Super Admin (proprietário do sistema)
-- Paróquia padrão
-- Parish Admin para a paróquia
+⚠️ ATENÇÃO - Sistema de Bootstrap Seguro:
+- Cria usuário temporário: Admin / admin123
+- Usuário temporário NÃO tem acesso ao sistema
+- No primeiro login, FORÇA criação do primeiro SUPER_ADMIN
+- Após criar SUPER_ADMIN, o usuário temporário é DELETADO automaticamente
+- Este usuário temporário NÃO PODE continuar existindo após o bootstrap
 """
 
 import os
@@ -15,8 +17,8 @@ import logging
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
-from src.models.models import Paroquia, Usuario, TipoUsuario
-from src.utils.time_manager import generate_temporal_id
+from src.models.models import Usuario, TipoUsuario, Paroquia
+from src.utils.time_manager import generate_temporal_id_with_microseconds
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +27,37 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    """Gera hash bcrypt da senha."""
+    """
+    Gera hash bcrypt da senha.
+    
+    Bcrypt tem limite de 72 bytes, então truncamos se necessário.
+    """
+    # Garantir que senha não ultrapasse 72 bytes
+    if isinstance(password, str):
+        password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
     return pwd_context.hash(password)
+
+
+def check_seed_needed(db: Session) -> bool:
+    """
+    Verifica se precisa criar usuário de bootstrap.
+    
+    Returns:
+        True se precisa criar seed, False se já existe qualquer usuário
+    """
+    total_users = db.query(Usuario).count()
+    return total_users == 0
 
 
 def seed_database(db: Session) -> bool:
     """
-    Popula o banco com dados iniciais.
+    Cria usuário temporário de bootstrap para configuração inicial.
+    
+    ⚠️ IMPORTANTE:
+    - Este usuário é TEMPORÁRIO
+    - Serve APENAS para forçar a criação do primeiro SUPER_ADMIN
+    - Será DELETADO automaticamente após o primeiro acesso
+    - NÃO tem acesso real ao sistema (flag is_bootstrap=True)
     
     Args:
         db: Sessão do banco de dados
@@ -40,186 +66,93 @@ def seed_database(db: Session) -> bool:
         bool: True se dados foram criados, False se já existiam
     """
     try:
-        # ====================================================================
-        # VERIFICAR SE JÁ EXISTE DADOS
-        # ====================================================================
-        
-        existing_admin = db.query(Usuario).filter(
-            Usuario.tipo == TipoUsuario.SUPER_ADMIN
-        ).first()
-        
-        if existing_admin:
-            logger.info("✓ Dados iniciais já existem no banco")
+        # Verificar se já existe algum usuário
+        if not check_seed_needed(db):
+            logger.info("✓ Sistema já possui usuários - Bootstrap não necessário")
             return False
         
-        logger.info("📦 Iniciando carga de dados iniciais...")
+        logger.info("🔧 Criando paróquia padrão e usuário temporário de bootstrap...")
         
         # ====================================================================
-        # LER VARIÁVEIS DE AMBIENTE
+        # CRIAR PARÓQUIA PADRÃO
         # ====================================================================
+        # Necessária para permitir cadastro de FIELs desde o início
         
-        # Dados do Super Admin
-        owner_name = os.getenv('OWNER_NAME', 'Administrador Sistema')
-        owner_email = os.getenv('OWNER_EMAIL', 'admin@bingodacomunidade.com.br')
-        owner_password = os.getenv('OWNER_PASSWORD', 'Admin@2026')
-        
-        # Dados da Paróquia
-        parish_name = os.getenv('PARISH_NAME', 'Paróquia São José')
-        parish_email = os.getenv('PARISH_EMAIL', 'contato@paroquiasaojose.com.br')
-        parish_phone = os.getenv('PARISH_PHONE', '85999999999')
-        parish_pix = os.getenv('PARISH_PIX', parish_email)
-        parish_city = os.getenv('PARISH_CITY', 'Fortaleza')
-        parish_state = os.getenv('PARISH_STATE', 'CE')
-        
-        # ====================================================================
-        # 1. CRIAR SUPER ADMIN
-        # ====================================================================
-        
-        super_admin = Usuario(
-            id=generate_temporal_id('USR'),
-            nome=owner_name,
-            email=owner_email,
-            tipo=TipoUsuario.SUPER_ADMIN,
-            paroquia_id=None,  # Super Admin não tem paróquia
-            senha_hash=hash_password(owner_password),
-            ativo=True
-        )
-        
-        db.add(super_admin)
-        db.flush()  # Garante que o ID seja gerado
-        
-        logger.info(f"✓ Super Admin criado: {super_admin.email}")
-        logger.info(f"  ID: {super_admin.id}")
-        logger.info(f"  Senha inicial: {owner_password}")
-        
-        # ====================================================================
-        # 2. CRIAR PARÓQUIA PADRÃO
-        # ====================================================================
-        
-        paroquia = Paroquia(
-            id=generate_temporal_id('PAR'),
-            nome=parish_name,
-            email=parish_email,
-            telefone=parish_phone,
-            cidade=parish_city,
-            estado=parish_state,
-            chave_pix=parish_pix,
+        paroquia_default = Paroquia(
+            id=generate_temporal_id_with_microseconds('PAR'),
+            nome="Paróquia Padrão",
+            email="contato@paroquia.padrao.com.br",
+            telefone="8599999999",
+            endereco="A definir",
+            cidade="Fortaleza",
+            estado="CE",
+            cep="60000000",
+            chave_pix="contato@paroquia.padrao.com.br",
             ativa=True
         )
         
-        db.add(paroquia)
-        db.flush()
+        db.add(paroquia_default)
+        db.flush()  # Garante que o ID está disponível
         
-        logger.info(f"✓ Paróquia criada: {paroquia.nome}")
-        logger.info(f"  ID: {paroquia.id}")
-        logger.info(f"  Email: {paroquia.email}")
-        logger.info(f"  PIX: {paroquia.chave_pix}")
+        logger.info(f"✓ Paróquia padrão criada: {paroquia_default.nome}")
         
         # ====================================================================
-        # 3. CRIAR PARISH ADMIN PARA A PARÓQUIA
+        # CRIAR USUÁRIO TEMPORÁRIO DE BOOTSTRAP
         # ====================================================================
         
-        parish_admin = Usuario(
-            id=generate_temporal_id('USR'),
-            nome=f"Administrador - {parish_name}",
-            email=f"admin@{parish_email.split('@')[1]}",
-            tipo=TipoUsuario.PARISH_ADMIN,
-            paroquia_id=paroquia.id,
-            senha_hash=hash_password(owner_password),  # Mesma senha inicial
-            ativo=True
+        bootstrap_user = Usuario(
+            id=generate_temporal_id_with_microseconds('BOOTSTRAP'),
+            nome="Admin",
+            cpf=None,  # Sem CPF (temporário)
+            email="bootstrap@system.temp",  # Email temporário
+            whatsapp=None,
+            tipo=TipoUsuario.SUPER_ADMIN,  # Temporariamente SUPER_ADMIN
+            paroquia_id=None,
+            chave_pix=None,
+            senha_hash=hash_password("admin123"),
+            ativo=True,
+            is_bootstrap=True,  # 🚨 MARCA COMO TEMPORÁRIO
+            email_verificado=False
         )
         
-        db.add(parish_admin)
-        db.flush()
-        
-        logger.info(f"✓ Parish Admin criado: {parish_admin.email}")
-        logger.info(f"  ID: {parish_admin.id}")
-        logger.info(f"  Paróquia: {paroquia.nome}")
-        
-        # ====================================================================
-        # 4. CRIAR USUÁRIO FIEL DE EXEMPLO
-        # ====================================================================
-        
-        fiel_exemplo = Usuario(
-            id=generate_temporal_id('USR'),
-            nome="João Silva (Exemplo)",
-            cpf="12345678901",  # CPF de exemplo (não validado)
-            email="joao.exemplo@email.com",
-            whatsapp="+5585987654321",
-            tipo=TipoUsuario.FIEL,
-            paroquia_id=paroquia.id,
-            chave_pix="joao.exemplo@email.com",
-            senha_hash=hash_password("Fiel@123"),
-            ativo=True
-        )
-        
-        db.add(fiel_exemplo)
-        db.flush()
-        
-        logger.info(f"✓ Fiel de exemplo criado: {fiel_exemplo.email}")
-        logger.info(f"  Senha: Fiel@123")
-        
-        # ====================================================================
-        # COMMIT FINAL
-        # ====================================================================
-        
+        db.add(bootstrap_user)
         db.commit()
         
         logger.info("=" * 70)
-        logger.info("✅ CARGA INICIAL CONCLUÍDA COM SUCESSO!")
+        logger.info("🔐 SISTEMA DE BOOTSTRAP INICIALIZADO")
         logger.info("=" * 70)
         logger.info("")
-        logger.info("📋 CREDENCIAIS CRIADAS:")
+        logger.info("  ✓ Paróquia padrão criada")
+        logger.info("  ✓ Usuário temporário de bootstrap criado")
         logger.info("")
-        logger.info(f"1️⃣  SUPER ADMIN (Guardião da Infraestrutura)")
-        logger.info(f"    Email: {owner_email}")
-        logger.info(f"    Senha: {owner_password}")
-        logger.info(f"    ID: {super_admin.id}")
+        logger.info("  📌 Este é um usuário TEMPORÁRIO para configuração inicial")
         logger.info("")
-        logger.info(f"2️⃣  PARISH ADMIN (Operador da Paróquia)")
-        logger.info(f"    Email: {parish_admin.email}")
-        logger.info(f"    Senha: {owner_password}")
-        logger.info(f"    Paróquia: {parish_name}")
-        logger.info(f"    ID: {parish_admin.id}")
+        logger.info("  🔑 Credenciais Bootstrap:")
+        logger.info("     Username: Admin")
+        logger.info("     Password: admin123")
         logger.info("")
-        logger.info(f"3️⃣  FIEL (Exemplo de Participante)")
-        logger.info(f"    Email: joao.exemplo@email.com")
-        logger.info(f"    CPF: 12345678901")
-        logger.info(f"    Senha: Fiel@123")
-        logger.info(f"    ID: {fiel_exemplo.id}")
+        logger.info("  ⚠️  IMPORTANTE:")
+        logger.info("     - Este usuário NÃO tem acesso ao sistema")
+        logger.info("     - Ao fazer login, você DEVE criar o primeiro SUPER_ADMIN")
+        logger.info("     - Após criar o SUPER_ADMIN, este usuário será DELETADO")
         logger.info("")
-        logger.info("=" * 70)
-        logger.info("⚠️  IMPORTANTE: Mude as senhas em produção!")
+        logger.info("  🎯 Próximos Passos:")
+        logger.info("     1. Acesse: /admin-site/login")
+        logger.info("     2. Login: Admin / admin123")
+        logger.info("     3. Complete o formulário de primeiro acesso")
+        logger.info("     4. Seu SUPER_ADMIN será criado")
+        logger.info("     5. Usuário temporário será excluído automaticamente")
+        logger.info("")
+        logger.info("  🌐 FIELs podem se cadastrar imediatamente em /auth/signup")
+        logger.info("")
         logger.info("=" * 70)
         
         return True
         
     except Exception as e:
-        logger.error(f"❌ Erro ao criar dados iniciais: {e}")
+        logger.error(f"❌ Erro ao criar seed: {str(e)}")
         db.rollback()
         raise
-
-
-def check_seed_needed(db: Session) -> bool:
-    """
-    Verifica se é necessário fazer seed do banco.
-    
-    Args:
-        db: Sessão do banco de dados
-        
-    Returns:
-        bool: True se seed é necessário, False caso contrário
-    """
-    try:
-        count = db.query(Usuario).filter(
-            Usuario.tipo == TipoUsuario.SUPER_ADMIN
-        ).count()
-        
-        return count == 0
-        
-    except Exception:
-        # Se der erro (ex: tabela não existe), precisa seed
-        return True
 
 
 # Exportações

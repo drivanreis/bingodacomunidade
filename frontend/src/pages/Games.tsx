@@ -94,6 +94,10 @@ const Games: React.FC = () => {
     <>
       <Navbar />
       <div style={styles.container}>
+        <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
+          ← Voltar para Dashboard
+        </button>
+        
         <div style={styles.header}>
         <div>
           <h1 style={styles.title}>🎉 Jogos de Bingo</h1>
@@ -217,6 +221,21 @@ const styles = {
     background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
     padding: '40px 20px',
   },
+  backButton: {
+    padding: '10px 20px',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#667eea',
+    background: 'white',
+    border: '2px solid #667eea',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    marginBottom: '20px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+  } as React.CSSProperties,
   loadingContainer: {
     display: 'flex',
     flexDirection: 'column' as const,

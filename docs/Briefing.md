@@ -6,6 +6,40 @@ Este documento descreve a visão, a filosofia e a arquitetura conceitual do **Si
 
 ---
 
+## ⛪ 0. MISSÃO EVANGELIZADORA
+
+### 🔥 Evangelizar é Preciso
+
+**Este sistema é ferramenta de evangelização, não produto de entretenimento.**
+
+Em um mundo onde:
+- Jogos comunitários são banidos
+- Paróquias perdem força de atração
+- Famílias se fragmentam
+- Fé esfria pelo isolamento
+
+**O Bingo da Comunidade é resposta pastoral concreta:**
+
+```
+Bingo → Reunião → Comunidade → Evangelização → Permanência na Fé
+```
+
+### Por que Bingo?
+
+Não pelo jogo em si, mas porque:
+
+1. **Atrai**: Pretexto legítimo para famílias se reunirem
+2. **Reúne**: Avós, pais, filhos — gerações juntas
+3. **Fortalece**: Laços comunitários que sustentam a fé
+4. **Financia**: Obras sociais concretas e visíveis
+5. **Retém**: Fiel que participa, permanece
+
+> 📖 **"Onde dois ou três estiverem reunidos em meu nome, aí estou eu no meio deles." - Mateus 18:20**
+
+🔗 **[Leia documentação completa: MISSAO_PASTORAL.md](../MISSAO_PASTORAL.md)**
+
+---
+
 ## 🌟 1. O Propósito
 
 Criar um **bingo digital de confiança absoluta**, onde:

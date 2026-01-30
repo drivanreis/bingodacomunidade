@@ -256,6 +256,95 @@ class UsuarioCreate(UsuarioBase):
     senha: str = Field(..., min_length=6, description="Senha (mínimo 6 caracteres)")
 
 
+class FirstAccessSetupRequest(BaseModel):
+    """Schema para configuração do primeiro acesso (criação do Desenvolvedor)."""
+    nome: str = Field(..., min_length=3, max_length=200, description="Nome completo do desenvolvedor")
+    cpf: str = Field(..., description="CPF do desenvolvedor (usado para login)")
+    email: EmailStr = Field(..., description="Email do desenvolvedor")
+    whatsapp: str = Field(..., description="WhatsApp do desenvolvedor (+55DDNNNNNNNNN)")
+    senha: str = Field(..., min_length=6, max_length=16, description="Senha de acesso")
+    
+    @field_validator('cpf')
+    @classmethod
+    def _validate_cpf(cls, v):
+        return validate_cpf(v)
+    
+    @field_validator('whatsapp')
+    @classmethod
+    def _validate_whatsapp(cls, v):
+        return validate_whatsapp(v)
+    
+    @field_validator('senha')
+    @classmethod
+    def validate_password_strength(cls, v):
+        """Valida força da senha."""
+        if len(v) < 6:
+            raise ValueError('Senha deve ter no mínimo 6 caracteres')
+        if len(v) > 16:
+            raise ValueError('Senha deve ter no máximo 16 caracteres')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra maiúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra minúscula')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('Senha deve conter pelo menos um número')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Senha deve conter pelo menos um caractere especial')
+        return v
+
+
+class FirstAccessResponse(BaseModel):
+    """Schema de resposta para verificação de primeiro acesso."""
+    needs_setup: bool = Field(..., description="Se true, precisa criar o primeiro administrador")
+    message: str = Field(..., description="Mensagem explicativa")
+
+
+class BootstrapSetupRequest(BaseModel):
+    """
+    Schema para criação do primeiro SUPER_ADMIN após login com usuário bootstrap.
+    
+    Este endpoint é chamado após login com Admin/admin123.
+    Cria o SUPER_ADMIN real e deleta o usuário temporário.
+    """
+    nome: str = Field(..., min_length=3, max_length=200, description="Nome completo do desenvolvedor")
+    email: EmailStr = Field(..., description="Email do desenvolvedor")
+    cpf: Optional[str] = Field(None, description="CPF do desenvolvedor (opcional)")
+    whatsapp: Optional[str] = Field(None, description="WhatsApp do desenvolvedor")
+    senha: str = Field(..., min_length=8, max_length=32, description="Senha forte")
+    
+    @field_validator('cpf')
+    @classmethod
+    def _validate_cpf(cls, v):
+        if v:
+            return validate_cpf(v)
+        return v
+    
+    @field_validator('whatsapp')
+    @classmethod
+    def _validate_whatsapp(cls, v):
+        if v:
+            return validate_whatsapp(v)
+        return v
+    
+    @field_validator('senha')
+    @classmethod
+    def validate_password_strength(cls, v):
+        """Valida força da senha."""
+        if len(v) < 8:
+            raise ValueError('Senha deve ter no mínimo 8 caracteres')
+        if len(v) > 32:
+            raise ValueError('Senha deve ter no máximo 32 caracteres')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra maiúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra minúscula')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('Senha deve conter pelo menos um número')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Senha deve conter pelo menos um caractere especial')
+        return v
+
+
 class UsuarioUpdate(BaseModel):
     """Schema para atualização de Usuário."""
     nome: Optional[str] = Field(None, min_length=3, max_length=200)
@@ -277,6 +366,57 @@ class UsuarioUpdate(BaseModel):
         if v is None:
             return v
         return validate_chave_pix(v)
+
+
+class UpdateProfileRequest(BaseModel):
+    """Schema para atualização de perfil do usuário (Fiel)."""
+    nome: Optional[str] = Field(None, min_length=3, max_length=200, description="Nome completo")
+    email: Optional[EmailStr] = Field(None, description="Email")
+    whatsapp: Optional[str] = Field(None, description="WhatsApp (+55DDNNNNNNNNN)")
+    chave_pix: Optional[str] = Field(None, description="Chave PIX para receber prêmios")
+    senha_atual: Optional[str] = Field(None, description="Senha atual (obrigatória para trocar senha)")
+    nova_senha: Optional[str] = Field(None, min_length=6, max_length=16, description="Nova senha")
+    
+    @field_validator('whatsapp')
+    @classmethod
+    def _validate_whatsapp(cls, v):
+        if v is None:
+            return v
+        return validate_whatsapp(v)
+    
+    @field_validator('chave_pix')
+    @classmethod
+    def _validate_pix(cls, v):
+        if v is None:
+            return v
+        return validate_chave_pix(v)
+    
+    @field_validator('nova_senha')
+    @classmethod
+    def validate_password_strength(cls, v):
+        """Valida força da senha."""
+        if v is None:
+            return v
+        if len(v) < 6:
+            raise ValueError('Senha deve ter no mínimo 6 caracteres')
+        if len(v) > 16:
+            raise ValueError('Senha deve ter no máximo 16 caracteres')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra maiúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra minúscula')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('Senha deve conter pelo menos um número')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Senha deve conter pelo menos um caractere especial')
+        return v
+    
+    @model_validator(mode='after')
+    def validate_password_change(self):
+        """Se nova_senha for informada, senha_atual é obrigatória."""
+        if self.nova_senha and not self.senha_atual:
+            raise ValueError('Para trocar a senha, informe a senha atual')
+        return self
 
 
 class UsuarioResponse(BaseModel):
@@ -419,6 +559,7 @@ class CartelaResponse(CartelaBase):
 class SignupRequest(BaseModel):
     """Schema para cadastro público de fiéis."""
     nome: str = Field(..., min_length=3, max_length=200, description="Nome completo")
+    email: EmailStr = Field(..., description="Email para verificação e recuperação de senha")
     cpf: str = Field(..., description="CPF (11 dígitos)")
     whatsapp: str = Field(..., description="WhatsApp (+55DDNNNNNNNNN)")
     chave_pix: str = Field(..., description="Chave PIX para receber prêmios")
@@ -442,7 +583,7 @@ class SignupRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    """Schema para autenticação."""
+    """Schema para autenticação de usuário comum (FIEL) - Rota pública /login"""
     cpf: str = Field(..., description="CPF do usuário")
     senha: str = Field(..., description="Senha do usuário")
     
@@ -452,11 +593,74 @@ class LoginRequest(BaseModel):
         return validate_cpf(v)
 
 
+class AdminSiteLoginRequest(BaseModel):
+    """Schema para autenticação de SUPER_ADMIN - Rota /admin-site/login"""
+    username: str = Field(..., description="Username (Admin ou email)")
+    senha: str = Field(..., description="Senha")
+
+
+class AdminParoquiaLoginRequest(BaseModel):
+    """Schema para autenticação de usuários paroquiais - Rota /admin-paroquia/login"""
+    email: str = Field(..., description="Email do usuário paroquial")
+    senha: str = Field(..., description="Senha")
+    
+    @field_validator('email')
+    @classmethod
+    def _validate_email(cls, v):
+        if '@' not in v:
+            raise ValueError("Email inválido")
+        return v.lower().strip()
+
+
 class TokenResponse(BaseModel):
     """Schema de resposta para autenticação."""
     access_token: str = Field(..., description="JWT token de acesso")
     token_type: str = Field(default="bearer", description="Tipo do token")
     usuario: UsuarioResponse = Field(..., description="Dados do usuário autenticado")
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Schema para solicitar recuperação de senha."""
+    cpf: str = Field(..., description="CPF do usuário")
+    
+    @field_validator('cpf')
+    @classmethod
+    def _validate_cpf(cls, v):
+        return validate_cpf(v)
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema para redefinir senha com token."""
+    token: str = Field(..., min_length=10, description="Token de recuperação enviado")
+    nova_senha: str = Field(..., min_length=6, max_length=16, description="Nova senha")
+    
+    @field_validator('nova_senha')
+    @classmethod
+    def validate_password_strength(cls, v):
+        """Valida força da senha."""
+        if len(v) < 6:
+            raise ValueError('Senha deve ter no mínimo 6 caracteres')
+        if len(v) > 16:
+            raise ValueError('Senha deve ter no máximo 16 caracteres')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra maiúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra minúscula')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('Senha deve conter pelo menos um número')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Senha deve conter pelo menos um caractere especial')
+        return v
+
+
+class VerifyEmailRequest(BaseModel):
+    """Schema para verificar email com token."""
+    token: str = Field(..., min_length=10, description="Token de verificação enviado")
+
+
+class MessageResponse(BaseModel):
+    """Schema genérico para mensagens de resposta."""
+    message: str = Field(..., description="Mensagem de retorno")
 
 
 # ============================================================================
@@ -497,7 +701,12 @@ __all__ = [
     # Autenticação
     'SignupRequest',
     'LoginRequest',
+    'AdminSiteLoginRequest',
+    'AdminParoquiaLoginRequest',
     'TokenResponse',
+    'BootstrapSetupRequest',
+    'FirstAccessSetupRequest',
+    'FirstAccessResponse',
     
     # Auxiliares
     'HealthCheckResponse',
