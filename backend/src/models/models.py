@@ -341,16 +341,17 @@ class UsuarioAdministrativo(Base):
 # MODELO: USUÁRIO
 # ============================================================================
 
-class Usuario(Base):
+class UsuarioLegado(Base):
     """
-    Representa qualquer usuário do sistema.
+    ⚠️ LEGADO - Será removido em breve!
     
-    Hierarquia:
-    - Super Admin: Gerencia infraestrutura (1 por sistema)
-    - Parish Admin: Gerencia bingos da paróquia (N por paróquia)
-    - Fiel: Participa dos bingos (ilimitado)
+    Classe antiga antes da separação em UsuarioComum e UsuarioAdministrativo.
+    Mantém-se apenas para compatibilidade com dados antigos.
+    
+    Não use para novas implementações!
+    Use UsuarioComum ou UsuarioAdministrativo em seu lugar.
     """
-    __tablename__ = "usuarios"
+    __tablename__ = "usuarios_legado"
     
     # Primary Key (ID Temporal)
     id = Column(String(50), primary_key=True, index=True)
@@ -417,7 +418,7 @@ class Usuario(Base):
     cartelas = relationship("Cartela", back_populates="usuario")
     
     def __repr__(self):
-        return f"<Usuario(id={self.id}, nome={self.nome}, tipo={self.tipo})>"
+        return f"<UsuarioLegado(id={self.id}, nome={self.nome}, tipo={self.tipo})>"
 
 
 # ============================================================================
@@ -517,7 +518,7 @@ class Cartela(Base):
     
     # Associações
     sorteio_id = Column(String(50), ForeignKey("sorteios.id"), nullable=False, index=True)
-    usuario_id = Column(String(50), ForeignKey("usuarios.id"), nullable=False, index=True)
+    usuario_id = Column(String(50), ForeignKey("usuarios_comuns.id"), nullable=False, index=True)
     
     # Dados da Cartela
     numeros = Column(
@@ -555,7 +556,7 @@ class Cartela(Base):
     
     # Relacionamentos
     sorteio = relationship("Sorteio", back_populates="cartelas")
-    usuario = relationship("Usuario", back_populates="cartelas")
+    usuario = relationship("UsuarioComum")
     
     def __repr__(self):
         return f"<Cartela(id={self.id}, usuario_id={self.usuario_id}, status={self.status})>"
