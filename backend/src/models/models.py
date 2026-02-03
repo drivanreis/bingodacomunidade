@@ -115,6 +115,12 @@ class StatusFeedback(str, enum.Enum):
     ARQUIVADO = "arquivado"     # Arquivado
 
 
+class NivelAcessoAdmin(str, enum.Enum):
+    """Nível de acesso para administradores."""
+    ADMIN_SITE = "admin_site"           # Administrador do sistema
+    ADMIN_PAROQUIA = "admin_paroquia"   # Administrador da paróquia
+
+
 # ============================================================================
 # MODELO: PARÓQUIA
 # ============================================================================
@@ -165,10 +171,170 @@ class Paroquia(Base):
     
     # Relacionamentos
     usuarios = relationship("Usuario", back_populates="paroquia")
+    usuarios_comuns = relationship("UsuarioComum", back_populates="paroquia")
     sorteios = relationship("Sorteio", back_populates="paroquia")
     
     def __repr__(self):
         return f"<Paroquia(id={self.id}, nome={self.nome})>"
+
+
+# ============================================================================
+# MODELO: USUÁRIO COMUM (FIEL)
+# ============================================================================
+
+class UsuarioComum(Base):
+    """
+    Representa um usuário comum - participante/apostador.
+    
+    Características:
+    - Auto-cadastro (público)
+    - Todos são iguais (sem hierarquia)
+    - Diferenciação apenas por status: ativo/banido
+    - Email, Telefone, WhatsApp OBRIGATÓRIOS
+    - Recuperação de senha por EMAIL
+    - 2FA via SMS
+    - Login com CPF + Senha
+    """
+    __tablename__ = "usuarios_comuns"
+    
+    # Primary Key (ID Temporal)
+    id = Column(String(50), primary_key=True, index=True)
+    
+    # Dados Pessoais
+    nome = Column(String(200), nullable=False, index=True)
+    cpf = Column(String(11), nullable=False, unique=True, index=True)
+    
+    # Contato (OBRIGATÓRIOS)
+    email = Column(String(200), nullable=False, unique=True, index=True)
+    telefone = Column(String(20), nullable=False)
+    whatsapp = Column(String(20), nullable=False)
+    
+    # Dados Financeiros
+    chave_pix = Column(String(200), nullable=True)
+    
+    # Autenticação
+    senha_hash = Column(String(255), nullable=False)
+    
+    # Recuperação de Senha (por Email)
+    token_recuperacao = Column(String(100), nullable=True, index=True)
+    token_expiracao = Column(DateTime(timezone=True), nullable=True)
+    
+    # Verificação de Email
+    email_verificado = Column(Boolean, default=False)
+    token_verificacao_email = Column(String(100), nullable=True, index=True)
+    token_verificacao_expiracao = Column(DateTime(timezone=True), nullable=True)
+    
+    # 2FA via SMS
+    telefone_verificado = Column(Boolean, default=False)
+    token_2fa = Column(String(6), nullable=True)
+    token_2fa_expiracao = Column(DateTime(timezone=True), nullable=True)
+    
+    # Segurança de Login
+    tentativas_login = Column(Integer, default=0)
+    bloqueado_ate = Column(DateTime(timezone=True), nullable=True)
+    
+    # Status
+    ativo = Column(Boolean, default=True, nullable=False)
+    banido = Column(Boolean, default=False, nullable=False)
+    motivo_banimento = Column(Text, nullable=True)
+    banido_por_id = Column(String(50), nullable=True)
+    banido_em = Column(DateTime(timezone=True), nullable=True)
+    
+    # Associação com Paróquia (opcional)
+    paroquia_id = Column(String(50), ForeignKey("paroquias.id"), nullable=True, index=True)
+    
+    # Timestamps (Timezone: America/Fortaleza)
+    criado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="Timestamp de criação (timezone: America/Fortaleza)"
+    )
+    atualizado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="Timestamp de atualização (timezone: America/Fortaleza)"
+    )
+    ultimo_acesso = Column(DateTime(timezone=True), nullable=True)
+    
+    # Relacionamentos
+    paroquia = relationship("Paroquia", back_populates="usuarios_comuns")
+    
+    def __repr__(self):
+        return f"<UsuarioComum(id={self.id}, nome={self.nome}, cpf={self.cpf})>"
+
+
+# ============================================================================
+# MODELO: USUÁRIO ADMINISTRATIVO
+# ============================================================================
+
+class UsuarioAdministrativo(Base):
+    """
+    Representa um usuário administrativo - gestor do sistema ou paróquia.
+    
+    Características:
+    - SEM auto-cadastro (criado apenas por superior)
+    - COM hierarquia: ADMIN_SITE > ADMIN_PAROQUIA
+    - Email/Telefone OPCIONAIS
+    - Recuperação de senha por SUPERIOR (não por email)
+    - Login com Login + Senha (sem CPF)
+    - Registra quem criou (criado_por_id)
+    """
+    __tablename__ = "usuarios_administrativos"
+    
+    # Primary Key (ID Temporal)
+    id = Column(String(50), primary_key=True, index=True)
+    
+    # Identificação
+    nome = Column(String(200), nullable=False, index=True)
+    login = Column(String(100), nullable=False, unique=True, index=True)
+    
+    # Autenticação
+    senha_hash = Column(String(255), nullable=False)
+    
+    # Contato (OPCIONAIS)
+    email = Column(String(200), nullable=True, unique=True, index=True)
+    telefone = Column(String(20), nullable=True)
+    whatsapp = Column(String(20), nullable=True)
+    
+    # Hierarquia & Permissões
+    nivel_acesso = Column(SQLEnum(NivelAcessoAdmin), nullable=False, index=True)
+    paroquia_id = Column(String(50), ForeignKey("paroquias.id"), nullable=True, index=True)
+    
+    # Quem Criou (para controle hierárquico)
+    criado_por_id = Column(String(50), nullable=True)
+    
+    # Recuperação de Senha (por superior, não por email)
+    token_recuperacao = Column(String(100), nullable=True, index=True)
+    token_expiracao = Column(DateTime(timezone=True), nullable=True)
+    
+    # Segurança de Login
+    tentativas_login = Column(Integer, default=0)
+    bloqueado_ate = Column(DateTime(timezone=True), nullable=True)
+    
+    # Status
+    ativo = Column(Boolean, default=True, nullable=False)
+    
+    # Timestamps (Timezone: America/Fortaleza)
+    criado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="Timestamp de criação (timezone: America/Fortaleza)"
+    )
+    atualizado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="Timestamp de atualização (timezone: America/Fortaleza)"
+    )
+    ultimo_acesso = Column(DateTime(timezone=True), nullable=True)
+    
+    def __repr__(self):
+        return f"<UsuarioAdministrativo(id={self.id}, login={self.login}, nivel={self.nivel_acesso})>"
 
 
 # ============================================================================
