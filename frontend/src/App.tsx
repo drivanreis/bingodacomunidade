@@ -79,6 +79,14 @@ function App() {
             }
           />
           <Route
+            path="/admin-site/admins"
+            element={
+              <SuperAdminRoute>
+                <AdminUsers />
+              </SuperAdminRoute>
+            }
+          />
+          <Route
             path="/admin-site/relatorios"
             element={
               <SuperAdminRoute>

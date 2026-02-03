@@ -198,7 +198,7 @@ const FeedbackSystem: React.FC = () => {
         <div>
           <button 
             className="btn btn-outline-info me-2"
-            onClick={() => navigate('/admin-site/usuarios')}
+            onClick={() => navigate('/admin-site/admins')}
             title="Gerenciar usuários administradores"
           >
             👥 Gerenciar Admins

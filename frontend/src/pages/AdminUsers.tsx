@@ -121,7 +121,7 @@ const AdminUsers: React.FC = () => {
           fontSize: '14px'
         }}
       >
-        ← Voltar
+        ← Voltar para Feedback
       </button>
 
       {error && (
