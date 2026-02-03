@@ -363,78 +363,19 @@ def login_super_admin(
 )
 def setup_first_super_admin(
     request: BootstrapSetupRequest,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
-    Cria primeiro SUPER_ADMIN e deleta usuário bootstrap.
-    Só funciona se logado com Admin/admin123.
+    DESCONTINUADO - Use a nova arquitetura de UsuarioAdministrativo
     """
-    
-    if not current_user.is_bootstrap:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Este endpoint é apenas para configuração inicial do sistema"
-        )
-    
-    # Verificar se já existe outro SUPER_ADMIN
-    existing_admin = db.query(Usuario).filter(
-        Usuario.tipo == TipoUsuario.SUPER_ADMIN,
-        Usuario.is_bootstrap == False
-    ).first()
-    
-    if existing_admin:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Já existe um Super Admin no sistema"
-        )
-    
-    # Verificar duplicatas
-    if request.email:
-        if db.query(Usuario).filter(Usuario.email == request.email).first():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email já cadastrado")
-    
-    if request.cpf:
-        if db.query(Usuario).filter(Usuario.cpf == request.cpf).first():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="CPF já cadastrado")
-    
-    # Criar novo SUPER_ADMIN
-    novo_admin = Usuario(
-        id=generate_temporal_id_with_microseconds('SUPERADMIN'),
-        nome=request.nome,
-        email=request.email,
-        cpf=request.cpf,
-        whatsapp=request.whatsapp,
-        tipo=TipoUsuario.SUPER_ADMIN,
-        paroquia_id=None,
-        senha_hash=hash_password(request.senha),
-        ativo=True,
-        is_bootstrap=False,
-        email_verificado=True,
-        banido=False,
-        chave_pix=None
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="Este endpoint foi descontinuado. Configure administradores através da nova arquitetura."
     )
-    
-    try:
-        db.add(novo_admin)
-        db.delete(current_user)  # Deletar bootstrap
-        db.commit()
-        db.refresh(novo_admin)
-    except IntegrityError as e:
-        db.rollback()
-        logger.error(f"❌ Erro de integridade ao criar primeiro SUPER_ADMIN: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email ou CPF já cadastrado no sistema"
+            status_code=status.HTTP_410_GONE,
+            detail="Este endpoint foi descontinuado. Configure administradores através da nova arquitetura."
         )
-    
-    logger.info("🎉 PRIMEIRO SUPER_ADMIN CRIADO - Usuário bootstrap DELETADO")
-    
-    access_token = create_access_token(
-        data={"sub": novo_admin.id, "email": novo_admin.email, "tipo": novo_admin.tipo.value}
-    )
-    
-    return TokenResponse(access_token=access_token, token_type="bearer", usuario=novo_admin)
 
 
 # ============================================================================
