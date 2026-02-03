@@ -47,6 +47,7 @@ from src.utils.email_service import email_service
 
 # Importar routers
 from src.routers.auth_routes import router as auth_router
+from src.routers.auth_novo_routes import router as auth_novo_router
 from src.routers.user_management import router as user_management_router
 from src.routers.admin_routes import router as admin_router
 
@@ -111,6 +112,7 @@ app.add_middleware(
 # ============================================================================
 
 app.include_router(auth_router)
+app.include_router(auth_novo_router)
 app.include_router(user_management_router)
 app.include_router(admin_router)
 
