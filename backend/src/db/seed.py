@@ -45,7 +45,7 @@ def check_seed_needed(db: Session) -> bool:
     Returns:
         True se precisa criar seed, False se já existe qualquer usuário
     """
-    total_users = db.query(Usuario).count()
+    total_users = db.query(UsuarioLegado).count()
     return total_users == 0
 
 
@@ -100,7 +100,7 @@ def seed_database(db: Session) -> bool:
         # CRIAR USUÁRIO TEMPORÁRIO DE BOOTSTRAP
         # ====================================================================
         
-        bootstrap_user = Usuario(
+        bootstrap_user = UsuarioLegado(
             id=generate_temporal_id_with_microseconds('BOOTSTRAP'),
             nome="Admin",
             cpf=None,  # Sem CPF (temporário)
