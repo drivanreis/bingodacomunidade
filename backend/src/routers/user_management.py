@@ -14,12 +14,6 @@ import logging
 from src.db.base import get_db
 from src.models.models import UsuarioLegado, TipoUsuario, Paroquia, UsuarioComum
 from src.schemas.schemas import UsuarioResponse, UsuarioCreate
-from src.utils.permissions import (
-    require_super_admin,
-    require_paroquia_admin,
-    can_create_user_type,
-    can_ban_user
-)
 from src.utils.auth import hash_password
 from src.utils.time_manager import get_fortaleza_time, generate_temporal_id_with_microseconds
 
