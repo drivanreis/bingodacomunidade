@@ -28,7 +28,7 @@ from src.utils.auth import (
     hash_password,
     get_current_user
 )
-from src.utils.time_manager import get_fortaleza_time
+from src.utils.time_manager import get_fortaleza_time, generate_temporal_id_with_microseconds
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -330,6 +330,7 @@ def signup_comum(
         
         # Criar novo usuário comum
         novo_usuario = UsuarioComum(
+            id=generate_temporal_id_with_microseconds('UC'),
             nome=nome,
             cpf=cpf_clean,
             email=email,

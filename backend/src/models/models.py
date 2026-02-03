@@ -170,7 +170,7 @@ class Paroquia(Base):
     )
     
     # Relacionamentos
-    usuarios = relationship("Usuario", back_populates="paroquia")
+    usuarios = relationship("UsuarioLegado", back_populates="paroquia")
     usuarios_comuns = relationship("UsuarioComum", back_populates="paroquia")
     sorteios = relationship("Sorteio", back_populates="paroquia")
     
@@ -415,7 +415,6 @@ class UsuarioLegado(Base):
     
     # Relacionamentos
     paroquia = relationship("Paroquia", back_populates="usuarios")
-    cartelas = relationship("Cartela", back_populates="usuario")
     
     def __repr__(self):
         return f"<UsuarioLegado(id={self.id}, nome={self.nome}, tipo={self.tipo})>"
