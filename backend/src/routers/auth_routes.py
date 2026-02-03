@@ -372,10 +372,6 @@ def setup_first_super_admin(
         status_code=status.HTTP_410_GONE,
         detail="Este endpoint foi descontinuado. Configure administradores através da nova arquitetura."
     )
-        raise HTTPException(
-            status_code=status.HTTP_410_GONE,
-            detail="Este endpoint foi descontinuado. Configure administradores através da nova arquitetura."
-        )
 
 
 # ============================================================================
