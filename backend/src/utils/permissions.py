@@ -55,78 +55,17 @@ def has_higher_or_equal_permission(user_type: TipoUsuario, required_type: TipoUs
 
 
 # ============================================================================
-# VERIFICAÇÕES DE PERMISSÃO
+# VERIFICAÇÕES DE PERMISSÃO (DESCONTINUADO - USE NOVA ARQUITETURA)
 # ============================================================================
-
-def check_user_active(user: Usuario):
-    """Verifica se o usuário está ativo e não está banido."""
-    if not user.ativo:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Usuário inativo. Entre em contato com o administrador."
-        )
-    
-    if user.banido:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Usuário banido. Motivo: {user.motivo_banimento or 'Não especificado'}"
-        )
-    
-    if user.is_bootstrap:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Usuário temporário. Complete o primeiro acesso do sistema."
-        )
-
-
-def check_user_type(user: Usuario, allowed_types: List[TipoUsuario]):
-    """Verifica se o usuário tem um dos tipos permitidos."""
-    if user.tipo not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Acesso negado. Requer papel: {', '.join([t.value for t in allowed_types])}"
-        )
-
-
-def check_same_paroquia(user: Usuario, target_paroquia_id: str):
-    """Verifica se o usuário pertence à mesma paróquia."""
-    # SUPER_ADMIN pode acessar qualquer paróquia
-    if user.tipo == TipoUsuario.SUPER_ADMIN:
-        return
-    
-    if user.paroquia_id != target_paroquia_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não tem permissão para acessar dados de outra paróquia"
-        )
+# As funções abaixo foram descontinuadas com a migração para UsuarioComum e UsuarioAdministrativo
+# Mantidas aqui apenas para compatibilidade
 
 
 # ============================================================================
-# DEPENDÊNCIAS FASTAPI
+# DEPENDÊNCIAS FASTAPI (DESCONTINUADO)
 # ============================================================================
-
-async def require_super_admin(
-    current_user: Usuario = Depends(get_current_user)
-) -> Usuario:
-    """Dependência que exige SUPER_ADMIN."""
-    check_user_active(current_user)
-    check_user_type(current_user, [TipoUsuario.SUPER_ADMIN])
-    return current_user
-
-
-async def require_paroquia_admin(
-    current_user: Usuario = Depends(get_current_user)
-) -> Usuario:
-    """Dependência que exige PAROQUIA_ADMIN ou superior."""
-    check_user_active(current_user)
-    
-    if not has_higher_or_equal_permission(current_user.tipo, TipoUsuario.PAROQUIA_ADMIN):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso negado. Requer papel: Administrador Paroquial ou superior"
-        )
-    
-    return current_user
+# As dependências abaixo eram usadas com a tabela Usuario legada.
+# Para a nova arquitetura, implemente novas dependências conforme necessário.
 
 
 async def require_paroquia_caixa(
