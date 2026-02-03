@@ -17,7 +17,7 @@ from datetime import timedelta
 import logging
 
 from src.db.base import get_db
-from src.models.models import Usuario, TipoUsuario, Paroquia
+from src.models.models import Usuario, TipoUsuario, Paroquia, UsuarioComum, UsuarioAdministrativo, NivelAcessoAdmin
 from src.schemas.schemas import (
     SignupRequest,
     LoginRequest,
@@ -435,3 +435,223 @@ def setup_first_super_admin(
     )
     
     return TokenResponse(access_token=access_token, token_type="bearer", usuario=novo_admin)
+
+
+# ============================================================================
+# NOVA ARQUITETURA: DOIS FLUXOS DE LOGIN SEPARADOS
+# ============================================================================
+
+# ============================================================================
+# FLUXO 1: LOGIN USUÁRIO COMUM (CPF + Senha)
+# ============================================================================
+
+@router.post(
+    "/login-comum",
+    response_model=TokenResponse,
+    summary="🔑 Login Usuário Comum - CPF + Senha"
+)
+def login_comum(cpf: str, senha: str, db: Session = Depends(get_db)):
+    """
+    Autentica usuário comum (FIEL) usando CPF e senha.
+    
+    - CPF: números apenas (validar antes de enviar)
+    - Retorna: JWT token + dados do usuário
+    - Validações: ativo, banido, tentativas de login
+    """
+    try:
+        # Buscar usuário por CPF
+        usuario = db.query(UsuarioComum).filter(
+            UsuarioComum.cpf == cpf
+        ).first()
+        
+        if not usuario:
+            logger.warning(f"❌ Tentativa de login: CPF não encontrado ({cpf})")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="CPF ou senha incorretos"
+            )
+        
+        # Validações de status
+        if not usuario.ativo:
+            logger.warning(f"❌ Login bloqueado: usuário {usuario.id} inativo")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuário inativo"
+            )
+        
+        if usuario.banido:
+            logger.warning(f"❌ Login bloqueado: usuário {usuario.id} banido")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Usuário banido: {usuario.motivo_banimento or 'Razão não informada'}"
+            )
+        
+        # Validar desbloqueio por tentativas
+        if usuario.bloqueado_ate:
+            now = get_fortaleza_time()
+            if now < usuario.bloqueado_ate:
+                logger.warning(f"❌ Login bloqueado: tentativas excessivas ({usuario.id})")
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Muitas tentativas falhas. Tente novamente mais tarde."
+                )
+            else:
+                # Desbloquear
+                usuario.bloqueado_ate = None
+                usuario.tentativas_login = 0
+                db.commit()
+        
+        # Validar senha
+        if not verify_password(senha, usuario.senha_hash):
+            usuario.tentativas_login += 1
+            
+            # Bloquear após 3 tentativas (por 15 minutos)
+            if usuario.tentativas_login >= 3:
+                usuario.bloqueado_ate = get_fortaleza_time() + timedelta(minutes=15)
+                logger.warning(f"⚠️ Usuário {usuario.id} bloqueado por 15 min (3 tentativas)")
+            
+            db.commit()
+            logger.warning(f"❌ Login falhou: senha incorreta ({usuario.id})")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="CPF ou senha incorretos"
+            )
+        
+        # Login bem-sucedido
+        usuario.tentativas_login = 0
+        usuario.ultimo_acesso = get_fortaleza_time()
+        db.commit()
+        db.refresh(usuario)
+        
+        # Gerar token
+        access_token = create_access_token(
+            data={
+                "sub": usuario.id,
+                "email": usuario.email,
+                "tipo": "usuario_comum",
+                "cpf": usuario.cpf
+            },
+            expires_delta=timedelta(hours=24)
+        )
+        
+        logger.info(f"✅ Login bem-sucedido: usuário comum ({usuario.id})")
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            usuario=usuario
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Erro ao fazer login comum: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao processar login"
+        )
+
+
+# ============================================================================
+# FLUXO 2: LOGIN USUÁRIO ADMINISTRATIVO (Login + Senha)
+# ============================================================================
+
+@router.post(
+    "/login-admin",
+    response_model=TokenResponse,
+    summary="🔑 Login Administrador - Login + Senha"
+)
+def login_admin(login: str, senha: str, db: Session = Depends(get_db)):
+    """
+    Autentica usuário administrativo (ADMIN_SITE ou ADMIN_PAROQUIA).
+    
+    - Login: usuário único
+    - Retorna: JWT token + dados do administrador
+    - Validações: ativo, tentativas de login, hierarquia
+    """
+    try:
+        # Buscar admin por login
+        admin = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.login == login
+        ).first()
+        
+        if not admin:
+            logger.warning(f"❌ Tentativa de login admin: login não encontrado ({login})")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Login ou senha incorretos"
+            )
+        
+        # Validações de status
+        if not admin.ativo:
+            logger.warning(f"❌ Login admin bloqueado: {admin.id} inativo")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Administrador inativo"
+            )
+        
+        # Validar desbloqueio por tentativas
+        if admin.bloqueado_ate:
+            now = get_fortaleza_time()
+            if now < admin.bloqueado_ate:
+                logger.warning(f"❌ Login admin bloqueado: tentativas excessivas ({admin.id})")
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Muitas tentativas falhas. Tente novamente mais tarde."
+                )
+            else:
+                # Desbloquear
+                admin.bloqueado_ate = None
+                admin.tentativas_login = 0
+                db.commit()
+        
+        # Validar senha
+        if not verify_password(senha, admin.senha_hash):
+            admin.tentativas_login += 1
+            
+            # Bloquear após 3 tentativas (por 15 minutos)
+            if admin.tentativas_login >= 3:
+                admin.bloqueado_ate = get_fortaleza_time() + timedelta(minutes=15)
+                logger.warning(f"⚠️ Admin {admin.id} bloqueado por 15 min (3 tentativas)")
+            
+            db.commit()
+            logger.warning(f"❌ Login admin falhou: senha incorreta ({admin.id})")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Login ou senha incorretos"
+            )
+        
+        # Login bem-sucedido
+        admin.tentativas_login = 0
+        admin.ultimo_acesso = get_fortaleza_time()
+        db.commit()
+        db.refresh(admin)
+        
+        # Gerar token
+        access_token = create_access_token(
+            data={
+                "sub": admin.id,
+                "login": admin.login,
+                "tipo": "usuario_administrativo",
+                "nivel_acesso": admin.nivel_acesso.value,
+                "paroquia_id": admin.paroquia_id
+            },
+            expires_delta=timedelta(hours=24)
+        )
+        
+        logger.info(f"✅ Login admin bem-sucedido: {admin.nivel_acesso.value} ({admin.id})")
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            usuario=admin
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Erro ao fazer login admin: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao processar login"
+        )
