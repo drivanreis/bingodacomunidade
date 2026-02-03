@@ -637,7 +637,7 @@ class Feedback(Base):
     id = Column(String(50), primary_key=True, index=True)
     
     # Associação com usuário
-    usuario_id = Column(String(50), ForeignKey("usuarios.id"), nullable=False, index=True)
+    usuario_id = Column(String(50), ForeignKey("usuarios_legado.id"), nullable=False, index=True)
     
     # Tipo e conteúdo
     tipo = Column(SQLEnum(TipoFeedback), nullable=False, index=True)
@@ -652,7 +652,7 @@ class Feedback(Base):
     
     # Resposta administrativa
     resposta = Column(Text, nullable=True)
-    respondido_por_id = Column(String(50), ForeignKey("usuarios.id"), nullable=True)
+    respondido_por_id = Column(String(50), ForeignKey("usuarios_legado.id"), nullable=True)
     respondido_em = Column(DateTime(timezone=True), nullable=True)
     
     # ========================================================================
@@ -708,8 +708,8 @@ class Feedback(Base):
     )
     
     # Relacionamentos
-    usuario = relationship("Usuario", foreign_keys=[usuario_id])
-    respondido_por = relationship("Usuario", foreign_keys=[respondido_por_id])
+    usuario = relationship("UsuarioLegado", foreign_keys=[usuario_id])
+    respondido_por = relationship("UsuarioLegado", foreign_keys=[respondido_por_id])
     
     def __repr__(self):
         return f"<Feedback(id={self.id}, tipo={self.tipo}, usuario_id={self.usuario_id})>"
