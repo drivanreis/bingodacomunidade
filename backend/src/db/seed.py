@@ -17,7 +17,7 @@ import logging
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
-from src.models.models import Usuario, UsuarioLegado, TipoUsuario, Paroquia, Configuracao, TipoConfiguracao, CategoriaConfiguracao
+from src.models.models import UsuarioLegado, TipoUsuario, Paroquia, Configuracao, TipoConfiguracao, CategoriaConfiguracao
 from src.utils.time_manager import generate_temporal_id_with_microseconds
 
 logger = logging.getLogger(__name__)

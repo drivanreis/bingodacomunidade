@@ -17,7 +17,7 @@ from datetime import timedelta
 import logging
 
 from src.db.base import get_db
-from src.models.models import Usuario, UsuarioLegado, TipoUsuario, Paroquia, UsuarioComum, UsuarioAdministrativo, NivelAcessoAdmin
+from src.models.models import UsuarioLegado, TipoUsuario, Paroquia, UsuarioComum, UsuarioAdministrativo, NivelAcessoAdmin
 from src.schemas.schemas import (
     SignupRequest,
     LoginRequest,

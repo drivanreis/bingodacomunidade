@@ -216,7 +216,7 @@ async def get_current_user(
     Raises:
         HTTPException: Se token inválido ou usuário não encontrado
     """
-    from src.models.models import UsuarioLegado, Usuario
+    from src.models.models import UsuarioLegado
     
     # Extrair token
     token = credentials.credentials

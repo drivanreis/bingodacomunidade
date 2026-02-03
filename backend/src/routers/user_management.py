@@ -12,7 +12,7 @@ from typing import List
 import logging
 
 from src.db.base import get_db
-from src.models.models import UsuarioLegado, Usuario, TipoUsuario, Paroquia, UsuarioComum
+from src.models.models import UsuarioLegado, TipoUsuario, Paroquia, UsuarioComum
 from src.schemas.schemas import UsuarioResponse, UsuarioCreate
 from src.utils.permissions import (
     require_super_admin,

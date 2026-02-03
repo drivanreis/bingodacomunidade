@@ -33,7 +33,7 @@ from src.schemas.schemas import (
     FirstAccessSetupRequest,
     FirstAccessResponse
 )
-from src.models.models import Usuario, UsuarioLegado, Paroquia, TipoUsuario, UsuarioComum, UsuarioAdministrativo
+from src.models.models import UsuarioLegado, Paroquia, TipoUsuario, UsuarioComum, UsuarioAdministrativo
 from src.utils.auth import (
     hash_password,
     verify_password,

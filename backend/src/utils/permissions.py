@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from typing import Callable, List
 from functools import wraps
 
-from src.models.models import UsuarioLegado, Usuario, TipoUsuario
+from src.models.models import UsuarioLegado, TipoUsuario
 from src.utils.auth import get_current_user
 from src.db.base import get_db
 
