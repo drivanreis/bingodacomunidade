@@ -655,3 +655,142 @@ def login_admin(login: str, senha: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao processar login"
         )
+
+
+# ============================================================================
+# FLUXO 3: SIGNUP - REGISTRO DE NOVO USUÁRIO COMUM
+# ============================================================================
+
+@router.post(
+    "/signup/comum",
+    response_model=TokenResponse,
+    summary="📝 Signup Usuário Comum - Auto-Registro"
+)
+def signup_comum(
+    nome: str,
+    cpf: str,
+    email: str,
+    telefone: str,
+    whatsapp: str,
+    senha: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Permite que fiéis se registrem no sistema.
+    
+    Campos OBRIGATÓRIOS:
+    - nome: nome completo do fiel
+    - cpf: CPF único (já validado pelo frontend)
+    - email: email único (obrigatório para recuperação de senha)
+    - telefone: telefone (obrigatório para 2FA SMS)
+    - whatsapp: whatsapp (obrigatório para notificações de prêmios)
+    - senha: senha segura (validada no frontend)
+    
+    Validações:
+    - CPF deve ser único
+    - Email deve ser único
+    - Telefone não pode estar vazio
+    - Whatsapp não pode estar vazio
+    
+    Processo:
+    1. Validar campos
+    2. Criar usuário em UsuarioComum
+    3. Retornar JWT token
+    4. (Futuramente) Enviar email de confirmação
+    """
+    try:
+        # Normalizar CPF (remover caracteres especiais)
+        cpf_clean = cpf.replace(".", "").replace("-", "").replace("/", "")
+        
+        # Validações de existência
+        usuario_cpf = db.query(UsuarioComum).filter(
+            UsuarioComum.cpf == cpf_clean
+        ).first()
+        
+        if usuario_cpf:
+            logger.warning(f"❌ Signup falhou: CPF já registrado ({cpf_clean})")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Este CPF já está registrado"
+            )
+        
+        usuario_email = db.query(UsuarioComum).filter(
+            UsuarioComum.email == email
+        ).first()
+        
+        if usuario_email:
+            logger.warning(f"❌ Signup falhou: Email já registrado ({email})")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Este email já está registrado"
+            )
+        
+        # Validações de campos obrigatórios
+        if not telefone or not telefone.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Telefone é obrigatório"
+            )
+        
+        if not whatsapp or not whatsapp.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="WhatsApp é obrigatório"
+            )
+        
+        # Hash da senha
+        senha_hash = hash_password(senha)
+        
+        # Criar novo usuário comum
+        novo_usuario = UsuarioComum(
+            nome=nome,
+            cpf=cpf_clean,
+            email=email,
+            telefone=telefone,
+            whatsapp=whatsapp,
+            senha_hash=senha_hash,
+            ativo=True,
+            banido=False,
+            tentativas_login=0,
+            criado_em=get_fortaleza_time(),
+            ultimo_acesso=get_fortaleza_time()
+        )
+        
+        db.add(novo_usuario)
+        db.commit()
+        db.refresh(novo_usuario)
+        
+        # Gerar token
+        access_token = create_access_token(
+            data={
+                "sub": novo_usuario.id,
+                "email": novo_usuario.email,
+                "tipo": "usuario_comum",
+                "cpf": novo_usuario.cpf
+            },
+            expires_delta=timedelta(hours=24)
+        )
+        
+        logger.info(f"✅ Novo usuário comum registrado: {novo_usuario.id} ({novo_usuario.cpf})")
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            usuario=novo_usuario
+        )
+        
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"❌ Erro de integridade ao criar usuário: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Erro: Um dos dados já existe no sistema"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Erro ao fazer signup comum: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao processar signup"
+        )
