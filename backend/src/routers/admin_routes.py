@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
+from pydantic import BaseModel
 
 from src.db.base import get_db
 from src.models.models import Paroquia, Usuario, Sorteio, TipoUsuario, Configuracao, Feedback, TipoFeedback, StatusFeedback
@@ -16,6 +17,14 @@ from src.utils.auth import hash_password
 from src.utils.time_manager import generate_temporal_id_with_microseconds
 
 router = APIRouter(tags=["Admin"])
+
+
+# ============================================================================
+# SCHEMAS
+# ============================================================================
+
+class UpdateUserTipo(BaseModel):
+    tipo: str
 
 
 # ============================================================================
@@ -375,6 +384,54 @@ def atualizar_usuario(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao atualizar usuário: {str(e)}"
+        )
+
+
+@router.put("/usuarios/{usuario_id}/tipo", tags=["Admin - Usuários"])
+def atualizar_tipo_usuario(
+    usuario_id: str,
+    dados: UpdateUserTipo,
+    db: Session = Depends(get_db)
+):
+    """Atualiza apenas o tipo de usuário"""
+    try:
+        usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+        
+        if not usuario:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuário não encontrado"
+            )
+        
+        novo_tipo = dados.tipo
+        
+        # Validar tipo
+        tipos_validos = ['super_admin', 'parish_admin', 'paroquia_admin', 'faithful']
+        if novo_tipo not in tipos_validos:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tipo inválido. Deve ser um de: {', '.join(tipos_validos)}"
+            )
+        
+        usuario.tipo = novo_tipo
+        db.commit()
+        db.refresh(usuario)
+        
+        return {
+            "id": usuario.id,
+            "nome": usuario.nome,
+            "email": usuario.email,
+            "cpf": usuario.cpf,
+            "tipo": usuario.tipo,
+            "criado_em": usuario.criado_em.isoformat() if usuario.criado_em else None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao atualizar tipo de usuário: {str(e)}"
         )
 
 

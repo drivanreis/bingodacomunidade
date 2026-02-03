@@ -24,6 +24,7 @@ import SystemSettings from './pages/SystemSettings';
 import AuditLog from './pages/AuditLog';
 import FeedbackSystem from './pages/FeedbackSystem';
 import SendFeedback from './pages/SendFeedback';
+import AdminUsers from './pages/AdminUsers';
 
 import Home from './pages/Home';
 import Games from './pages/Games';
@@ -51,6 +52,7 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           
           {/* Rotas Administrativas - SUPER_ADMIN */}
+          <Route path="/admin-site" element={<Navigate to="/admin-site/login" replace />} />
           <Route path="/admin-site/login" element={<AdminSiteLogin />} />
           <Route
             path="/admin-site/dashboard"
@@ -105,6 +107,14 @@ function App() {
             element={
               <SuperAdminRoute>
                 <FeedbackSystem />
+              </SuperAdminRoute>
+            }
+          />
+          <Route
+            path="/admin-site/usuarios"
+            element={
+              <SuperAdminRoute>
+                <AdminUsers />
               </SuperAdminRoute>
             }
           />

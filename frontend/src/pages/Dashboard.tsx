@@ -77,6 +77,12 @@ const Dashboard: React.FC = () => {
               <h3 style={styles.actionTitle}>Meu Perfil</h3>
               <p style={styles.actionDesc}>Edite suas informações</p>
             </button>
+
+            <button onClick={() => navigate('/feedback')} style={styles.actionCard}>
+              <div style={styles.actionIcon}>💬</div>
+              <h3 style={styles.actionTitle}>Enviar Feedback</h3>
+              <p style={styles.actionDesc}>Compartilhe sua opinião</p>
+            </button>
           </div>
         </div>
 

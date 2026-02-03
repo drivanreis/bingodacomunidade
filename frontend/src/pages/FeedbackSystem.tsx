@@ -195,13 +195,22 @@ const FeedbackSystem: React.FC = () => {
           </button>
           <h2 className="d-inline-block mb-0">Sistema de Feedback</h2>
         </div>
-        <button 
-          className="btn btn-outline-primary"
-          onClick={loadFeedbacks}
-        >
-          <i className="bi bi-arrow-clockwise me-2"></i>
-          Atualizar
-        </button>
+        <div>
+          <button 
+            className="btn btn-outline-info me-2"
+            onClick={() => navigate('/admin-site/usuarios')}
+            title="Gerenciar usuários administradores"
+          >
+            👥 Gerenciar Admins
+          </button>
+          <button 
+            className="btn btn-outline-primary"
+            onClick={loadFeedbacks}
+          >
+            <i className="bi bi-arrow-clockwise me-2"></i>
+            Atualizar
+          </button>
+        </div>
       </div>
 
       {/* Estatísticas */}
