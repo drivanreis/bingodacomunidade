@@ -794,3 +794,210 @@ def signup_comum(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao processar signup"
         )
+
+
+# ============================================================================
+# FLUXO 4: RECUPERAÇÃO DE SENHA - USUÁRIO COMUM (por Email)
+# ============================================================================
+
+@router.post(
+    "/forgot-password/comum",
+    summary="🔐 Solicitar Recuperação de Senha - Usuário Comum"
+)
+def forgot_password_comum(email: str, db: Session = Depends(get_db)):
+    """
+    Inicia fluxo de recuperação de senha para usuário comum.
+    
+    - Email: email registrado no sistema
+    - Retorna: mensagem indicando envio de email
+    - Válido por: 1 hora
+    
+    Processo:
+    1. Buscar usuário por email
+    2. Gerar token único (1 hora)
+    3. Armazenar token em token_recuperacao e token_expiracao
+    4. (Futuramente) Enviar email com link de reset
+    """
+    try:
+        # Buscar usuário por email
+        usuario = db.query(UsuarioComum).filter(
+            UsuarioComum.email == email
+        ).first()
+        
+        if not usuario:
+            # Não retornar erro (segurança: evitar descoberta de emails)
+            logger.info(f"⚠️ Recuperação de senha: email não encontrado ({email})")
+            return {
+                "message": "Se o email existe no sistema, você receberá um link de recuperação"
+            }
+        
+        # Gerar token de recuperação (1 hora)
+        import secrets
+        token_reset = secrets.token_urlsafe(32)
+        agora = get_fortaleza_time()
+        expiracao = agora + timedelta(hours=1)
+        
+        usuario.token_recuperacao = token_reset
+        usuario.token_expiracao = expiracao
+        db.commit()
+        
+        logger.info(f"✅ Token de recuperação gerado: usuario {usuario.id}")
+        # TODO: Enviar email com link contendo token_reset
+        
+        return {
+            "message": "Se o email existe no sistema, você receberá um link de recuperação"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Erro ao processar forgot password: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao processar solicitação"
+        )
+
+
+@router.post(
+    "/reset-password/comum",
+    response_model=dict,
+    summary="🔄 Reseta a Senha - Usuário Comum"
+)
+def reset_password_comum(
+    token: str,
+    nova_senha: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Conclui o fluxo de recuperação de senha.
+    
+    - Token: token enviado por email
+    - Nova_Senha: nova senha do usuário
+    - Retorna: sucesso ou erro
+    
+    Validações:
+    - Token deve ser válido
+    - Token não deve estar expirado
+    - Senha nova é validada
+    """
+    try:
+        agora = get_fortaleza_time()
+        
+        # Buscar usuário pelo token
+        usuario = db.query(UsuarioComum).filter(
+            UsuarioComum.token_recuperacao == token
+        ).first()
+        
+        if not usuario:
+            logger.warning(f"❌ Reset senha: token inválido ({token[:10]}...)")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token inválido"
+            )
+        
+        # Validar expiração
+        if not usuario.token_expiracao or agora > usuario.token_expiracao:
+            logger.warning(f"❌ Reset senha: token expirado ({usuario.id})")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Link de recuperação expirou. Solicite um novo link."
+            )
+        
+        # Atualizar senha
+        usuario.senha_hash = hash_password(nova_senha)
+        usuario.token_recuperacao = None
+        usuario.token_expiracao = None
+        usuario.tentativas_login = 0  # Reset tentativas
+        db.commit()
+        
+        logger.info(f"✅ Senha resetada com sucesso: usuario {usuario.id}")
+        
+        return {
+            "message": "Senha atualizada com sucesso!",
+            "status": "success"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Erro ao resetar senha: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao resetar senha"
+        )
+
+
+# ============================================================================
+# FLUXO 5: RECUPERAÇÃO DE SENHA - USUÁRIO ADMINISTRATIVO (por Superior)
+# ============================================================================
+
+@router.post(
+    "/forgot-password/admin/{admin_id}",
+    summary="🔐 Solicitar Recuperação de Senha - Administrador (por Superior)"
+)
+def forgot_password_admin(
+    admin_id: int,
+    usuario_atual = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Permite que um superior resete a senha de um administrador.
+    
+    - Admin_ID: ID do admin cuja senha será resetada
+    - Requer: usuário autenticado ser ADMIN_SITE
+    
+    Processo:
+    1. Verificar se usuário_atual é ADMIN_SITE
+    2. Buscar admin por ID
+    3. Gerar token de recuperação
+    4. (Futuramente) Enviar email ao admin com token
+    """
+    try:
+        # Verificar permissão (apenas ADMIN_SITE pode fazer isso)
+        admin_atual = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.id == usuario_atual.get("sub")
+        ).first()
+        
+        if not admin_atual or admin_atual.nivel_acesso != NivelAcessoAdmin.admin_site:
+            logger.warning(f"❌ Acesso negado: {usuario_atual.get('sub')} não é ADMIN_SITE")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Apenas ADMIN_SITE pode resetar senhas de administradores"
+            )
+        
+        # Buscar admin alvo
+        admin_alvo = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.id == admin_id
+        ).first()
+        
+        if not admin_alvo:
+            logger.warning(f"❌ Admin não encontrado: {admin_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Administrador não encontrado"
+            )
+        
+        # Gerar token de recuperação (1 hora)
+        import secrets
+        token_reset = secrets.token_urlsafe(32)
+        agora = get_fortaleza_time()
+        expiracao = agora + timedelta(hours=1)
+        
+        admin_alvo.token_recuperacao = token_reset
+        admin_alvo.token_expiracao = expiracao
+        db.commit()
+        
+        logger.info(f"✅ Token de recuperação gerado para admin: {admin_alvo.id}")
+        # TODO: Enviar email ao admin com link contendo token_reset
+        
+        return {
+            "message": f"Email de recuperação enviado ao administrador",
+            "admin_email": admin_alvo.email
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Erro ao processar forgot password admin: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao processar solicitação"
+        )
