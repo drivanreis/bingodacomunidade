@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 
 interface Usuario {
@@ -16,7 +15,6 @@ interface Usuario {
 
 const AdminUsers: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +32,7 @@ const AdminUsers: React.FC = () => {
       const response = await api.get('/usuarios');
       setUsuarios(response.data);
       setError(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Erro ao carregar usuários:', err);
       setError('Erro ao carregar usuários do sistema');
     } finally {
@@ -51,9 +49,12 @@ const AdminUsers: React.FC = () => {
       setShowModal(false);
       setSelectedUser(null);
       alert('✅ Usuário promovido com sucesso!');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Erro ao atualizar usuário:', err);
-      alert('❌ Erro ao atualizar usuário: ' + (err.response?.data?.detail || 'Erro desconhecido'));
+      const errorMessage = (err instanceof Object && 'response' in err) 
+        ? (err as {response?: {data?: {detail?: string}}}).response?.data?.detail || 'Erro desconhecido'
+        : 'Erro desconhecido';
+      alert('❌ Erro ao atualizar usuário: ' + errorMessage);
     }
   };
 
