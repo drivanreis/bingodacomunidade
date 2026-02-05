@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getAppConfig } from '../config/appConfig';
+import { getAppConfigSync } from '../services/configService';
 
 const Login: React.FC = () => {
   const location = useLocation();
@@ -16,7 +16,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   // Obter configurações
-  const appConfig = getAppConfig();
+  const appConfig = getAppConfigSync();
 
   // Auto-ocultar mensagem de erro após o tempo configurado
   useEffect(() => {

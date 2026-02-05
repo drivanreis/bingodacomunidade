@@ -60,12 +60,13 @@ class TipoUsuario(str, enum.Enum):
     └── Participa de bingos
     └── Pode ser banido por PAROQUIA_ADMIN
     """
-    SUPER_ADMIN = "super_admin"           # Nível 1: Guardião do Sistema
-    PAROQUIA_ADMIN = "paroquia_admin"     # Nível 2: Administrador Paroquial
-    PAROQUIA_CAIXA = "paroquia_caixa"     # Nível 3: Operador Financeiro
-    PAROQUIA_RECEPCAO = "paroquia_recepcao"  # Nível 3: Operador de Cadastro
-    PAROQUIA_BINGO = "paroquia_bingo"     # Nível 3: Operador de Sorteios
-    FIEL = "fiel"                         # Nível 4: Participante Comum
+    SUPER_ADMIN = "super_admin"                 # Nível 1: Guardião do Sistema
+    PAROQUIA_ADMIN = "paroquia_admin"         # Nível 2: Administrador Paroquial
+    PAROQUIA_CAIXA = "paroquia_caixa"         # Nível 3: Operador Financeiro
+    PAROQUIA_RECEPCAO = "paroquia_recepcao"   # Nível 3: Operador de Cadastro
+    PAROQUIA_BINGO = "paroquia_bingo"         # Nível 3: Operador de Sorteios
+    FIEL = "fiel"                             # Nível 4: Participante Comum
+    USUARIO_ADMINISTRATIVO = "usuario_administrativo"  # Tipo genérico para admins
 
 
 class StatusSorteio(str, enum.Enum):
@@ -229,6 +230,9 @@ class UsuarioComum(Base):
     token_2fa = Column(String(6), nullable=True)
     token_2fa_expiracao = Column(DateTime(timezone=True), nullable=True)
     
+    # Tipo de Usuário (sempre será FIEL para UsuarioComum)
+    tipo = Column(String(20), default="fiel", nullable=False)
+    
     # Segurança de Login
     tentativas_login = Column(Integer, default=0)
     bloqueado_ate = Column(DateTime(timezone=True), nullable=True)
@@ -302,6 +306,9 @@ class UsuarioAdministrativo(Base):
     # Hierarquia & Permissões
     nivel_acesso = Column(SQLEnum(NivelAcessoAdmin), nullable=False, index=True)
     paroquia_id = Column(String(50), ForeignKey("paroquias.id"), nullable=True, index=True)
+    
+    # Tipo de Usuário (sempre será 'usuario_administrativo')
+    tipo = Column(String(20), default="usuario_administrativo", nullable=False)
     
     # Quem Criou (para controle hierárquico)
     criado_por_id = Column(String(50), nullable=True)

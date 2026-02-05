@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getAppConfig } from '../config/appConfig';
+import { getAppConfigSync } from '../services/configService';
 import api from '../services/api';
 
 const FirstAccessSetup: React.FC = () => {
@@ -20,7 +20,7 @@ const FirstAccessSetup: React.FC = () => {
   const navigate = useNavigate();
 
   // Obter configurações
-  const appConfig = getAppConfig();
+  const appConfig = getAppConfigSync();
 
   // Auto-ocultar mensagem de erro após o tempo configurado
   useEffect(() => {
@@ -127,11 +127,10 @@ const FirstAccessSetup: React.FC = () => {
     }
 
     try {
-      const response = await api.post('/auth/first-access-setup', {
+      const response = await api.post('/auth/bootstrap', {
         nome: nome.trim(),
-        cpf: cpfLimpo,
+        login: cpfLimpo,
         email: email.trim(),
-        whatsapp: `+${whatsappLimpo}`,
         senha
       });
 
@@ -141,18 +140,18 @@ const FirstAccessSetup: React.FC = () => {
       localStorage.setItem('@BingoComunidade:user', JSON.stringify(usuario));
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       
-      // Atualizar contexto
+      // Atualizar contexto (UsuarioAdministrativo tem nivel_acesso, não tipo)
       updateUser({
         id: usuario.id,
         name: usuario.nome,
         email: usuario.email || '',
-        role: usuario.tipo,
-        cpf: usuario.cpf,
-        parish_id: usuario.paroquia_id
+        role: usuario.nivel_acesso,
+        cpf: usuario.cpf || '',
+        parish_id: usuario.paroquia_id || null
       });
 
       // Redirecionar para dashboard
-      navigate('/dashboard');
+      navigate('/admin-site/dashboard');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } }; message?: string };
       const mensagemErro = error.response?.data?.detail || error.message || "Erro ao configurar primeiro acesso";

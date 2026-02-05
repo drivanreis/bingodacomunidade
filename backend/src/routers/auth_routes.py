@@ -1,13 +1,27 @@
 """
-Endpoints de Autenticação - Sistema com 3 Rotas de Login
-========================================================
-Implementa sistema de autenticação hierárquico com separação
-explícita por papéis.
+Endpoints de Autenticação - Sistema com 2 Tipos de Usuário
+===========================================================
+Implementa sistema de autenticação com separação explícita:
+
+1. USUÁRIO COMUM (FIEL)
+   - Auto-cadastro público
+   - Login: CPF + Senha
+   - Recuperação: por Email
+   
+2. USUÁRIO ADMINISTRATIVO
+   - Sem auto-cadastro (criado apenas por superior)
+   - Login: Login + Senha
+   - Hierarquia: ADMIN_SITE > ADMIN_PAROQUIA
+   - Recuperação: por ADMIN_SITE
 
 Rotas de Login:
-1. /login - Público (FIEL)
-2. /admin-paroquia/login - Não público (usuários paroquiais)
-3. /admin-site/login - Não público (SUPER_ADMIN)
+1. POST /auth/signup - Cadastro público de FIEL (novo)
+2. POST /auth/login - Login de FIEL com CPF
+3. POST /auth/admin-paroquia/login - Login de Admin-Paroquia
+4. POST /auth/admin-site/login - Login de Admin-Site
+5. POST /auth/admin-site/criar-admin-site - Admin-Site cria outro Admin-Site
+6. POST /auth/admin-site/criar-admin-paroquia - Admin-Site cria Admin-Paroquia
+7. POST /auth/admin-paroquia/criar-admin-paroquia - Admin-Paroquia cria Admin-Paroquia subordinado
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,16 +29,23 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import timedelta
 import logging
+import secrets
 
 from src.db.base import get_db
-from src.models.models import UsuarioLegado, TipoUsuario, Paroquia, UsuarioComum, UsuarioAdministrativo, NivelAcessoAdmin
+from src.models.models import (
+    UsuarioComum,
+    UsuarioAdministrativo,
+    NivelAcessoAdmin,
+    Paroquia
+)
 from src.schemas.schemas import (
-    SignupRequest,
-    LoginRequest,
+    SignupFielRequest,
+    LoginFielRequest,
     AdminSiteLoginRequest,
     AdminParoquiaLoginRequest,
     TokenResponse,
-    BootstrapSetupRequest
+    CreateAdminSiteRequest,
+    CreateAdminParoquiaRequest
 )
 from src.utils.auth import (
     verify_password,
@@ -40,7 +61,7 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 
 # ============================================================================
-# ROTA 0: CADASTRO PÚBLICO - NOVO FIEL
+# SEÇÃO 1: FLUXOS DE USUÁRIO COMUM (FIEL)
 # ============================================================================
 
 @router.post(
@@ -49,103 +70,77 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
     status_code=status.HTTP_201_CREATED,
     summary="📝 Cadastro Público - Novo FIEL"
 )
-def signup_fiel(
-    request: SignupRequest,
-    db: Session = Depends(get_db)
-):
+def signup_fiel(request: SignupFielRequest, db: Session = Depends(get_db)):
     """
-    Cadastro público de novos FIELs (participantes).
+    Cadastro público de novos FIELs (participantes/apostadores).
     
-    Qualquer pessoa pode se cadastrar e começar a participar dos bingos.
-    O usuário é automaticamente associado à paróquia padrão.
+    Qualquer pessoa pode se registrar. Campos obrigatórios:
+    - nome: nome completo
+    - cpf: CPF único (11 dígitos)
+    - email: email único (necessário para recuperação de senha)
+    - telefone: telefone (necessário para 2FA via SMS)
+    - whatsapp: WhatsApp (necessário para notificação de prêmios)
+    - senha: mínimo 6 caracteres
     
-    Validações:
-    - CPF único no sistema
-    - Email único no sistema
-    - WhatsApp no formato brasileiro
-    - Senha mínima 6 caracteres
-    
-    Após cadastro, retorna token de acesso (login automático).
+    Retorna JWT com acesso imediato (login automático após signup).
     """
     try:
-        # ====================================================================
-        # VALIDAÇÕES DE UNICIDADE
-        # ====================================================================
+        # Normalizar CPF
+        cpf_limpo = request.cpf.replace(".", "").replace("-", "").replace("/", "")
         
-        # Verificar CPF único
-        cpf_exists = db.query(Usuario).filter(Usuario.cpf == request.cpf).first()
-        if cpf_exists:
+        # Validar unicidade de CPF
+        cpf_existe = db.query(UsuarioComum).filter(
+            UsuarioComum.cpf == cpf_limpo
+        ).first()
+        if cpf_existe:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_409_CONFLICT,
                 detail="CPF já cadastrado no sistema"
             )
         
-        # Verificar email único
-        email_exists = db.query(Usuario).filter(Usuario.email == request.email).first()
-        if email_exists:
+        # Validar unicidade de email
+        email_existe = db.query(UsuarioComum).filter(
+            UsuarioComum.email == request.email
+        ).first()
+        if email_existe:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_409_CONFLICT,
                 detail="Email já cadastrado no sistema"
             )
         
-        # ====================================================================
-        # BUSCAR PARÓQUIA PADRÃO
-        # ====================================================================
-        
-        paroquia_default = db.query(Paroquia).filter(Paroquia.ativa == True).first()
-        if not paroquia_default:
-            logger.error("❌ Nenhuma paróquia ativa encontrada no sistema")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Sistema não configurado corretamente - sem paróquia disponível"
-            )
-        
-        # ====================================================================
-        # CRIAR NOVO FIEL
-        # ====================================================================
-        
-        novo_fiel = Usuario(
+        # Criar novo FIEL
+        novo_fiel = UsuarioComum(
             id=generate_temporal_id_with_microseconds('USR'),
             nome=request.nome,
-            cpf=request.cpf,
+            cpf=cpf_limpo,
             email=request.email,
+            telefone=request.telefone,
             whatsapp=request.whatsapp,
-            tipo=TipoUsuario.FIEL,
-            paroquia_id=paroquia_default.id,
             chave_pix=request.chave_pix,
             senha_hash=hash_password(request.senha),
             ativo=True,
-            email_verificado=False,  # Requer verificação futura
+            email_verificado=False,  # Verificação futura
+            telefone_verificado=False,
             banido=False,
-            is_bootstrap=False
+            criado_em=get_fortaleza_time(),
+            atualizado_em=get_fortaleza_time()
         )
         
-        try:
-            db.add(novo_fiel)
-            db.commit()
-            db.refresh(novo_fiel)
-        except IntegrityError as e:
-            db.rollback()
-            logger.error(f"❌ Erro de integridade ao cadastrar FIEL: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="CPF ou email já cadastrado no sistema"
-            )
+        db.add(novo_fiel)
+        db.commit()
+        db.refresh(novo_fiel)
         
-        logger.info(f"✓ Novo FIEL cadastrado: {novo_fiel.nome} ({novo_fiel.cpf})")
+        logger.info(f"✅ Novo FIEL cadastrado: {novo_fiel.nome} ({novo_fiel.cpf})")
         
-        # ====================================================================
-        # LOGIN AUTOMÁTICO
-        # ====================================================================
-        
+        # Login automático
         access_token = create_access_token(
             data={
                 "sub": novo_fiel.id,
                 "cpf": novo_fiel.cpf,
-                "tipo": novo_fiel.tipo.value,
-                "paroquia_id": novo_fiel.paroquia_id
+                "email": novo_fiel.email,
+                "tipo": "usuario_comum"
             },
-            expires_delta=timedelta(hours=16)
+            expires_delta=timedelta(hours=24)
         )
         
         return TokenResponse(
@@ -156,637 +151,171 @@ def signup_fiel(
         
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"❌ Erro ao cadastrar FIEL: {str(e)}")
+    except IntegrityError as e:
         db.rollback()
+        logger.error(f"❌ Erro de integridade ao cadastrar FIEL: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Erro ao processar cadastro - dados duplicados"
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Erro ao cadastrar FIEL: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao processar cadastro: {str(e)}"
+            detail="Erro ao processar cadastro"
         )
 
-
-# ============================================================================
-# ROTA 1: LOGIN PÚBLICO - FIEL
-# ============================================================================
 
 @router.post(
     "/login",
     response_model=TokenResponse,
-    summary="🌐 Login Público - Usuário Comum (FIEL)"
+    summary="🔑 Login - Usuário Comum (FIEL)"
 )
-def login_fiel(
-    request: LoginRequest,
-    db: Session = Depends(get_db)
-):
-    """Login público para FIELs usando CPF e senha."""
-    
-    usuario = db.query(Usuario).filter(Usuario.cpf == request.cpf).first()
-    
-    if not usuario:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="CPF ou senha incorretos"
-        )
-    
-    if usuario.tipo != TipoUsuario.FIEL:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Esta rota é apenas para usuários comuns. Use a rota administrativa correta."
-        )
-    
-    if not verify_password(request.senha, usuario.senha_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="CPF ou senha incorretos"
-        )
-    
-    if not usuario.ativo or usuario.banido:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Acesso negado. {usuario.motivo_banimento if usuario.banido else 'Usuário inativo'}"
-        )
-    
-    usuario.ultimo_acesso = get_fortaleza_time()
-    db.commit()
-    
-    access_token = create_access_token(
-        data={"sub": usuario.id, "cpf": usuario.cpf, "tipo": usuario.tipo.value, "paroquia_id": usuario.paroquia_id}
-    )
-    
-    logger.info(f"✅ Login FIEL: {usuario.nome}")
-    
-    return TokenResponse(access_token=access_token, token_type="bearer", usuario=usuario)
-
-
-# ============================================================================
-# ROTA 2: LOGIN ADMINISTRATIVO - PARÓQUIA
-# ============================================================================
-
-@router.post(
-    "/admin-paroquia/login",
-    response_model=TokenResponse,
-    summary="🏛️ Login Administrativo - Usuários Paroquiais",
-    include_in_schema=False
-)
-def login_paroquia(
-    request: AdminParoquiaLoginRequest,
-    db: Session = Depends(get_db)
-):
-    """Login não público para usuários paroquiais via email."""
-    
-    usuario = db.query(Usuario).filter(Usuario.email == request.email).first()
-    
-    if not usuario:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou senha incorretos"
-        )
-    
-    paroquial_types = [
-        TipoUsuario.PAROQUIA_ADMIN,
-        TipoUsuario.PAROQUIA_CAIXA,
-        TipoUsuario.PAROQUIA_RECEPCAO,
-        TipoUsuario.PAROQUIA_BINGO
-    ]
-    
-    if usuario.tipo not in paroquial_types:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Esta rota é apenas para usuários paroquiais"
-        )
-    
-    if not verify_password(request.senha, usuario.senha_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou senha incorretos"
-        )
-    
-    if not usuario.ativo or usuario.banido:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso negado"
-        )
-    
-    usuario.ultimo_acesso = get_fortaleza_time()
-    db.commit()
-    
-    access_token = create_access_token(
-        data={"sub": usuario.id, "email": usuario.email, "tipo": usuario.tipo.value, "paroquia_id": usuario.paroquia_id}
-    )
-    
-    logger.info(f"✅ Login Paroquial: {usuario.nome} ({usuario.tipo.value})")
-    
-    return TokenResponse(access_token=access_token, token_type="bearer", usuario=usuario)
-
-
-# ============================================================================
-# ROTA 3: LOGIN ADMINISTRATIVO - SUPER ADMIN
-# ============================================================================
-
-@router.post(
-    "/admin-site/login",
-    response_model=TokenResponse,
-    summary="👑 Login Administrativo - Super Admin",
-    include_in_schema=False
-)
-def login_super_admin(
-    request: AdminSiteLoginRequest,
-    db: Session = Depends(get_db)
-):
-    """Login não público para SUPER_ADMIN. Aceita Admin/admin123 (bootstrap) ou email/senha."""
-    
-    if request.username.lower() == "admin":
-        usuario = db.query(Usuario).filter(
-            Usuario.nome == "Admin",
-            Usuario.is_bootstrap == True
-        ).first()
-    else:
-        usuario = db.query(Usuario).filter(Usuario.email == request.username).first()
-    
-    if not usuario:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais incorretas"
-        )
-    
-    if usuario.tipo != TipoUsuario.SUPER_ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Esta rota é exclusiva para Super Admins"
-        )
-    
-    if not verify_password(request.senha, usuario.senha_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais incorretas"
-        )
-    
-    # Se é bootstrap, retorna com flag especial
-    if usuario.is_bootstrap:
-        logger.info("🔧 Login com usuário bootstrap - Forçando primeiro acesso")
-        
-        access_token = create_access_token(
-            data={"sub": usuario.id, "tipo": usuario.tipo.value, "is_bootstrap": True}
-        )
-        
-        return TokenResponse(access_token=access_token, token_type="bearer", usuario=usuario)
-    
-    # Login normal
-    if not usuario.ativo:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Usuário inativo"
-        )
-    
-    usuario.ultimo_acesso = get_fortaleza_time()
-    db.commit()
-    
-    access_token = create_access_token(
-        data={"sub": usuario.id, "email": usuario.email, "tipo": usuario.tipo.value}
-    )
-    
-    logger.info(f"✅ Login SUPER_ADMIN: {usuario.nome}")
-    
-    return TokenResponse(access_token=access_token, token_type="bearer", usuario=usuario)
-
-
-# ============================================================================
-# ENDPOINT: CRIAR PRIMEIRO SUPER_ADMIN (BOOTSTRAP)
-# ============================================================================
-
-@router.post(
-    "/admin-site/setup-first-admin",
-    response_model=TokenResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="👑 Criar Primeiro Super Admin",
-    include_in_schema=False
-)
-def setup_first_super_admin(
-    request: BootstrapSetupRequest,
-    db: Session = Depends(get_db)
-):
+def login_fiel(request: LoginFielRequest, db: Session = Depends(get_db)):
     """
-    DESCONTINUADO - Use a nova arquitetura de UsuarioAdministrativo
-    """
-    raise HTTPException(
-        status_code=status.HTTP_410_GONE,
-        detail="Este endpoint foi descontinuado. Configure administradores através da nova arquitetura."
-    )
-
-
-# ============================================================================
-# NOVA ARQUITETURA: DOIS FLUXOS DE LOGIN SEPARADOS
-# ============================================================================
-
-# ============================================================================
-# FLUXO 1: LOGIN USUÁRIO COMUM (CPF + Senha)
-# ============================================================================
-
-@router.post(
-    "/login-comum",
-    response_model=TokenResponse,
-    summary="🔑 Login Usuário Comum - CPF + Senha"
-)
-def login_comum(cpf: str, senha: str, db: Session = Depends(get_db)):
-    """
-    Autentica usuário comum (FIEL) usando CPF e senha.
+    Login público para FIELs usando CPF e senha.
     
-    - CPF: números apenas (validar antes de enviar)
-    - Retorna: JWT token + dados do usuário
-    - Validações: ativo, banido, tentativas de login
+    - CPF: números apenas (11 dígitos)
+    - Senha: senha cadastrada
+    
+    Validações:
+    - Usuário ativo
+    - Não banido
+    - Desbloqueio por tentativas (máx 3 falhas em 15 min)
+    
+    Retorna JWT com acesso.
     """
     try:
-        # Buscar usuário por CPF
-        usuario = db.query(UsuarioComum).filter(
-            UsuarioComum.cpf == cpf
+        # Normalizar CPF
+        cpf_limpo = request.cpf.replace(".", "").replace("-", "").replace("/", "")
+        
+        # Buscar FIEL por CPF
+        fiel = db.query(UsuarioComum).filter(
+            UsuarioComum.cpf == cpf_limpo
         ).first()
         
-        if not usuario:
-            logger.warning(f"❌ Tentativa de login: CPF não encontrado ({cpf})")
+        if not fiel:
+            logger.warning(f"❌ Login: CPF não encontrado ({cpf_limpo})")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="CPF ou senha incorretos"
             )
         
-        # Validações de status
-        if not usuario.ativo:
-            logger.warning(f"❌ Login bloqueado: usuário {usuario.id} inativo")
+        # Validar bloqueio por tentativas
+        if fiel.bloqueado_ate:
+            agora = get_fortaleza_time()
+            if agora < fiel.bloqueado_ate:
+                logger.warning(f"❌ Login bloqueado: tentativas excessivas ({fiel.id})")
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Muitas tentativas. Tente novamente em alguns minutos."
+                )
+            else:
+                # Desbloquear
+                fiel.bloqueado_ate = None
+                fiel.tentativas_login = 0
+                db.commit()
+        
+        # Validar status
+        if not fiel.ativo:
+            logger.warning(f"❌ Login: usuário inativo ({fiel.id})")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Usuário inativo"
             )
         
-        if usuario.banido:
-            logger.warning(f"❌ Login bloqueado: usuário {usuario.id} banido")
+        if fiel.banido:
+            logger.warning(f"❌ Login: usuário banido ({fiel.id})")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Usuário banido: {usuario.motivo_banimento or 'Razão não informada'}"
+                detail=f"Usuário banido: {fiel.motivo_banimento or 'Sem motivo informado'}"
             )
         
-        # Validar desbloqueio por tentativas
-        if usuario.bloqueado_ate:
-            now = get_fortaleza_time()
-            if now < usuario.bloqueado_ate:
-                logger.warning(f"❌ Login bloqueado: tentativas excessivas ({usuario.id})")
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="Muitas tentativas falhas. Tente novamente mais tarde."
-                )
-            else:
-                # Desbloquear
-                usuario.bloqueado_ate = None
-                usuario.tentativas_login = 0
-                db.commit()
-        
         # Validar senha
-        if not verify_password(senha, usuario.senha_hash):
-            usuario.tentativas_login += 1
+        if not verify_password(request.senha, fiel.senha_hash):
+            fiel.tentativas_login += 1
             
-            # Bloquear após 3 tentativas (por 15 minutos)
-            if usuario.tentativas_login >= 3:
-                usuario.bloqueado_ate = get_fortaleza_time() + timedelta(minutes=15)
-                logger.warning(f"⚠️ Usuário {usuario.id} bloqueado por 15 min (3 tentativas)")
+            # Bloquear após 3 tentativas (15 minutos)
+            if fiel.tentativas_login >= 3:
+                fiel.bloqueado_ate = get_fortaleza_time() + timedelta(minutes=15)
+                logger.warning(f"⚠️ FIEL bloqueado por 15 min: {fiel.id}")
             
             db.commit()
-            logger.warning(f"❌ Login falhou: senha incorreta ({usuario.id})")
+            logger.warning(f"❌ Login: senha incorreta ({fiel.id})")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="CPF ou senha incorretos"
             )
         
         # Login bem-sucedido
-        usuario.tentativas_login = 0
-        usuario.ultimo_acesso = get_fortaleza_time()
+        fiel.tentativas_login = 0
+        fiel.ultimo_acesso = get_fortaleza_time()
         db.commit()
-        db.refresh(usuario)
+        db.refresh(fiel)
         
-        # Gerar token
         access_token = create_access_token(
             data={
-                "sub": usuario.id,
-                "email": usuario.email,
-                "tipo": "usuario_comum",
-                "cpf": usuario.cpf
+                "sub": fiel.id,
+                "cpf": fiel.cpf,
+                "email": fiel.email,
+                "tipo": "usuario_comum"
             },
             expires_delta=timedelta(hours=24)
         )
         
-        logger.info(f"✅ Login bem-sucedido: usuário comum ({usuario.id})")
+        logger.info(f"✅ Login FIEL bem-sucedido: {fiel.id}")
         
         return TokenResponse(
             access_token=access_token,
             token_type="bearer",
-            usuario=usuario
+            usuario=fiel
         )
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Erro ao fazer login comum: {str(e)}")
+        logger.error(f"❌ Erro ao fazer login FIEL: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao processar login"
         )
 
 
-# ============================================================================
-# FLUXO 2: LOGIN USUÁRIO ADMINISTRATIVO (Login + Senha)
-# ============================================================================
-
 @router.post(
-    "/login-admin",
-    response_model=TokenResponse,
-    summary="🔑 Login Administrador - Login + Senha"
+    "/forgot-password",
+    summary="🔐 Recuperação de Senha - FIEL"
 )
-def login_admin(login: str, senha: str, db: Session = Depends(get_db)):
+def forgot_password_fiel(email: str, db: Session = Depends(get_db)):
     """
-    Autentica usuário administrativo (ADMIN_SITE ou ADMIN_PAROQUIA).
+    Inicia recuperação de senha por email para FIELs.
     
-    - Login: usuário único
-    - Retorna: JWT token + dados do administrador
-    - Validações: ativo, tentativas de login, hierarquia
+    Gera token válido por 1 hora. Não retorna erro se email
+    não existe (segurança - evita descoberta de emails).
     """
     try:
-        # Buscar admin por login
-        admin = db.query(UsuarioAdministrativo).filter(
-            UsuarioAdministrativo.login == login
+        fiel = db.query(UsuarioComum).filter(
+            UsuarioComum.email == email
         ).first()
         
-        if not admin:
-            logger.warning(f"❌ Tentativa de login admin: login não encontrado ({login})")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Login ou senha incorretos"
-            )
-        
-        # Validações de status
-        if not admin.ativo:
-            logger.warning(f"❌ Login admin bloqueado: {admin.id} inativo")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Administrador inativo"
-            )
-        
-        # Validar desbloqueio por tentativas
-        if admin.bloqueado_ate:
-            now = get_fortaleza_time()
-            if now < admin.bloqueado_ate:
-                logger.warning(f"❌ Login admin bloqueado: tentativas excessivas ({admin.id})")
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="Muitas tentativas falhas. Tente novamente mais tarde."
-                )
-            else:
-                # Desbloquear
-                admin.bloqueado_ate = None
-                admin.tentativas_login = 0
-                db.commit()
-        
-        # Validar senha
-        if not verify_password(senha, admin.senha_hash):
-            admin.tentativas_login += 1
+        if fiel:
+            # Gerar token de recuperação (1 hora)
+            token_reset = secrets.token_urlsafe(32)
+            agora = get_fortaleza_time()
             
-            # Bloquear após 3 tentativas (por 15 minutos)
-            if admin.tentativas_login >= 3:
-                admin.bloqueado_ate = get_fortaleza_time() + timedelta(minutes=15)
-                logger.warning(f"⚠️ Admin {admin.id} bloqueado por 15 min (3 tentativas)")
-            
+            fiel.token_recuperacao = token_reset
+            fiel.token_expiracao = agora + timedelta(hours=1)
             db.commit()
-            logger.warning(f"❌ Login admin falhou: senha incorreta ({admin.id})")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Login ou senha incorretos"
-            )
-        
-        # Login bem-sucedido
-        admin.tentativas_login = 0
-        admin.ultimo_acesso = get_fortaleza_time()
-        db.commit()
-        db.refresh(admin)
-        
-        # Gerar token
-        access_token = create_access_token(
-            data={
-                "sub": admin.id,
-                "login": admin.login,
-                "tipo": "usuario_administrativo",
-                "nivel_acesso": admin.nivel_acesso.value,
-                "paroquia_id": admin.paroquia_id
-            },
-            expires_delta=timedelta(hours=24)
-        )
-        
-        logger.info(f"✅ Login admin bem-sucedido: {admin.nivel_acesso.value} ({admin.id})")
-        
-        return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            usuario=admin
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ Erro ao fazer login admin: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao processar login"
-        )
-
-
-# ============================================================================
-# FLUXO 3: SIGNUP - REGISTRO DE NOVO USUÁRIO COMUM
-# ============================================================================
-
-@router.post(
-    "/signup/comum",
-    response_model=TokenResponse,
-    summary="📝 Signup Usuário Comum - Auto-Registro"
-)
-def signup_comum(
-    nome: str,
-    cpf: str,
-    email: str,
-    telefone: str,
-    whatsapp: str,
-    senha: str,
-    db: Session = Depends(get_db)
-):
-    """
-    Permite que fiéis se registrem no sistema.
-    
-    Campos OBRIGATÓRIOS:
-    - nome: nome completo do fiel
-    - cpf: CPF único (já validado pelo frontend)
-    - email: email único (obrigatório para recuperação de senha)
-    - telefone: telefone (obrigatório para 2FA SMS)
-    - whatsapp: whatsapp (obrigatório para notificações de prêmios)
-    - senha: senha segura (validada no frontend)
-    
-    Validações:
-    - CPF deve ser único
-    - Email deve ser único
-    - Telefone não pode estar vazio
-    - Whatsapp não pode estar vazio
-    
-    Processo:
-    1. Validar campos
-    2. Criar usuário em UsuarioComum
-    3. Retornar JWT token
-    4. (Futuramente) Enviar email de confirmação
-    """
-    try:
-        # Normalizar CPF (remover caracteres especiais)
-        cpf_clean = cpf.replace(".", "").replace("-", "").replace("/", "")
-        
-        # Validações de existência
-        usuario_cpf = db.query(UsuarioComum).filter(
-            UsuarioComum.cpf == cpf_clean
-        ).first()
-        
-        if usuario_cpf:
-            logger.warning(f"❌ Signup falhou: CPF já registrado ({cpf_clean})")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Este CPF já está registrado"
-            )
-        
-        usuario_email = db.query(UsuarioComum).filter(
-            UsuarioComum.email == email
-        ).first()
-        
-        if usuario_email:
-            logger.warning(f"❌ Signup falhou: Email já registrado ({email})")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Este email já está registrado"
-            )
-        
-        # Validações de campos obrigatórios
-        if not telefone or not telefone.strip():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Telefone é obrigatório"
-            )
-        
-        if not whatsapp or not whatsapp.strip():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="WhatsApp é obrigatório"
-            )
-        
-        # Hash da senha
-        senha_hash = hash_password(senha)
-        
-        # Criar novo usuário comum
-        novo_usuario = UsuarioComum(
-            nome=nome,
-            cpf=cpf_clean,
-            email=email,
-            telefone=telefone,
-            whatsapp=whatsapp,
-            senha_hash=senha_hash,
-            ativo=True,
-            banido=False,
-            tentativas_login=0,
-            criado_em=get_fortaleza_time(),
-            ultimo_acesso=get_fortaleza_time()
-        )
-        
-        db.add(novo_usuario)
-        db.commit()
-        db.refresh(novo_usuario)
-        
-        # Gerar token
-        access_token = create_access_token(
-            data={
-                "sub": novo_usuario.id,
-                "email": novo_usuario.email,
-                "tipo": "usuario_comum",
-                "cpf": novo_usuario.cpf
-            },
-            expires_delta=timedelta(hours=24)
-        )
-        
-        logger.info(f"✅ Novo usuário comum registrado: {novo_usuario.id} ({novo_usuario.cpf})")
-        
-        return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            usuario=novo_usuario
-        )
-        
-    except IntegrityError as e:
-        db.rollback()
-        logger.error(f"❌ Erro de integridade ao criar usuário: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Erro: Um dos dados já existe no sistema"
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ Erro ao fazer signup comum: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao processar signup"
-        )
-
-
-# ============================================================================
-# FLUXO 4: RECUPERAÇÃO DE SENHA - USUÁRIO COMUM (por Email)
-# ============================================================================
-
-@router.post(
-    "/forgot-password/comum",
-    summary="🔐 Solicitar Recuperação de Senha - Usuário Comum"
-)
-def forgot_password_comum(email: str, db: Session = Depends(get_db)):
-    """
-    Inicia fluxo de recuperação de senha para usuário comum.
-    
-    - Email: email registrado no sistema
-    - Retorna: mensagem indicando envio de email
-    - Válido por: 1 hora
-    
-    Processo:
-    1. Buscar usuário por email
-    2. Gerar token único (1 hora)
-    3. Armazenar token em token_recuperacao e token_expiracao
-    4. (Futuramente) Enviar email com link de reset
-    """
-    try:
-        # Buscar usuário por email
-        usuario = db.query(UsuarioComum).filter(
-            UsuarioComum.email == email
-        ).first()
-        
-        if not usuario:
-            # Não retornar erro (segurança: evitar descoberta de emails)
-            logger.info(f"⚠️ Recuperação de senha: email não encontrado ({email})")
-            return {
-                "message": "Se o email existe no sistema, você receberá um link de recuperação"
-            }
-        
-        # Gerar token de recuperação (1 hora)
-        import secrets
-        token_reset = secrets.token_urlsafe(32)
-        agora = get_fortaleza_time()
-        expiracao = agora + timedelta(hours=1)
-        
-        usuario.token_recuperacao = token_reset
-        usuario.token_expiracao = expiracao
-        db.commit()
-        
-        logger.info(f"✅ Token de recuperação gerado: usuario {usuario.id}")
-        # TODO: Enviar email com link contendo token_reset
+            
+            logger.info(f"✅ Token de recuperação gerado: {fiel.id}")
+            # TODO: Enviar email com link contendo token_reset
         
         return {
-            "message": "Se o email existe no sistema, você receberá um link de recuperação"
+            "message": "Se o email está registrado, você receberá um link de recuperação"
         }
         
     except Exception as e:
-        logger.error(f"❌ Erro ao processar forgot password: {str(e)}")
+        logger.error(f"❌ Erro ao processar forgot-password: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao processar solicitação"
@@ -794,63 +323,49 @@ def forgot_password_comum(email: str, db: Session = Depends(get_db)):
 
 
 @router.post(
-    "/reset-password/comum",
-    response_model=dict,
-    summary="🔄 Reseta a Senha - Usuário Comum"
+    "/reset-password",
+    summary="🔄 Resetar Senha - FIEL"
 )
-def reset_password_comum(
-    token: str,
-    nova_senha: str,
-    db: Session = Depends(get_db)
-):
+def reset_password_fiel(token: str, nova_senha: str, db: Session = Depends(get_db)):
     """
-    Conclui o fluxo de recuperação de senha.
-    
-    - Token: token enviado por email
-    - Nova_Senha: nova senha do usuário
-    - Retorna: sucesso ou erro
+    Conclui recuperação de senha usando token do email.
     
     Validações:
     - Token deve ser válido
-    - Token não deve estar expirado
-    - Senha nova é validada
+    - Token não deve estar expirado (1 hora)
     """
     try:
         agora = get_fortaleza_time()
         
-        # Buscar usuário pelo token
-        usuario = db.query(UsuarioComum).filter(
+        fiel = db.query(UsuarioComum).filter(
             UsuarioComum.token_recuperacao == token
         ).first()
         
-        if not usuario:
-            logger.warning(f"❌ Reset senha: token inválido ({token[:10]}...)")
+        if not fiel:
+            logger.warning(f"❌ Reset senha: token inválido")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Token inválido"
             )
         
         # Validar expiração
-        if not usuario.token_expiracao or agora > usuario.token_expiracao:
-            logger.warning(f"❌ Reset senha: token expirado ({usuario.id})")
+        if not fiel.token_expiracao or agora > fiel.token_expiracao:
+            logger.warning(f"❌ Reset senha: token expirado ({fiel.id})")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Link de recuperação expirou. Solicite um novo link."
+                detail="Link de recuperação expirou. Solicite um novo."
             )
         
         # Atualizar senha
-        usuario.senha_hash = hash_password(nova_senha)
-        usuario.token_recuperacao = None
-        usuario.token_expiracao = None
-        usuario.tentativas_login = 0  # Reset tentativas
+        fiel.senha_hash = hash_password(nova_senha)
+        fiel.token_recuperacao = None
+        fiel.token_expiracao = None
+        fiel.tentativas_login = 0
         db.commit()
         
-        logger.info(f"✅ Senha resetada com sucesso: usuario {usuario.id}")
+        logger.info(f"✅ Senha resetada: {fiel.id}")
         
-        return {
-            "message": "Senha atualizada com sucesso!",
-            "status": "success"
-        }
+        return {"message": "Senha atualizada com sucesso!"}
         
     except HTTPException:
         raise
@@ -863,78 +378,620 @@ def reset_password_comum(
 
 
 # ============================================================================
-# FLUXO 5: RECUPERAÇÃO DE SENHA - USUÁRIO ADMINISTRATIVO (por Superior)
+# SEÇÃO 2: FLUXOS DE USUÁRIO ADMINISTRATIVO
 # ============================================================================
 
 @router.post(
-    "/forgot-password/admin/{admin_id}",
-    summary="🔐 Solicitar Recuperação de Senha - Administrador (por Superior)"
+    "/admin-paroquia/login",
+    response_model=TokenResponse,
+    summary="🏛️ Login - Admin-Paroquia"
 )
-def forgot_password_admin(
-    admin_id: int,
+def login_admin_paroquia(request: AdminParoquiaLoginRequest, db: Session = Depends(get_db)):
+    """
+    Login para Administradores de Paróquia.
+    
+    - Login: login único (ex: admin@paroquia1)
+    - Senha: senha do administrador
+    
+    Validações:
+    - Deve ser ADMIN_PAROQUIA
+    - Usuário ativo
+    - Desbloqueio por tentativas (máx 3 falhas em 15 min)
+    
+    Retorna JWT com info da paróquia.
+    """
+    try:
+        # Buscar admin por login
+        admin = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.login == request.login
+        ).first()
+        
+        if not admin:
+            logger.warning(f"❌ Login admin: login não encontrado ({request.login})")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Login ou senha incorretos"
+            )
+        
+        # Validar que é ADMIN_PAROQUIA
+        if admin.nivel_acesso != NivelAcessoAdmin.ADMIN_PAROQUIA:
+            logger.warning(f"❌ Login admin: não é ADMIN_PAROQUIA ({admin.id})")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Esta rota é apenas para Administradores de Paroquia"
+            )
+        
+        # Validar bloqueio por tentativas
+        if admin.bloqueado_ate:
+            agora = get_fortaleza_time()
+            if agora < admin.bloqueado_ate:
+                logger.warning(f"❌ Login admin bloqueado: tentativas ({admin.id})")
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Muitas tentativas. Tente novamente em alguns minutos."
+                )
+            else:
+                admin.bloqueado_ate = None
+                admin.tentativas_login = 0
+                db.commit()
+        
+        # Validar status
+        if not admin.ativo:
+            logger.warning(f"❌ Login admin: inativo ({admin.id})")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Administrador inativo"
+            )
+        
+        # Validar senha
+        if not verify_password(request.senha, admin.senha_hash):
+            admin.tentativas_login += 1
+            
+            if admin.tentativas_login >= 3:
+                admin.bloqueado_ate = get_fortaleza_time() + timedelta(minutes=15)
+                logger.warning(f"⚠️ Admin bloqueado por 15 min: {admin.id}")
+            
+            db.commit()
+            logger.warning(f"❌ Login admin: senha incorreta ({admin.id})")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Login ou senha incorretos"
+            )
+        
+        # Login bem-sucedido
+        admin.tentativas_login = 0
+        admin.ultimo_acesso = get_fortaleza_time()
+        db.commit()
+        db.refresh(admin)
+        
+        access_token = create_access_token(
+            data={
+                "sub": admin.id,
+                "login": admin.login,
+                "nivel_acesso": admin.nivel_acesso.value,
+                "paroquia_id": admin.paroquia_id,
+                "tipo": "usuario_administrativo"
+            },
+            expires_delta=timedelta(hours=24)
+        )
+        
+        logger.info(f"✅ Login Admin-Paroquia bem-sucedido: {admin.id}")
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            usuario=admin
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Erro ao fazer login admin-paroquia: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao processar login"
+        )
+
+
+@router.post(
+    "/admin-site/login",
+    response_model=TokenResponse,
+    summary="👑 Login - Admin-Site"
+)
+def login_admin_site(request: AdminSiteLoginRequest, db: Session = Depends(get_db)):
+    """
+    Login para Administradores do Site (SUPER_ADMIN).
+    
+    - Login: login único ou email
+    - Senha: senha do administrador
+    
+    Validações:
+    - Deve ser ADMIN_SITE
+    - Usuário ativo
+    - Desbloqueio por tentativas
+    
+    Retorna JWT com acesso total.
+    """
+    try:
+        # Buscar admin por login
+        admin = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.login == request.login
+        ).first()
+        
+        if not admin:
+            logger.warning(f"❌ Login admin-site: login não encontrado ({request.login})")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Login ou senha incorretos"
+            )
+        
+        # Validar que é ADMIN_SITE
+        if admin.nivel_acesso != NivelAcessoAdmin.ADMIN_SITE:
+            logger.warning(f"❌ Login admin-site: não é ADMIN_SITE ({admin.id})")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Esta rota é exclusiva para Administradores do Site"
+            )
+        
+        # Validar bloqueio por tentativas
+        if admin.bloqueado_ate:
+            agora = get_fortaleza_time()
+            if agora < admin.bloqueado_ate:
+                logger.warning(f"❌ Login admin-site bloqueado: tentativas ({admin.id})")
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Muitas tentativas. Tente novamente em alguns minutos."
+                )
+            else:
+                admin.bloqueado_ate = None
+                admin.tentativas_login = 0
+                db.commit()
+        
+        # Validar status
+        if not admin.ativo:
+            logger.warning(f"❌ Login admin-site: inativo ({admin.id})")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Administrador inativo"
+            )
+        
+        # Validar senha
+        if not verify_password(request.senha, admin.senha_hash):
+            admin.tentativas_login += 1
+            
+            if admin.tentativas_login >= 3:
+                admin.bloqueado_ate = get_fortaleza_time() + timedelta(minutes=15)
+                logger.warning(f"⚠️ Admin-site bloqueado por 15 min: {admin.id}")
+            
+            db.commit()
+            logger.warning(f"❌ Login admin-site: senha incorreta ({admin.id})")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Login ou senha incorretos"
+            )
+        
+        # Login bem-sucedido
+        admin.tentativas_login = 0
+        admin.ultimo_acesso = get_fortaleza_time()
+        db.commit()
+        db.refresh(admin)
+        
+        access_token = create_access_token(
+            data={
+                "sub": admin.id,
+                "login": admin.login,
+                "nivel_acesso": admin.nivel_acesso.value,
+                "tipo": "usuario_administrativo"
+            },
+            expires_delta=timedelta(hours=24)
+        )
+        
+        logger.info(f"✅ Login Admin-Site bem-sucedido: {admin.id}")
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            usuario=admin
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Erro ao fazer login admin-site: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao processar login"
+        )
+
+
+# ============================================================================
+# SEÇÃO 3: CRIAÇÃO HIERÁRQUICA DE ADMINISTRADORES
+# ============================================================================
+
+@router.post(
+    "/admin-site/criar-admin-site",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    summary="👑 Criar Admin-Site (por Admin-Site)"
+)
+def criar_admin_site(
+    request: CreateAdminSiteRequest,
     usuario_atual = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Permite que um superior resete a senha de um administrador.
+    ADMIN_SITE cria outro ADMIN_SITE.
     
-    - Admin_ID: ID do admin cuja senha será resetada
-    - Requer: usuário autenticado ser ADMIN_SITE
+    Requer:
+    - Usuário autenticado seja ADMIN_SITE
     
-    Processo:
-    1. Verificar se usuário_atual é ADMIN_SITE
-    2. Buscar admin por ID
-    3. Gerar token de recuperação
-    4. (Futuramente) Enviar email ao admin com token
+    Criar:
+    - Nome do novo administrador
+    - Login único
+    - Senha inicial (hash)
+    - Email (opcional)
+    
+    Registra quem criou (criado_por_id).
     """
     try:
-        # Verificar permissão (apenas ADMIN_SITE pode fazer isso)
+        # Verificar permissão
         admin_atual = db.query(UsuarioAdministrativo).filter(
             UsuarioAdministrativo.id == usuario_atual.get("sub")
         ).first()
         
-        if not admin_atual or admin_atual.nivel_acesso != NivelAcessoAdmin.admin_site:
-            logger.warning(f"❌ Acesso negado: {usuario_atual.get('sub')} não é ADMIN_SITE")
+        if not admin_atual or admin_atual.nivel_acesso != NivelAcessoAdmin.ADMIN_SITE:
+            logger.warning(f"❌ Acesso negado: criar admin-site por {usuario_atual.get('sub')}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas ADMIN_SITE pode resetar senhas de administradores"
+                detail="Apenas ADMIN_SITE pode criar outros ADMIN_SITE"
             )
         
-        # Buscar admin alvo
-        admin_alvo = db.query(UsuarioAdministrativo).filter(
-            UsuarioAdministrativo.id == admin_id
+        # Validar login único
+        login_existe = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.login == request.login
         ).first()
         
-        if not admin_alvo:
-            logger.warning(f"❌ Admin não encontrado: {admin_id}")
+        if login_existe:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Administrador não encontrado"
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Login já existe no sistema"
             )
         
-        # Gerar token de recuperação (1 hora)
-        import secrets
-        token_reset = secrets.token_urlsafe(32)
-        agora = get_fortaleza_time()
-        expiracao = agora + timedelta(hours=1)
+        # Criar novo ADMIN_SITE
+        novo_admin = UsuarioAdministrativo(
+            id=generate_temporal_id_with_microseconds('ADM'),
+            nome=request.nome,
+            login=request.login,
+            senha_hash=hash_password(request.senha),
+            email=request.email,
+            telefone=request.telefone,
+            whatsapp=request.whatsapp,
+            nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
+            paroquia_id=None,  # ADMIN_SITE não tem paróquia
+            criado_por_id=admin_atual.id,
+            ativo=True,
+            criado_em=get_fortaleza_time(),
+            atualizado_em=get_fortaleza_time()
+        )
         
-        admin_alvo.token_recuperacao = token_reset
-        admin_alvo.token_expiracao = expiracao
+        db.add(novo_admin)
         db.commit()
+        db.refresh(novo_admin)
         
-        logger.info(f"✅ Token de recuperação gerado para admin: {admin_alvo.id}")
-        # TODO: Enviar email ao admin com link contendo token_reset
+        logger.info(f"✅ Novo ADMIN_SITE criado: {novo_admin.id} por {admin_atual.id}")
         
         return {
-            "message": f"Email de recuperação enviado ao administrador",
-            "admin_email": admin_alvo.email
+            "message": "ADMIN_SITE criado com sucesso",
+            "admin_id": novo_admin.id,
+            "login": novo_admin.login
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Erro ao processar forgot password admin: {str(e)}")
+        db.rollback()
+        logger.error(f"❌ Erro ao criar admin-site: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao processar solicitação"
+            detail="Erro ao criar administrador"
+        )
+
+
+@router.post(
+    "/admin-site/criar-admin-paroquia",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    summary="👑 Criar Admin-Paroquia (por Admin-Site)"
+)
+def criar_admin_paroquia(
+    request: CreateAdminParoquiaRequest,
+    usuario_atual = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    ADMIN_SITE cria ADMIN_PAROQUIA.
+    
+    Requer:
+    - Usuário autenticado seja ADMIN_SITE
+    - Paróquia deve existir e estar ativa
+    
+    Criar:
+    - Nome do novo administrador
+    - Login único
+    - Senha inicial
+    - Email (opcional)
+    - paroquia_id: ID da paróquia que administrará
+    
+    Registra quem criou (criado_por_id).
+    """
+    try:
+        # Verificar permissão
+        admin_atual = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.id == usuario_atual.get("sub")
+        ).first()
+        
+        if not admin_atual or admin_atual.nivel_acesso != NivelAcessoAdmin.ADMIN_SITE:
+            logger.warning(f"❌ Acesso negado: criar admin-paroquia por {usuario_atual.get('sub')}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Apenas ADMIN_SITE pode criar ADMIN_PAROQUIA"
+            )
+        
+        # Validar que paróquia existe e está ativa
+        paroquia = db.query(Paroquia).filter(
+            Paroquia.id == request.paroquia_id
+        ).first()
+        
+        if not paroquia or not paroquia.ativa:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Paróquia não encontrada ou inativa"
+            )
+        
+        # Validar login único
+        login_existe = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.login == request.login
+        ).first()
+        
+        if login_existe:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Login já existe no sistema"
+            )
+        
+        # Criar novo ADMIN_PAROQUIA
+        novo_admin = UsuarioAdministrativo(
+            id=generate_temporal_id_with_microseconds('ADM'),
+            nome=request.nome,
+            login=request.login,
+            senha_hash=hash_password(request.senha),
+            email=request.email,
+            telefone=request.telefone,
+            whatsapp=request.whatsapp,
+            nivel_acesso=NivelAcessoAdmin.ADMIN_PAROQUIA,
+            paroquia_id=request.paroquia_id,
+            criado_por_id=admin_atual.id,
+            ativo=True,
+            criado_em=get_fortaleza_time(),
+            atualizado_em=get_fortaleza_time()
+        )
+        
+        db.add(novo_admin)
+        db.commit()
+        db.refresh(novo_admin)
+        
+        logger.info(f"✅ Novo ADMIN_PAROQUIA criado: {novo_admin.id} (paroquia: {paroquia.nome})")
+        
+        return {
+            "message": "ADMIN_PAROQUIA criado com sucesso",
+            "admin_id": novo_admin.id,
+            "login": novo_admin.login,
+            "paroquia_id": paroquia.id,
+            "paroquia_nome": paroquia.nome
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Erro ao criar admin-paroquia: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao criar administrador"
+        )
+
+
+@router.post(
+    "/admin-paroquia/criar-admin-paroquia",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    summary="🏛️ Criar Admin-Paroquia Subordinado (por Admin-Paroquia)"
+)
+def admin_paroquia_criar_subordinado(
+    request: CreateAdminParoquiaRequest,
+    usuario_atual = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    ADMIN_PAROQUIA cria outro ADMIN_PAROQUIA (subordinado).
+    
+    Requer:
+    - Usuário autenticado seja ADMIN_PAROQUIA
+    - paroquia_id deve ser a MESMA paróquia do criador
+    
+    Criar:
+    - Nome do novo administrador
+    - Login único
+    - Senha inicial
+    - Email (opcional)
+    
+    Registra quem criou (criado_por_id) para hierarquia.
+    """
+    try:
+        # Verificar permissão
+        admin_atual = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.id == usuario_atual.get("sub")
+        ).first()
+        
+        if not admin_atual or admin_atual.nivel_acesso != NivelAcessoAdmin.ADMIN_PAROQUIA:
+            logger.warning(f"❌ Acesso negado: criar admin por {usuario_atual.get('sub')}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Apenas ADMIN_PAROQUIA pode criar outros administradores paroquiais"
+            )
+        
+        # Validar que novo admin é para MESMA paróquia
+        if request.paroquia_id != admin_atual.paroquia_id:
+            logger.warning(f"❌ Acesso negado: tentativa de criar admin em paróquia diferente")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Você só pode criar administradores para sua própria paróquia"
+            )
+        
+        # Validar login único
+        login_existe = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.login == request.login
+        ).first()
+        
+        if login_existe:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Login já existe no sistema"
+            )
+        
+        # Criar novo ADMIN_PAROQUIA subordinado
+        novo_admin = UsuarioAdministrativo(
+            id=generate_temporal_id_with_microseconds('ADM'),
+            nome=request.nome,
+            login=request.login,
+            senha_hash=hash_password(request.senha),
+            email=request.email,
+            telefone=request.telefone,
+            whatsapp=request.whatsapp,
+            nivel_acesso=NivelAcessoAdmin.ADMIN_PAROQUIA,
+            paroquia_id=request.paroquia_id,
+            criado_por_id=admin_atual.id,  # Hierarquia
+            ativo=True,
+            criado_em=get_fortaleza_time(),
+            atualizado_em=get_fortaleza_time()
+        )
+        
+        db.add(novo_admin)
+        db.commit()
+        db.refresh(novo_admin)
+        
+        logger.info(f"✅ Novo Admin-Paroquia subordinado criado: {novo_admin.id}")
+        
+        return {
+            "message": "Administrador paroquial subordinado criado com sucesso",
+            "admin_id": novo_admin.id,
+            "login": novo_admin.login,
+            "criado_por": admin_atual.login
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Erro ao criar admin subordinado: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao criar administrador"
+        )
+
+
+# ============================================================================
+# ENDPOINT: BOOTSTRAP - CRIAR PRIMEIRO ADMIN_SITE
+# ============================================================================
+
+@router.post(
+    "/bootstrap",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    summary="🔧 Bootstrap - Criar Primeiro Admin-Site"
+)
+def bootstrap_setup(
+    request: CreateAdminSiteRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Criar o primeiro ADMIN_SITE (apenas uma vez).
+    
+    Validação:
+    - Sistema deve estar vazio (sem ADMIN_SITE)
+    - Se já existe um, operação é negada
+    
+    Retorna JWT do novo administrador.
+    """
+    try:
+        # Verificar se já existe ADMIN_SITE
+        admin_existe = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE
+        ).first()
+        
+        if admin_existe:
+            logger.warning("❌ Bootstrap: ADMIN_SITE já existe no sistema")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Sistema já foi configurado com um ADMIN_SITE"
+            )
+        
+        # Validar login único
+        login_existe = db.query(UsuarioAdministrativo).filter(
+            UsuarioAdministrativo.login == request.login
+        ).first()
+        
+        if login_existe:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Login já existe no sistema"
+            )
+        
+        # Criar primeiro ADMIN_SITE
+        primeiro_admin = UsuarioAdministrativo(
+            id=generate_temporal_id_with_microseconds('ADM'),
+            nome=request.nome,
+            login=request.login,
+            senha_hash=hash_password(request.senha),
+            email=request.email,
+            nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
+            paroquia_id=None,  # ADMIN_SITE não tem paróquia
+            criado_por_id=None,  # Bootstrap não tem criador
+            ativo=True,
+            criado_em=get_fortaleza_time(),
+            atualizado_em=get_fortaleza_time()
+        )
+        
+        db.add(primeiro_admin)
+        db.commit()
+        db.refresh(primeiro_admin)
+        
+        logger.info(f"✅ Primeiro ADMIN_SITE criado: {primeiro_admin.id}")
+        
+        # Gerar token para login automático
+        access_token = create_access_token(
+            data={
+                "sub": primeiro_admin.id,
+                "login": primeiro_admin.login,
+                "nivel_acesso": primeiro_admin.nivel_acesso.value,
+                "tipo": "usuario_administrativo"
+            },
+            expires_delta=timedelta(hours=24)
+        )
+        
+        return {
+            "message": "Primeiro ADMIN_SITE criado com sucesso!",
+            "admin_id": primeiro_admin.id,
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Erro ao fazer bootstrap: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao configurar sistema"
         )

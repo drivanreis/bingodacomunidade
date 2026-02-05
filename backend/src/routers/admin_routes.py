@@ -1,8 +1,8 @@
 """
 Rotas Administrativas
 =====================
-Endpoints para gerenciamento de paróquias, usuários e jogos.
-Acesso restrito para SUPER_ADMIN.
+Endpoints para gerenciamento de paróquias, usuários (fiéis), administradores e jogos.
+Acesso restrito para SUPER_ADMIN (via UsuarioAdministrativo com nivel_acesso=ADMIN_SITE).
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,7 +12,19 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from src.db.base import get_db
-from src.models.models import Paroquia, Usuario, Sorteio, TipoUsuario, Configuracao, Feedback, TipoFeedback, StatusFeedback
+from src.models.models import (
+    Paroquia,
+    UsuarioComum,
+    UsuarioAdministrativo,
+    UsuarioLegado,
+    Sorteio,
+    TipoUsuario,
+    NivelAcessoAdmin,
+    Configuracao,
+    Feedback,
+    TipoFeedback,
+    StatusFeedback
+)
 from src.utils.auth import hash_password
 from src.utils.time_manager import generate_temporal_id_with_microseconds
 
@@ -178,8 +190,8 @@ def excluir_paroquia(paroquia_id: int, db: Session = Depends(get_db)):
             )
         
         # Verificar se há usuários vinculados
-        usuarios_vinculados = db.query(Usuario).filter(
-            Usuario.paroquia_id == paroquia_id
+        usuarios_vinculados = db.query(UsuarioComum).filter(
+            UsuarioComum.paroquia_id == paroquia_id
         ).count()
         
         if usuarios_vinculados > 0:
@@ -210,7 +222,7 @@ def excluir_paroquia(paroquia_id: int, db: Session = Depends(get_db)):
 def listar_usuarios(db: Session = Depends(get_db)):
     """Lista todos os usuários do sistema"""
     try:
-        usuarios = db.query(Usuario).all()
+        usuarios = db.query(UsuarioComum).all()
         return [
             {
                 "id": u.id,
@@ -270,7 +282,7 @@ def criar_usuario(
         
         # Verificar duplicatas
         if email:
-            existe = db.query(Usuario).filter(Usuario.email == email).first()
+            existe = db.query(UsuarioComum).filter(UsuarioComum.email == email).first()
             if existe:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -278,7 +290,7 @@ def criar_usuario(
                 )
         
         if cpf:
-            existe = db.query(Usuario).filter(Usuario.cpf == cpf).first()
+            existe = db.query(UsuarioComum).filter(UsuarioComum.cpf == cpf).first()
             if existe:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -286,7 +298,7 @@ def criar_usuario(
                 )
         
         # Criar usuário
-        novo_usuario = Usuario(
+        novo_usuario = UsuarioComum(
             nome=nome,
             email=email,
             cpf=cpf,
@@ -335,7 +347,7 @@ def atualizar_usuario(
 ):
     """Atualiza um usuário existente"""
     try:
-        usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+        usuario = db.query(UsuarioComum).filter(UsuarioComum.id == usuario_id).first()
         
         if not usuario:
             raise HTTPException(
@@ -395,7 +407,7 @@ def atualizar_tipo_usuario(
 ):
     """Atualiza apenas o tipo de usuário"""
     try:
-        usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+        usuario = db.query(UsuarioComum).filter(UsuarioComum.id == usuario_id).first()
         
         if not usuario:
             raise HTTPException(
@@ -439,7 +451,7 @@ def atualizar_tipo_usuario(
 def excluir_usuario(usuario_id: int, db: Session = Depends(get_db)):
     """Exclui um usuário"""
     try:
-        usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+        usuario = db.query(UsuarioComum).filter(UsuarioComum.id == usuario_id).first()
         
         if not usuario:
             raise HTTPException(
@@ -607,7 +619,7 @@ def criar_feedback(
             )
         
         # Verifica se usuário existe
-        usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+        usuario = db.query(UsuarioComum).filter(UsuarioComum.id == usuario_id).first()
         if not usuario:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -661,7 +673,7 @@ def listar_feedbacks(db: Session = Depends(get_db)):
         resultado = []
         for f in feedbacks:
             # Busca dados do usuário
-            usuario = db.query(Usuario).filter(Usuario.id == f.usuario_id).first()
+            usuario = db.query(UsuarioComum).filter(UsuarioComum.id == f.usuario_id).first()
             usuario_nome = usuario.nome if usuario else "Usuário Desconhecido"
             
             # Busca paróquia do usuário (se tiver)
@@ -673,7 +685,7 @@ def listar_feedbacks(db: Session = Depends(get_db)):
             # Busca quem respondeu (se foi respondido)
             respondido_por_nome = None
             if f.respondido_por_id:
-                respondido_por = db.query(Usuario).filter(Usuario.id == f.respondido_por_id).first()
+                respondido_por = db.query(UsuarioComum).filter(UsuarioComum.id == f.respondido_por_id).first()
                 respondido_por_nome = respondido_por.nome if respondido_por else None
             
             resultado.append({

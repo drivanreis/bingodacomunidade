@@ -125,25 +125,4 @@ export const defaultConfig: AppConfig = {
   emailVerificationTokenHours: 24,  // Token de email válido por 24 horas
 };
 
-/**
- * Obtém a configuração atual
- * 
- * IMPORTANTE: Esta função agora apenas retorna o fallback.
- * Use configService.getAppConfig() para buscar do backend.
- * 
- * @deprecated Use configService.getAppConfig() para buscar configurações do backend
- */
-export const getAppConfig = (): AppConfig => {
-  console.warn('appConfig.getAppConfig() está deprecated. Use configService.getAppConfig()');
-  return defaultConfig;
-};
 
-/**
- * Atualiza configurações (DEPRECATED)
- * 
- * @deprecated As configurações agora são gerenciadas via API backend.
- * Use o painel de administração em /admin-site/settings
- */
-export const updateAppConfig = (newConfig: Partial<AppConfig>): void => {
-  console.error('updateAppConfig() está deprecated. Use o painel de administração /admin-site/settings');
-};

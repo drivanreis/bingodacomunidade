@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { getAppConfig } from '../config/appConfig';
+import { getAppConfigSync } from '../services/configService';
 
 interface UseInactivityTimeoutProps {
   onTimeout: () => void;
@@ -21,7 +21,7 @@ interface UseInactivityTimeoutProps {
 }
 
 export const useInactivityTimeout = ({ onTimeout, onWarning }: UseInactivityTimeoutProps) => {
-  const config = getAppConfig();
+  const config = getAppConfigSync();
   
   const timeoutIdRef = useRef<number | null>(null);
   const warningIdRef = useRef<number | null>(null);

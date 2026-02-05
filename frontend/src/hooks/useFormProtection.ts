@@ -19,10 +19,10 @@
 
 import { useEffect } from 'react';
 import { useBlocker } from 'react-router-dom';
-import { getAppConfig } from '../config/appConfig';
+import { getAppConfigSync } from '../services/configService';
 
 export const useFormProtection = (isDirty: boolean) => {
-  const config = getAppConfig();
+  const config = getAppConfigSync();
 
   // Bloquear navegação se formulário não foi salvo
   const blocker = useBlocker(

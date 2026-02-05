@@ -11,7 +11,7 @@
  * 5. Cartelas não pagas expiram após 30 minutos no carrinho
  */
 
-import { getAppConfig } from '../config/appConfig';
+import { getAppConfigSync } from '../services/configService';
 
 export interface CartelaCarrinho {
   id: string;
@@ -64,7 +64,7 @@ export const salvarCarrinho = (carrinho: Carrinho): void => {
  * Adicionar cartela ao carrinho
  */
 export const adicionarAoCarrinho = (cartela: Omit<CartelaCarrinho, 'id' | 'adicionadoEm' | 'expiraEm'>): void => {
-  const config = getAppConfig();
+  const config = getAppConfigSync();
   const carrinho = getCarrinho();
   
   const agora = new Date();
@@ -110,7 +110,7 @@ export const limparCarrinho = (): void => {
  * 3. Cartelas de jogos finalizados (se autoCleanFinishedGameCarts = true)
  */
 export const limparItensExpirados = (): void => {
-  const config = getAppConfig();
+  const config = getAppConfigSync();
   const carrinho = getCarrinho();
   const agora = new Date();
 

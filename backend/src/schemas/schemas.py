@@ -420,18 +420,18 @@ class UpdateProfileRequest(BaseModel):
 
 
 class UsuarioResponse(BaseModel):
-    """Schema de resposta para Usuário."""
+    """Schema de resposta para Usuário (UsuarioComum ou UsuarioAdministrativo)."""
     id: str
     nome: str
-    cpf: Optional[str]
-    email: Optional[str]
-    whatsapp: Optional[str]
+    cpf: Optional[str] = None
+    email: Optional[str] = None
+    whatsapp: Optional[str] = None
     tipo: TipoUsuario
-    paroquia_id: Optional[str]
-    chave_pix: Optional[str]
+    paroquia_id: Optional[str] = None
+    chave_pix: Optional[str] = None
     ativo: bool
     criado_em: datetime
-    ultimo_acesso: Optional[datetime]
+    ultimo_acesso: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -556,13 +556,14 @@ class CartelaResponse(CartelaBase):
 # SCHEMAS: AUTENTICAÇÃO
 # ============================================================================
 
-class SignupRequest(BaseModel):
-    """Schema para cadastro público de fiéis."""
-    nome: str = Field(..., min_length=3, max_length=200, description="Nome completo")
-    email: EmailStr = Field(..., description="Email para verificação e recuperação de senha")
-    cpf: str = Field(..., description="CPF (11 dígitos)")
-    whatsapp: str = Field(..., description="WhatsApp (+55DDNNNNNNNNN)")
-    chave_pix: str = Field(..., description="Chave PIX para receber prêmios")
+class SignupFielRequest(BaseModel):
+    """Schema para cadastro público de novos FIELs."""
+    nome: str = Field(..., min_length=3, max_length=200, description="Nome completo do fiel")
+    email: EmailStr = Field(..., description="Email para recuperação de senha")
+    cpf: str = Field(..., description="CPF (11 dígitos, único no sistema)")
+    telefone: str = Field(..., description="Telefone para 2FA por SMS")
+    whatsapp: str = Field(..., description="WhatsApp para notificações de prêmios (+55DDNNNNNNNNN)")
+    chave_pix: Optional[str] = Field(None, description="Chave PIX para receber prêmios (opcional)")
     senha: str = Field(..., min_length=6, description="Senha (mínimo 6 caracteres)")
     
     # Validadores
@@ -582,10 +583,14 @@ class SignupRequest(BaseModel):
         return validate_chave_pix(v)
 
 
-class LoginRequest(BaseModel):
+# Compatibilidade: alias para SignupFielRequest
+SignupRequest = SignupFielRequest
+
+
+class LoginFielRequest(BaseModel):
     """Schema para autenticação de usuário comum (FIEL) - Rota pública /login"""
-    cpf: str = Field(..., description="CPF do usuário")
-    senha: str = Field(..., description="Senha do usuário")
+    cpf: str = Field(..., description="CPF do fiel (11 dígitos)")
+    senha: str = Field(..., description="Senha cadastrada")
     
     @field_validator('cpf')
     @classmethod
@@ -593,23 +598,20 @@ class LoginRequest(BaseModel):
         return validate_cpf(v)
 
 
+# Compatibilidade: alias para LoginFielRequest
+LoginRequest = LoginFielRequest
+
+
 class AdminSiteLoginRequest(BaseModel):
-    """Schema para autenticação de SUPER_ADMIN - Rota /admin-site/login"""
-    username: str = Field(..., description="Username (Admin ou email)")
-    senha: str = Field(..., description="Senha")
+    """Schema para autenticação de Admin-Site (ADMIN_SITE) - Rota /admin-site/login"""
+    login: str = Field(..., description="Login único do administrador do site")
+    senha: str = Field(..., description="Senha do administrador")
 
 
 class AdminParoquiaLoginRequest(BaseModel):
-    """Schema para autenticação de usuários paroquiais - Rota /admin-paroquia/login"""
-    email: str = Field(..., description="Email do usuário paroquial")
-    senha: str = Field(..., description="Senha")
-    
-    @field_validator('email')
-    @classmethod
-    def _validate_email(cls, v):
-        if '@' not in v:
-            raise ValueError("Email inválido")
-        return v.lower().strip()
+    """Schema para autenticação de Admin-Paroquia - Rota /admin-paroquia/login"""
+    login: str = Field(..., description="Login único do administrador paroquial")
+    senha: str = Field(..., description="Senha do administrador")
 
 
 class TokenResponse(BaseModel):
@@ -675,6 +677,48 @@ class HealthCheckResponse(BaseModel):
 
 
 # ============================================================================
+
+
+# ============================================================================
+# SCHEMAS: CRIAÇÃO HIERÁRQUICA DE ADMINISTRADORES
+# ============================================================================
+
+class CreateAdminSiteRequest(BaseModel):
+    """Schema para criação de um novo ADMIN_SITE."""
+    nome: str = Field(..., min_length=3, max_length=200, description="Nome do novo administrador")
+    login: str = Field(..., min_length=3, max_length=100, description="Login único para o administrador")
+    senha: str = Field(..., min_length=6, description="Senha (mínimo 6 caracteres)")
+    email: Optional[EmailStr] = Field(None, description="Email do administrador (opcional)")
+    telefone: Optional[str] = Field(None, description="Telefone do administrador (opcional)")
+    whatsapp: Optional[str] = Field(None, description="WhatsApp do administrador (opcional)")
+    
+    @field_validator('whatsapp')
+    @classmethod
+    def _validate_whatsapp(cls, v):
+        if v is None:
+            return v
+        return validate_whatsapp(v)
+
+
+class CreateAdminParoquiaRequest(BaseModel):
+    """Schema para criação de um novo ADMIN_PAROQUIA."""
+    nome: str = Field(..., min_length=3, max_length=200, description="Nome do novo administrador paroquial")
+    login: str = Field(..., min_length=3, max_length=100, description="Login único para o administrador")
+    senha: str = Field(..., min_length=6, description="Senha (mínimo 6 caracteres)")
+    email: Optional[EmailStr] = Field(None, description="Email do administrador (opcional)")
+    telefone: Optional[str] = Field(None, description="Telefone do administrador (opcional)")
+    whatsapp: Optional[str] = Field(None, description="WhatsApp do administrador (opcional)")
+    paroquia_id: str = Field(..., description="ID da paróquia que este administrador vai gerenciar")
+    
+    @field_validator('whatsapp')
+    @classmethod
+    def _validate_whatsapp(cls, v):
+        if v is None:
+            return v
+        return validate_whatsapp(v)
+
+
+# ============================================================================
 # EXPORTAÇÕES
 # ============================================================================
 
@@ -700,9 +744,13 @@ __all__ = [
     
     # Autenticação
     'SignupRequest',
+    'SignupFielRequest',
     'LoginRequest',
+    'LoginFielRequest',
     'AdminSiteLoginRequest',
     'AdminParoquiaLoginRequest',
+    'CreateAdminSiteRequest',
+    'CreateAdminParoquiaRequest',
     'TokenResponse',
     'BootstrapSetupRequest',
     'FirstAccessSetupRequest',

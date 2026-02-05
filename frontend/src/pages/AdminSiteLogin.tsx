@@ -23,17 +23,18 @@ const AdminSiteLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      // Chamar endpoint específico de SUPER_ADMIN
+      // Chamar endpoint específico de ADMIN_SITE
       const response = await api.post('/auth/admin-site/login', {
-        username: username,
+        login: username,
         senha: password
       });
 
       const { access_token, usuario } = response.data;
 
-      // Verificar se é realmente SUPER_ADMIN
-      if (usuario.tipo !== 'super_admin') {
-        setError('Acesso negado. Esta área é exclusiva para Super Administradores.');
+      // Verificar se é realmente ADMIN_SITE
+      // O backend retorna UsuarioAdministrativo com nivel_acesso = "admin_site"
+      if (usuario.nivel_acesso !== 'admin_site') {
+        setError('Acesso negado. Esta área é exclusiva para Administradores do Site.');
         return;
       }
 
@@ -44,13 +45,8 @@ const AdminSiteLogin: React.FC = () => {
       // Configurar header de autorização
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
 
-      // Se for bootstrap, redirecionar para primeiro acesso
-      if (usuario.is_bootstrap) {
-        navigate('/first-access-setup');
-      } else {
-        // Redirecionar para dashboard administrativo
-        navigate('/admin-site/dashboard');
-      }
+      // Redirecionar para dashboard administrativo
+      navigate('/admin-site/dashboard');
     } catch (err) {
       console.error('Erro ao fazer login:', err);
       const error = err as { response?: { data?: { detail?: string } } };
