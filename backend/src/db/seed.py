@@ -17,8 +17,17 @@ import logging
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
-from src.models.models import UsuarioLegado, TipoUsuario, Paroquia, Configuracao, TipoConfiguracao, CategoriaConfiguracao
-from src.utils.time_manager import generate_temporal_id_with_microseconds
+from src.models.models import (
+    UsuarioAdministrativo,
+    NivelAcessoAdmin,
+    UsuarioLegado,
+    Paroquia,
+    Configuracao,
+    TipoConfiguracao,
+    CategoriaConfiguracao,
+    SistemaAuditoria
+)
+from src.utils.time_manager import generate_temporal_id_with_microseconds, get_fortaleza_time
 
 logger = logging.getLogger(__name__)
 
@@ -40,13 +49,47 @@ def hash_password(password: str) -> str:
 
 def check_seed_needed(db: Session) -> bool:
     """
-    Verifica se precisa criar usuário de bootstrap.
+    Verifica se precisa criar dados de bootstrap.
     
     Returns:
-        True se precisa criar seed, False se já existe qualquer usuário
+        True se precisa criar seed, False se já existe ADMIN_SITE
     """
-    total_users = db.query(UsuarioLegado).count()
-    return total_users == 0
+    total_admins = db.query(UsuarioAdministrativo).count()
+    return total_admins == 0
+
+
+def registrar_auditoria_sistema(db: Session) -> None:
+    """
+    Registra/atualiza informações globais de auditoria do sistema.
+    """
+    agora = get_fortaleza_time()
+    registro = db.query(SistemaAuditoria).filter(SistemaAuditoria.id == "SYSTEM").first()
+
+    seed_ativo = db.query(UsuarioAdministrativo).filter(
+        UsuarioAdministrativo.login == "Admin"
+    ).first() is not None
+
+    if registro:
+        registro.ultima_inicializacao_em = agora
+        registro.contagem_inicializacoes += 1
+        registro.ambiente = os.getenv("APP_ENV", "dev")
+        registro.versao_api = os.getenv("API_VERSION", "2.0.0")
+        registro.timezone = os.getenv("TIMEZONE", "America/Fortaleza")
+        registro.seed_ativo = seed_ativo
+    else:
+        registro = SistemaAuditoria(
+            id="SYSTEM",
+            iniciado_em=agora,
+            ultima_inicializacao_em=agora,
+            contagem_inicializacoes=1,
+            ambiente=os.getenv("APP_ENV", "dev"),
+            versao_api=os.getenv("API_VERSION", "2.0.0"),
+            timezone=os.getenv("TIMEZONE", "America/Fortaleza"),
+            seed_ativo=seed_ativo
+        )
+        db.add(registro)
+
+    db.commit()
 
 
 def seed_database(db: Session) -> bool:
@@ -66,9 +109,9 @@ def seed_database(db: Session) -> bool:
         bool: True se dados foram criados, False se já existiam
     """
     try:
-        # Verificar se já existe algum usuário
+        # Verificar se já existe ADMIN_SITE
         if not check_seed_needed(db):
-            logger.info("✓ Sistema já possui usuários - Bootstrap não necessário")
+            logger.info("✓ Sistema já possui ADMIN_SITE - Bootstrap não necessário")
             return False
         
         logger.info("🔧 Criando paróquia padrão e usuário temporário de bootstrap...")
@@ -97,25 +140,28 @@ def seed_database(db: Session) -> bool:
         logger.info(f"✓ Paróquia padrão criada: {paroquia_default.nome}")
         
         # ====================================================================
-        # CRIAR USUÁRIO TEMPORÁRIO DE BOOTSTRAP
+        # REMOVER BOOTSTRAP LEGADO (SE EXISTIR)
         # ====================================================================
-        
-        bootstrap_user = UsuarioLegado(
-            id=generate_temporal_id_with_microseconds('BOOTSTRAP'),
+        db.query(UsuarioLegado).filter(UsuarioLegado.is_bootstrap == True).delete()
+
+        # ====================================================================
+        # CRIAR ADMIN SITE TEMPORÁRIO (BOOTSTRAP)
+        # ====================================================================
+        bootstrap_admin = UsuarioAdministrativo(
+            id=generate_temporal_id_with_microseconds('ADM'),
             nome="Admin",
-            cpf=None,  # Sem CPF (temporário)
-            email="bootstrap@system.temp",  # Email temporário
-            whatsapp=None,
-            tipo=TipoUsuario.SUPER_ADMIN,  # Temporariamente SUPER_ADMIN
-            paroquia_id=None,
-            chave_pix=None,
+            login="Admin",
             senha_hash=hash_password("admin123"),
-            ativo=True,
-            is_bootstrap=True,  # 🚨 MARCA COMO TEMPORÁRIO
-            email_verificado=False
+            email=None,
+            telefone=None,
+            whatsapp=None,
+            nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
+            paroquia_id=None,
+            criado_por_id=None,
+            ativo=True
         )
-        
-        db.add(bootstrap_user)
+
+        db.add(bootstrap_admin)
         db.commit()
         
         logger.info("=" * 70)
@@ -123,7 +169,7 @@ def seed_database(db: Session) -> bool:
         logger.info("=" * 70)
         logger.info("")
         logger.info("  ✓ Paróquia padrão criada")
-        logger.info("  ✓ Usuário temporário de bootstrap criado")
+        logger.info("  ✓ Admin do Site temporário criado")
         logger.info("")
         logger.info("  📌 Este é um usuário TEMPORÁRIO para configuração inicial")
         logger.info("")

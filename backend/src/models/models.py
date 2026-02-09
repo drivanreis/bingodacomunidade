@@ -722,6 +722,43 @@ class Feedback(Base):
 
 
 # ============================================================================
+# MODELO: AUDITORIA DO SISTEMA
+# ============================================================================
+
+class SistemaAuditoria(Base):
+    """
+    Registro global de auditoria do sistema.
+    Mantém histórico mínimo de inicialização e parâmetros críticos.
+    """
+    __tablename__ = "sistema_auditoria"
+
+    # PK fixa (registro único)
+    id = Column(String(50), primary_key=True, index=True)
+
+    # Auditoria de inicialização
+    iniciado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        comment="Primeira inicialização registrada"
+    )
+    ultima_inicializacao_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        comment="Última inicialização registrada"
+    )
+    contagem_inicializacoes = Column(Integer, default=1, nullable=False)
+
+    # Parâmetros globais
+    ambiente = Column(String(50), nullable=True)
+    versao_api = Column(String(20), nullable=True)
+    timezone = Column(String(50), nullable=True)
+    seed_ativo = Column(Boolean, default=False, nullable=False)
+
+    def __repr__(self):
+        return f"<SistemaAuditoria(id={self.id}, iniciado_em={self.iniciado_em})>"
+
+
+# ============================================================================
 # EXPORTAÇÕES
 # ============================================================================
 
@@ -740,4 +777,5 @@ __all__ = [
     'Cartela',
     'Configuracao',
     'Feedback',
+    'SistemaAuditoria',
 ]

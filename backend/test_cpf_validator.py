@@ -13,10 +13,12 @@ import os
 # Adiciona o diretório src ao path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
+__test__ = False
+
 from schemas.schemas import validate_cpf
 
 
-def test_cpf(cpf: str, should_pass: bool = True):
+def run_cpf_check(cpf: str, should_pass: bool = True):
     """Testa um CPF e exibe o resultado."""
     try:
         resultado = validate_cpf(cpf)
@@ -54,7 +56,7 @@ cpfs_validos = [
 ]
 
 for cpf in cpfs_validos:
-    test_cpf(cpf, should_pass=True)
+    run_cpf_check(cpf, should_pass=True)
 
 print()
 
@@ -88,7 +90,7 @@ cpfs_invalidos = [
 
 for cpf, motivo in cpfs_invalidos:
     print(f"  Testando: {cpf:25s} ({motivo})")
-    test_cpf(cpf, should_pass=False)
+    run_cpf_check(cpf, should_pass=False)
     print()
 
 # ============================================================================

@@ -300,13 +300,14 @@ Após criar, COUNT = 1 → Bloqueado para sempre
 ```
 ❌ Credenciais expostas em documentação
 ❌ Senhas de teste públicas
-❌ README mostra: admin@bingodacomunidade.com.br / Admin@2026
+❌ Credenciais antigas expostas no README
 ❌ Convite aberto para ataques
 ```
 
 ### Depois (Seguro)
 ```
-✅ Credenciais removidas de TODOS os .md
+✅ Credenciais antigas removidas dos .md
+✅ Fluxo bootstrap (Admin/admin123) documentado
 ✅ Sistema de primeiro acesso implementado
 ✅ SEED_ENABLED controla ambiente
 ✅ Produção = banco vazio + setup manual
@@ -531,19 +532,11 @@ API Docs: http://localhost:8000/docs
 Health:   http://localhost:8000/health
 ```
 
-### Usuários de Teste (SEED_ENABLED=true)
+### Usuário de Primeiro Acesso (SEED_ENABLED=true)
 ```
-Desenvolvedor:
-  Email: admin@bingodacomunidade.com.br
-  Senha: Admin@2026
-
-Gerente:
-  Email: admin@paroquiasaojose.com.br
-  Senha: Admin@2026
-
-Jogador:
-  CPF: 111.444.777-35
-  Senha: Fiel@123
+Admin do Site (temporário):
+   Usuário: Admin
+   Senha: admin123
 ```
 
 ### Comandos Essenciais

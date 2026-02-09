@@ -17,7 +17,7 @@ interface AuthContextData {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (identificador: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   isAuthenticated: boolean;
@@ -31,6 +31,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const resolveLogoutRedirect = () => {
+    const currentPath = window.location.pathname || '/';
+
+    if (currentPath.startsWith('/admin-site')) {
+      return '/admin-site/login';
+    }
+
+    if (currentPath.startsWith('/admin-paroquia')) {
+      return '/admin-paroquia/login';
+    }
+
+    return '/login';
+  };
 
   const logout = () => {
     console.log('🔒 Executando logout completo...');
@@ -64,12 +78,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // 6. Forçar reload completo (limpa cache do navegador)
     console.log('✅ Logout concluído - redirecionando...');
-    window.location.replace('/login');
+    window.location.replace(resolveLogoutRedirect());
   };
 
   // Monitoramento de inatividade (apenas se estiver autenticado)
   const { showWarning: showInactivityWarning, timeRemaining } = useInactivityTimeout({
     onTimeout: () => {
+      const hasSession = !!localStorage.getItem('@BingoComunidade:token');
+      if (!hasSession) {
+        return;
+      }
       console.log('🔒 Logout por inatividade');
       logout();
     },
@@ -111,13 +129,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => clearInterval(carrinhoInterval);
   }, []);
 
-  const login = async (cpf: string, password: string) => {
+  const login = async (identificador: string, password: string) => {
     try {
-      // Enviar como JSON (cpf e senha)
-      const response = await api.post('/auth/login', {
-        cpf: cpf,
-        senha: password
-      });
+      const payload = identificador.includes('@')
+        ? { email: identificador, senha: password }
+        : { cpf: identificador, senha: password };
+
+      const response = await api.post('/auth/login', payload);
 
       const { access_token, usuario } = response.data;
 
@@ -171,7 +189,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logout,
         updateUser,
         isAuthenticated: !!token,
-        showInactivityWarning: !!token && showInactivityWarning,
+        showInactivityWarning: (!!token || !!localStorage.getItem('@BingoComunidade:token')) && showInactivityWarning,
         timeRemaining,
       }}
     >

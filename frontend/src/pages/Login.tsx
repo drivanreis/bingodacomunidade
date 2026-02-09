@@ -49,7 +49,12 @@ const Login: React.FC = () => {
   };
 
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCPF(e.target.value);
+    const value = e.target.value;
+    if (/[a-zA-Z@]/.test(value)) {
+      setCpf(value);
+      return;
+    }
+    const formatted = formatCPF(value);
     setCpf(formatted);
   };
 
@@ -59,11 +64,12 @@ const Login: React.FC = () => {
     setSuccess('');
     setLoading(true);
 
-    // Limpar CPF (remover pontos e traço)
-    const cpfLimpo = cpf.replace(/\D/g, '');
+    const identificador = cpf.trim();
+    const cpfLimpo = identificador.replace(/\D/g, '');
+    const loginValue = identificador.includes('@') ? identificador : cpfLimpo;
 
     try {
-      await login(cpfLimpo, password);
+      await login(loginValue, password);
       navigate('/dashboard');
     } catch (err: any) {
       // Capturamos a mensagem real do erro (que vem da API ou do interceptor)
@@ -98,13 +104,12 @@ const Login: React.FC = () => {
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>CPF</label>
+            <label style={styles.label}>CPF ou Email</label>
             <input
               type="text"
               value={cpf}
               onChange={handleCPFChange}
               placeholder="000.000.000-00"
-              maxLength={14}
               required
               style={styles.input}
               disabled={loading}
@@ -172,14 +177,7 @@ const Login: React.FC = () => {
           </div>
         </form>
 
-        <div style={styles.footer}>
-          <p style={styles.credentialsTitle}>Credenciais padrão para teste:</p>
-          <div style={styles.credentialsBox}>
-            <p><strong>Super Admin:</strong> admin@bingodacomunidade.com.br</p>
-            <p><strong>Parish Admin:</strong> admin@paroquiasaojose.com.br</p>
-            <p><strong>Senha:</strong> Admin@2026</p>
-          </div>
-        </div>
+        <div style={styles.footer} />
       </div>
     </div>
   );
@@ -313,19 +311,6 @@ const styles = {
     marginTop: '20px',
     paddingTop: '20px',
     borderTop: '1px solid #e0e0e0',
-  },
-  credentialsTitle: {
-    fontSize: '12px',
-    color: '#666',
-    marginBottom: '10px',
-    textAlign: 'center' as const,
-  },
-  credentialsBox: {
-    background: '#f5f5f5',
-    padding: '12px',
-    borderRadius: '6px',
-    fontSize: '12px',
-    lineHeight: '1.6',
   },
 };
 

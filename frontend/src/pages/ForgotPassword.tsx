@@ -18,7 +18,12 @@ const ForgotPassword: React.FC = () => {
   };
 
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCPF(e.target.value);
+    const value = e.target.value;
+    if (/[a-zA-Z@]/.test(value)) {
+      setCpf(value);
+      return;
+    }
+    const formatted = formatCPF(value);
     setCpf(formatted);
   };
 
@@ -27,10 +32,11 @@ const ForgotPassword: React.FC = () => {
     setError('');
     setSuccess('');
 
-    // Validação básica
-    const cpfLimpo = cpf.replace(/\D/g, '');
+    const identificador = cpf.trim();
+    const isEmail = identificador.includes('@');
+    const cpfLimpo = identificador.replace(/\D/g, '');
     
-    if (cpfLimpo.length !== 11) {
+    if (!isEmail && cpfLimpo.length !== 11) {
       setError('❌ CPF deve ter 11 dígitos');
       return;
     }
@@ -38,9 +44,11 @@ const ForgotPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/forgot-password', {
-        cpf: cpfLimpo
-      });
+      const response = await api.post('/auth/forgot-password',
+        isEmail
+          ? { email: identificador }
+          : { cpf: cpfLimpo }
+      );
 
       setSuccess('✅ Token de recuperação gerado com sucesso!');
       
@@ -80,7 +88,7 @@ const ForgotPassword: React.FC = () => {
       <div style={styles.formCard}>
         <div style={styles.header}>
           <h1 style={styles.title}>🔑 Recuperar Senha</h1>
-          <p style={styles.subtitle}>Informe seu CPF para receber o token de recuperação</p>
+          <p style={styles.subtitle}>Informe seu CPF ou Email para receber o token de recuperação</p>
         </div>
 
         {error && (
@@ -101,14 +109,13 @@ const ForgotPassword: React.FC = () => {
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              CPF <span style={styles.required}>*</span>
+              CPF ou Email <span style={styles.required}>*</span>
             </label>
             <input
               type="text"
               value={cpf}
               onChange={handleCPFChange}
               placeholder="000.000.000-00"
-              maxLength={14}
               style={styles.input}
               required
               disabled={loading || !!success}

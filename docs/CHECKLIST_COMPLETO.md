@@ -213,11 +213,13 @@ Sistema de Bingo da Comunidade
 
 ---
 
-## 🔐 Credenciais Padrão
+## 🔐 Credenciais de Primeiro Acesso (Bootstrap)
 
-**Super Admin:**
-- Email: `admin@bingodacomunidade.com.br`
-- Senha: `Admin@2026`
+**Administrador do Site (temporário):**
+- Usuário: `Admin`
+- Senha: `admin123`
+
+Após o login, finalize o cadastro real do Administrador do site.
 
 **Paróquia Padrão:**
 - Nome: Paróquia São José

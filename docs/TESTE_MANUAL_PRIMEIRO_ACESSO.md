@@ -41,24 +41,29 @@ environment:
    - Senha: `Fiel@123`
    - ✅ Login funciona normalmente
 
-4. **Verificar API diretamente:**
-   ```
-   http://localhost:8000/auth/first-access
-   ```
+4. **Verificar API diretamente (bootstrap login):**
+    ```
+    POST http://localhost:8000/auth/bootstrap/login
+    {
+       "login": "Admin",
+       "senha": "admin123"
+    }
+    ```
    
-   **Resposta esperada:**
-   ```json
-   {
-     "needs_setup": false,
-     "message": "Sistema já configurado. Use a tela de login."
-   }
-   ```
+    **Resposta esperada:**
+    ```json
+    {
+       "message": "Bootstrap autenticado",
+       "bootstrap": true,
+       "dias_restantes": 30
+    }
+    ```
 
 ### ✅ Checklist
 
 - [ ] Home/Login aparece (não mostra primeiro acesso)
 - [ ] Login com usuário de teste funciona
-- [ ] API retorna `needs_setup: false`
+- [ ] API bootstrap/login retorna `bootstrap: true`
 
 ---
 
@@ -97,19 +102,22 @@ environment:
 #### 1️⃣ Verificar API
 
 ```
-http://localhost:8000/auth/first-access
+POST http://localhost:8000/auth/bootstrap/login
+{
+   "login": "Admin",
+   "senha": "admin123"
+}
 ```
 
-**Resposta esperada:**
+**Resposta esperada (SEED=false):**
 ```json
 {
-  "needs_setup": true,
-  "message": "Sistema precisa ser configurado. Crie sua conta de desenvolvedor."
+   "detail": "Usuário bootstrap não encontrado"
 }
 ```
 
 ✅ **Checklist:**
-- [ ] API retorna `needs_setup: true`
+- [ ] API bootstrap/login retorna 404
 
 #### 2️⃣ Acessar Frontend
 
@@ -118,12 +126,11 @@ http://localhost:5173
 ```
 
 **Resultado esperado:**
-- ✅ Sistema detecta needs_setup=true
-- ✅ Redireciona AUTOMATICAMENTE para `/first-access-setup`
+- ✅ Acesse diretamente `/first-access-setup`
 - ✅ Aparece tela: **"🎉 Bem-vindo! Configure sua conta de Desenvolvedor"**
 
 ✅ **Checklist:**
-- [ ] Redirecionamento automático funciona
+- [ ] Acesso direto funciona
 - [ ] Tela de primeiro acesso aparece
 
 #### 3️⃣ Preencher Formulário
@@ -169,7 +176,7 @@ d) **Dados Válidos:**
 
 2. **Resultado esperado:**
    - ✅ Loading: "Configurando..."
-   - ✅ Request enviado para POST /auth/first-access-setup
+   - ✅ Request enviado para POST /auth/bootstrap
    - ✅ Backend cria usuário
    - ✅ Retorna JWT token
    - ✅ Frontend faz login automático
@@ -177,7 +184,7 @@ d) **Dados Válidos:**
 
 3. **Verificar Console do Navegador (F12):**
    ```
-   Network → POST /auth/first-access-setup
+   Network → POST /auth/bootstrap
    Status: 201 Created
    Response: {access_token: "...", usuario: {...}}
    ```
@@ -200,41 +207,44 @@ d) **Dados Válidos:**
 
 4. **Verificar API:**
    ```
-   http://localhost:8000/auth/first-access
+    POST http://localhost:8000/auth/bootstrap/login
+    {
+       "login": "Admin",
+       "senha": "admin123"
+    }
    ```
    
    **Resposta esperada:**
    ```json
    {
-     "needs_setup": false,
-     "message": "Sistema já configurado. Use a tela de login."
+       "detail": "Usuário bootstrap não encontrado"
    }
    ```
 
 ✅ **Checklist:**
 - [ ] Tela de primeiro acesso NÃO aparece mais
-- [ ] API retorna `needs_setup: false`
+- [ ] API bootstrap/login retorna 404
 - [ ] Login normal funciona
 
 #### 6️⃣ Tentar Burlar Sistema (Teste de Segurança)
 
 **Teste A - Via API Direta:**
 ```bash
-curl -X POST http://localhost:8000/auth/first-access-setup \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nome": "Hacker",
-    "cpf": "98765432100",
-    "email": "hacker@teste.com",
-    "whatsapp": "+5585912345678",
-    "senha": "Hack@123"
-  }'
+curl -X POST http://localhost:8000/auth/bootstrap \
+   -H "Content-Type: application/json" \
+   -d '{
+      "nome": "Hacker",
+      "login": "98765432100",
+      "email": "hacker@teste.com",
+      "whatsapp": "+5585912345678",
+      "senha": "Hack@123"
+   }'
 ```
 
 **Resposta esperada:**
 ```json
 {
-  "detail": "Sistema já foi configurado. Use a tela de login."
+   "detail": "Sistema já foi configurado com um ADMIN_SITE"
 }
 ```
 
@@ -247,7 +257,7 @@ curl -X POST http://localhost:8000/auth/first-access-setup \
 - ❌ Erro: "Sistema já foi configurado. Use a tela de login."
 
 ✅ **Checklist:**
-- [ ] API bloqueia tentativa de criar segundo admin (403)
+- [ ] API bloqueia tentativa de criar segundo admin (409)
 - [ ] Frontend mostra erro apropriado
 - [ ] Proteção backend funciona
 

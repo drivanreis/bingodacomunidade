@@ -37,15 +37,17 @@ export const AdminRoute: React.FC<ProtectedRouteProps> = ({
   try {
     user = JSON.parse(userStr);
 
+    const userRole = user.nivel_acesso || user.tipo;
+
     // Verificar se a role do usuário está nas roles permitidas
-    if (!allowedRoles.includes(user.tipo)) {
-      console.error(`❌ Acesso negado! Role "${user.tipo}" não autorizada. Permitidas: ${allowedRoles.join(', ')}`);
+    if (!allowedRoles.includes(userRole)) {
+      console.error(`❌ Acesso negado! Role "${userRole}" não autorizada. Permitidas: ${allowedRoles.join(', ')}`);
       
       shouldRedirect = true;
       // Determinar para onde redirecionar baseado no tipo de usuário
-      if (user.tipo === 'super_admin') {
+      if (userRole === 'admin_site' || userRole === 'super_admin') {
         redirectPath = '/admin-site/dashboard';
-      } else if (['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo'].includes(user.tipo)) {
+      } else if (['admin_paroquia', 'paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo'].includes(userRole)) {
         redirectPath = '/admin-paroquia/dashboard';
       } else {
         redirectPath = '/dashboard';
@@ -70,7 +72,7 @@ export const AdminRoute: React.FC<ProtectedRouteProps> = ({
 export const SuperAdminRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   return (
     <AdminRoute 
-      allowedRoles={['super_admin']} 
+      allowedRoles={['admin_site', 'super_admin']} 
       redirectTo="/admin-site/login"
     >
       {children}
@@ -84,7 +86,7 @@ export const SuperAdminRoute: React.FC<{ children: React.ReactElement }> = ({ ch
 export const ParishAdminRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   return (
     <AdminRoute 
-      allowedRoles={['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo']}
+      allowedRoles={['admin_paroquia', 'paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo']}
       redirectTo="/admin-paroquia/login"
     >
       {children}

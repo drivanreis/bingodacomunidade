@@ -36,11 +36,11 @@
 - Exibição de erros amigável
 - Estado de loading durante autenticação
 - Redirecionamento automático após login
-- Credenciais padrão exibidas para testes
+- Credenciais bootstrap exibidas para primeiro acesso
 
-**Credenciais de Teste:**
-- Super Admin: `admin@bingodacomunidade.com.br` / `Admin@2026`
-- Parish Admin: `admin@paroquiasaojose.com.br` / `Admin@2026`
+**Credenciais de Primeiro Acesso (Bootstrap):**
+- Usuário: `Admin`
+- Senha: `admin123`
 
 #### ✅ Dashboard ([src/pages/Dashboard.tsx](frontend/src/pages/Dashboard.tsx))
 - Página protegida (requer autenticação)
@@ -151,11 +151,13 @@ frontend/src/
 
 ### Endpoint de Login
 ```typescript
-POST /auth/login
-Content-Type: application/x-www-form-urlencoded
+POST /auth/admin-site/login
+Content-Type: application/json
 
-username=admin@bingodacomunidade.com.br
-password=Admin@2026
+{
+  "login": "Admin",
+  "senha": "admin123"
+}
 
 Response:
 {
@@ -172,9 +174,9 @@ Authorization: Bearer {token}
 Response:
 {
   "id": "20260113012245123456",
-  "name": "Super Admin",
-  "email": "admin@bingodacomunidade.com.br",
-  "role": "super_admin",
+  "name": "Administrador do Site",
+  "email": "admin@seusite.com.br",
+  "role": "admin_site",
   "cpf": null,
   "parish_id": null
 }

@@ -5,11 +5,18 @@
  * Rota: /admin-site/login
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const AdminSiteLogin: React.FC = () => {
+  useEffect(() => {
+    // Limpar resíduos de sessão anteriores ao entrar no login administrativo
+    localStorage.removeItem('@BingoComunidade:token');
+    localStorage.removeItem('@BingoComunidade:user');
+    localStorage.removeItem('@BingoComunidade:bootstrap');
+  }, []);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,9 +38,11 @@ const AdminSiteLogin: React.FC = () => {
 
       const { access_token, usuario } = response.data;
 
-      // Verificar se é realmente ADMIN_SITE
-      // O backend retorna UsuarioAdministrativo com nivel_acesso = "admin_site"
-      if (usuario.nivel_acesso !== 'admin_site') {
+      // Verificar se é realmente ADMIN_SITE (normalizar case)
+      const nivelAcesso = (usuario?.nivel_acesso || '').toString().toLowerCase();
+      const loginUsuario = (usuario?.login || '').toString();
+      const tipoUsuario = (usuario?.tipo || '').toString().toLowerCase();
+      if (nivelAcesso !== 'admin_site' && loginUsuario !== 'Admin' && tipoUsuario !== 'usuario_administrativo') {
         setError('Acesso negado. Esta área é exclusiva para Administradores do Site.');
         return;
       }
@@ -45,12 +54,51 @@ const AdminSiteLogin: React.FC = () => {
       // Configurar header de autorização
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
 
+      // Se ainda é bootstrap, forçar primeiro acesso
+      if (usuario?.login === 'Admin' && !usuario?.email) {
+        navigate('/first-access-setup');
+        return;
+      }
+
       // Redirecionar para dashboard administrativo
       navigate('/admin-site/dashboard');
     } catch (err) {
       console.error('Erro ao fazer login:', err);
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'Erro ao fazer login. Verifique suas credenciais.');
+      const error = err as { response?: { data?: { detail?: string } ; status?: number } };
+      const mensagem = error.response?.data?.detail || 'Erro ao fazer login. Verifique suas credenciais.';
+
+      // Tentar login bootstrap (Admin/admin123)
+      if (username.trim().toLowerCase() === 'admin') {
+        const bootstrapResponse = await api.post(
+          '/auth/bootstrap/login',
+          {
+            login: username,
+            senha: password,
+          },
+          {
+            validateStatus: () => true,
+          }
+        );
+
+        if (bootstrapResponse.status >= 200 && bootstrapResponse.status < 300 && bootstrapResponse.data?.bootstrap) {
+          localStorage.setItem('@BingoComunidade:bootstrap', 'true');
+          navigate('/first-access-setup');
+          return;
+        }
+
+        if (bootstrapResponse.status === 404) {
+          setError('O primeiro acesso já foi concluído! Entre com as credenciais que você cadastrou.');
+          return;
+        }
+
+        const bootstrapDetail = bootstrapResponse.data?.detail;
+        if (bootstrapDetail && typeof bootstrapDetail === 'string') {
+          setError(bootstrapDetail);
+          return;
+        }
+      }
+
+      setError(mensagem);
     } finally {
       setLoading(false);
     }
@@ -73,12 +121,12 @@ const AdminSiteLogin: React.FC = () => {
           )}
 
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Usuário ou Email</label>
+            <label style={styles.label}>CPF ou Email</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Admin ou email@dominio.com"
+              placeholder="CPF ou email@dominio.com"
               style={styles.input}
               required
               autoFocus
@@ -116,6 +164,14 @@ const AdminSiteLogin: React.FC = () => {
         </form>
 
         <div style={styles.footer}>
+          <div style={styles.credentialsBox}>
+            <p style={styles.credentialsTitle}>Para o primeiro acesso, utilize:</p>
+            <p><strong>Usuário:</strong> Admin</p>
+            <p><strong>Senha:</strong> admin123</p>
+            <p style={styles.credentialsHint}>
+              Após o login, complete o cadastro real do Administrador do site em até 30 dias.
+            </p>
+          </div>
           <p style={styles.footerText}>
             🔒 Área restrita - Apenas Super Administradores
           </p>
@@ -243,6 +299,24 @@ const styles = {
   footer: {
     marginTop: '30px',
     textAlign: 'center' as const,
+  },
+  credentialsBox: {
+    background: '#f5f5f5',
+    padding: '12px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    lineHeight: '1.6',
+    marginBottom: '16px',
+  },
+  credentialsTitle: {
+    fontSize: '12px',
+    color: '#666',
+    marginBottom: '10px',
+    textAlign: 'center' as const,
+  },
+  credentialsHint: {
+    fontSize: '12px',
+    color: '#888',
   },
   footerText: {
     fontSize: '13px',

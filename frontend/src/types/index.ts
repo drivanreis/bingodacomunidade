@@ -78,7 +78,9 @@ export interface SignupRequest {
 }
 
 export interface LoginRequest {
-  cpf: string
+  cpf?: string
+  email?: string
+  login?: string
   senha: string
 }
 

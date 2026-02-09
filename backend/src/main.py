@@ -19,7 +19,8 @@ import traceback
 import logging
 from typing import Dict
 
-from src.db.base import get_db, verify_connection, init_db
+from src.db.base import get_db, verify_connection, init_db, SessionLocal
+from src.db.seed import seed_database, registrar_auditoria_sistema
 from src.schemas.schemas import HealthCheckResponse
 from src.utils.time_manager import get_fortaleza_time
 
@@ -139,6 +140,14 @@ async def startup_event():
         # Inicializar banco (criar tabelas)
         init_db()
         logger.info("✅ Schema de banco de dados inicializado")
+
+        # Executar seed bootstrap (Admin/admin123 + paróquia) se necessário
+        db = SessionLocal()
+        try:
+            seed_database(db)
+            registrar_auditoria_sistema(db)
+        finally:
+            db.close()
         
         logger.info("=" * 70)
         logger.info("✅ SERVIDOR INICIADO COM SUCESSO")

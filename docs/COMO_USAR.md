@@ -85,52 +85,25 @@ Se aparecer a documentação interativa (Swagger), **está funcionando!** 🎉
 
 ---
 
-## 👤 CREDENCIAIS INICIAIS
+## 👤 CREDENCIAIS INICIAIS (BOOTSTRAP)
 
-O sistema já vem com 3 usuários pré-cadastrados:
+O sistema inicia apenas com o administrador temporário de primeiro acesso:
 
-### 👑 **Super Admin** (Você - Proprietário do Sistema)
+### 👑 **Admin do Site (temporário)**
 ```
-Email: admin@bingodacomunidade.com.br
-Senha: Admin@2026
-```
-
-### ⛪ **Parish Admin** (Administrador da Paróquia)
-```
-Email: admin@paroquiasaojose.com.br
-Senha: Admin@2026
+Usuário: Admin
+Senha: admin123
 ```
 
-### 🙏 **Fiel** (Exemplo de Participante)
-```
-Email: joao.exemplo@email.com
-Senha: Fiel@123
-```
-
-⚠️ **MUDE ESSAS SENHAS EM PRODUÇÃO!**
+Após o login, finalize o cadastro real do SUPER_ADMIN.
 
 ---
 
 ## 🔧 PERSONALIZANDO O SISTEMA
 
-### **Mudar Dados do Proprietário**
+### **Definir Dados do Proprietário**
 
-Edite o arquivo: `docker-compose.yml`
-
-Procure por:
-```yaml
-# Seed Inicial - DADOS DO PROPRIETÁRIO
-- OWNER_NAME=Administrador Sistema
-- OWNER_EMAIL=admin@bingodacomunidade.com.br
-- OWNER_PASSWORD=Admin@2026
-```
-
-Mude para:
-```yaml
-- OWNER_NAME=Seu Nome Completo
-- OWNER_EMAIL=seuemail@exemplo.com
-- OWNER_PASSWORD=SuaSenhaForte@123
-```
+Após o primeiro login (Admin/admin123), preencha o cadastro real do Administrador no fluxo de primeiro acesso.
 
 ---
 

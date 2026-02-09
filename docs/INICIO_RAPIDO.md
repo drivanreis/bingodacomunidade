@@ -20,12 +20,14 @@
 
 ---
 
-## 📋 CREDENCIAIS
+## 📋 CREDENCIAIS (PRIMEIRO ACESSO)
 
 ```
-Email: admin@bingodacomunidade.com.br
-Senha: Admin@2026
+Usuário: Admin
+Senha: admin123
 ```
+
+Após o login, finalize o cadastro real do Administrador do site.
 
 ---
 

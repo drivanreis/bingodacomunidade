@@ -124,28 +124,16 @@ frontend/src/
 
 ---
 
-## 🔐 CREDENCIAIS PADRÃO
+## 🔐 CREDENCIAIS DE PRIMEIRO ACESSO
 
-### Super Admin
+### Admin do Site (temporário)
 ```
-Email: admin@bingodacomunidade.com.br
-Senha: Admin@2026
-Acesso: Total ao sistema
-```
-
-### Parish Admin
-```
-Email: admin@paroquiasaojose.com.br
-Senha: Admin@2026
-Acesso: Gestão da paróquia
+Usuário: Admin
+Senha: admin123
+Acesso: Bootstrap (primeiro acesso)
 ```
 
-### Fiel (Teste)
-```
-Email: joao.exemplo@email.com
-Senha: Fiel@123
-Acesso: Compra de cartelas
-```
+Após o login, conclua o cadastro real do SUPER_ADMIN.
 
 ---
 

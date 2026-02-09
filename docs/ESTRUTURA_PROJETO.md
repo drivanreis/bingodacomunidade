@@ -258,32 +258,16 @@ bingo.db          # Banco SQLite
 
 ## 🔑 DADOS INICIAIS (Seed)
 
-### 👤 Usuários Criados Automaticamente
+### 👤 Usuário Temporário (Bootstrap)
 
-#### 👑 **Super Admin**
+#### 👑 **Admin do Site (temporário)**
 ```
-Email: admin@bingodacomunidade.com.br
-Senha: Admin@2026
-Tipo: super_admin
-Paróquia: NULL (não vinculado)
-```
-
-#### ⛪ **Parish Admin**
-```
-Email: admin@paroquiasaojose.com.br
-Senha: Admin@2026
-Tipo: parish_admin
-Paróquia: Paróquia São José
+Usuário: Admin
+Senha: admin123
+Tipo: bootstrap
 ```
 
-#### 🙏 **Fiel (Exemplo)**
-```
-Email: joao.exemplo@email.com
-Senha: Fiel@123
-Tipo: fiel
-Paróquia: Paróquia São José
-PIX: joao.exemplo@email.com
-```
+Após o login, conclua o cadastro real do SUPER_ADMIN.
 
 ### ⛪ **Paróquia Criada**
 ```

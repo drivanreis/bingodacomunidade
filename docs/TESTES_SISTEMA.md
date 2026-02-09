@@ -196,7 +196,43 @@ curl -X POST http://localhost:8000/auth/login `
 
 ---
 
-## 📊 Passo 6: Verificar Logs
+## 🤖 Passo 6: Testes Automatizados
+
+### 6.1 Backend (pytest + cobertura)
+
+```bash
+cd backend
+pytest
+pytest --cov
+```
+
+**Relatórios esperados:**
+- Cobertura no terminal (com linhas faltantes)
+- HTML em `backend/htmlcov/`
+
+### 6.2 Frontend (Vitest + RTL)
+
+```bash
+cd frontend
+npm run test
+npm run test:coverage
+```
+
+**Relatórios esperados:**
+- Cobertura no terminal
+- HTML em `frontend/coverage/`
+
+### 6.3 Segurança - Recuperação de Senha
+
+Requisitos mínimos a validar:
+- Token de recuperação é **uso único** (não pode ser reutilizado)
+- Token expira após o tempo definido no backend
+- Resposta de recuperação **não expõe token**
+- Links de recuperação devem trafegar **somente via HTTPS** em produção
+
+---
+
+## 📊 Passo 7: Verificar Logs
 
 ### Ver todos os logs
 ```powershell
@@ -225,7 +261,7 @@ docker compose logs --tail=50
 
 ---
 
-## 🛑 Passo 7: Parar Sistema
+## 🛑 Passo 8: Parar Sistema
 
 ### Parar e manter dados
 ```powershell
@@ -239,7 +275,7 @@ docker compose down -v
 
 ---
 
-## 🔄 Passo 8: Reiniciar Sistema
+## 🔄 Passo 9: Reiniciar Sistema
 
 ### Reiniciar tudo
 ```powershell
@@ -258,7 +294,7 @@ docker compose restart frontend
 
 ---
 
-## 📦 Passo 9: Verificar Status dos Containers
+## 📦 Passo 10: Verificar Status dos Containers
 
 ```powershell
 docker compose ps
@@ -273,7 +309,7 @@ bingo_frontend   "npm run dev"            Up 2 minutes   0.0.0.0:5173->5173/tcp
 
 ---
 
-## 🗄️ Passo 10: Verificar Banco de Dados
+## 🗄️ Passo 11: Verificar Banco de Dados
 
 ### Verificar arquivo SQLite
 ```powershell

@@ -84,25 +84,15 @@ http://localhost:5173
 http://localhost:8000/docs
 ```
 
-### 👤 Credenciais Padrão
+### 👤 Credenciais de Primeiro Acesso
 
-**Super Admin:**
+**Admin do Site (temporário):**
 ```
-Email: admin@bingodacomunidade.com.br
-Senha: Admin@2026
-```
-
-**Parish Admin:**
-```
-Email: admin@paroquiasaojose.com.br
-Senha: Admin@2026
+Usuário: Admin
+Senha: admin123
 ```
 
-**Fiel (Exemplo):**
-```
-Email: joao.exemplo@email.com
-Senha: Fiel@123
-```
+Após o login, finalize o cadastro real do SUPER_ADMIN.
 
 ---
 

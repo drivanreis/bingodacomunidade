@@ -41,22 +41,20 @@
 #### Arquivo Criado: `backend/src/db/seed.py`
 
 **Funcionalidades:**
-- ✅ Cria **Super Admin** automaticamente
 - ✅ Cria **Paróquia padrão** automaticamente
-- ✅ Cria **Parish Admin** para a paróquia
-- ✅ Cria **Fiel de exemplo** para testes
+- ✅ Cria **Admin do Site temporário (bootstrap)**
 - ✅ Senhas criptografadas com bcrypt
 - ✅ Lê configurações do `docker-compose.yml`
 - ✅ Detecta se seed já foi executado (idempotente)
 - ✅ Logs detalhados de cada etapa
 
-**Credenciais Padrão Criadas:**
+**Credenciais de Primeiro Acesso:**
 
-| Tipo | Email | Senha | Acesso |
+| Tipo | Login | Senha | Acesso |
 |------|-------|-------|--------|
-| Super Admin | admin@bingodacomunidade.com.br | Admin@2026 | Total |
-| Parish Admin | admin@paroquiasaojose.com.br | Admin@2026 | Paróquia |
-| Fiel | joao.exemplo@email.com | Fiel@123 | Participante |
+| Admin do Site (temporário) | Admin | admin123 | Bootstrap |
+
+Após o login, conclua o cadastro real do SUPER_ADMIN.
 
 ---
 
@@ -216,10 +214,10 @@ https://docs.docker.com/desktop/install/windows-install/
 http://localhost:8000/docs
 ```
 
-### **Passo 4: Use as credenciais padrão**
+### **Passo 4: Use as credenciais de primeiro acesso**
 ```
-Email: admin@bingodacomunidade.com.br
-Senha: Admin@2026
+Usuário: Admin
+Senha: admin123
 ```
 
 **PRONTO!** 🎉

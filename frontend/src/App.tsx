@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import { InactivityWarning } from './components/InactivityWarning';
 import { FirstAccessChecker } from './components/FirstAccessChecker';
+import AdminSiteSecurityGuard from './components/AdminSiteSecurityGuard';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
@@ -38,6 +39,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <AdminSiteSecurityGuard />
         <FirstAccessChecker />
         <InactivityWarning />
         <Routes>

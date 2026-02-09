@@ -65,11 +65,24 @@ api.interceptors.response.use(
       message: error.message
     });
 
-    // Se 401 Unauthorized, limpa token e redireciona para login
+    // Se 401 Unauthorized, limpa token e redireciona conforme contexto (exceto endpoints de auth)
     if (error.response?.status === 401) {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('usuario')
-      window.location.href = '/login'
+      const requestUrl = error.config?.url || ''
+      const isAuthEndpoint = requestUrl.includes('/auth/')
+
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('usuario')
+
+        const currentPath = window.location.pathname || '/'
+        if (currentPath.startsWith('/admin-site')) {
+          window.location.href = '/admin-site/login'
+        } else if (currentPath.startsWith('/admin-paroquia')) {
+          window.location.href = '/admin-paroquia/login'
+        } else {
+          window.location.href = '/login'
+        }
+      }
     }
 
     let errorMessage = 'Ocorreu um erro inesperado.';
@@ -131,7 +144,11 @@ export const authService = {
    * Login com CPF e senha
    */
   login: async (data: LoginRequest): Promise<TokenResponse> => {
-    const response = await api.post<TokenResponse>('/auth/login', data)
+    const payload = data.email || data.login
+      ? { email: data.email || data.login, senha: data.senha }
+      : { cpf: data.cpf, senha: data.senha }
+
+    const response = await api.post<TokenResponse>('/auth/login', payload)
     const { access_token, usuario } = response.data
 
     // Salva token e dados do usuário no localStorage

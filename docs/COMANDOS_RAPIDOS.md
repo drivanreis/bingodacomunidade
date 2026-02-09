@@ -13,9 +13,10 @@ Backend API:              http://localhost:8000
 Documentação Swagger:     http://localhost:8000/docs
 ```
 
-**Credenciais Padrão:**
-- Super Admin: `admin@bingodacomunidade.com.br` / `Admin@2026`
-- Parish Admin: `admin@paroquiasaojose.com.br` / `Admin@2026`
+**Credenciais de Primeiro Acesso:**
+- Admin do Site (temporário): `Admin` / `admin123`
+
+Após o login, conclua o cadastro real do SUPER_ADMIN.
 
 ---
 

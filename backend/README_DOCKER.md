@@ -84,11 +84,7 @@ Este sistema **abandonou completamente** o ambiente local Windows (.venv + .bat)
 ```
 
 ### Dados do Proprietário (Super Admin)
-```yaml
-- OWNER_NAME=Administrador Sistema
-- OWNER_EMAIL=admin@bingodacomunidade.com.br
-- OWNER_PASSWORD=Admin@2026
-```
+Definidos no fluxo de primeiro acesso após login bootstrap (Admin/admin123).
 
 ### Dados da Paróquia Padrão
 ```yaml

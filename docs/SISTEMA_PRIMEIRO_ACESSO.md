@@ -216,14 +216,10 @@ environment:
 ```
 
 **Comportamento:**
-- ✅ Cria 3 usuários automaticamente:
-  1. Desenvolvedor: admin@bingodacomunidade.com.br
-  2. Gerente da Paróquia: admin@paroquiasaojose.com.br
-  3. Jogador: joao.exemplo@email.com (CPF: 111.444.777-35)
-- ✅ Login imediato para testes
-- ✅ Senhas conhecidas: Admin@2026, Fiel@123
-- ✅ GET /auth/first-access retorna `needs_setup: false`
-- ✅ Tela de primeiro acesso NUNCA aparece
+- ✅ Cria administrador temporário (bootstrap)
+- ✅ Credenciais: Admin / admin123
+- ✅ Exige conclusão do primeiro acesso
+- ✅ Tela de primeiro acesso aparece após login bootstrap
 
 ### Produção (SEED_ENABLED=false)
 

@@ -423,9 +423,11 @@ class UsuarioResponse(BaseModel):
     """Schema de resposta para Usuário (UsuarioComum ou UsuarioAdministrativo)."""
     id: str
     nome: str
+    login: Optional[str] = None
     cpf: Optional[str] = None
     email: Optional[str] = None
     whatsapp: Optional[str] = None
+    nivel_acesso: Optional[str] = None
     tipo: TipoUsuario
     paroquia_id: Optional[str] = None
     chave_pix: Optional[str] = None
@@ -589,13 +591,18 @@ SignupRequest = SignupFielRequest
 
 class LoginFielRequest(BaseModel):
     """Schema para autenticação de usuário comum (FIEL) - Rota pública /login"""
-    cpf: str = Field(..., description="CPF do fiel (11 dígitos)")
+    login: Optional[str] = Field(None, description="CPF ou email do fiel")
+    cpf: Optional[str] = Field(None, description="CPF do fiel (11 dígitos)")
+    email: Optional[EmailStr] = Field(None, description="Email do fiel")
     senha: str = Field(..., description="Senha cadastrada")
-    
-    @field_validator('cpf')
-    @classmethod
-    def _validate_cpf(cls, v):
-        return validate_cpf(v)
+
+    @model_validator(mode='after')
+    def _validate_identifier(self):
+        if not (self.login or self.cpf or self.email):
+            raise ValueError('CPF ou Email é obrigatório')
+        if self.cpf:
+            self.cpf = validate_cpf(self.cpf)
+        return self
 
 
 # Compatibilidade: alias para LoginFielRequest
@@ -623,12 +630,17 @@ class TokenResponse(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     """Schema para solicitar recuperação de senha."""
-    cpf: str = Field(..., description="CPF do usuário")
-    
-    @field_validator('cpf')
-    @classmethod
-    def _validate_cpf(cls, v):
-        return validate_cpf(v)
+    login: Optional[str] = Field(None, description="CPF ou email do usuário")
+    cpf: Optional[str] = Field(None, description="CPF do usuário")
+    email: Optional[EmailStr] = Field(None, description="Email do usuário")
+
+    @model_validator(mode='after')
+    def _validate_identifier(self):
+        if not (self.login or self.cpf or self.email):
+            raise ValueError('CPF ou Email é obrigatório')
+        if self.cpf:
+            self.cpf = validate_cpf(self.cpf)
+        return self
 
 
 class ResetPasswordRequest(BaseModel):

@@ -150,10 +150,10 @@ http://localhost:5173
 http://localhost:8000/docs
 ```
 
-**Credenciais:**
+**Credenciais de Primeiro Acesso:**
 ```
-Email: admin@bingodacomunidade.com.br
-Senha: Admin@2026
+Usuário: Admin
+Senha: admin123
 ```
 
 ---

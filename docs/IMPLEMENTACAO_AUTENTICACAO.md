@@ -46,18 +46,13 @@ if (isAuthenticated) { /* usuário logado */ }
 - ✅ Exibição de erros amigável
 - ✅ Estado de loading durante autenticação
 - ✅ Redirecionamento automático para `/dashboard` após login
-- ✅ Credenciais padrão exibidas para facilitar testes
+- ✅ Credenciais bootstrap exibidas para primeiro acesso
 - ✅ Design moderno com gradiente roxo
 
-**Credenciais de Teste:**
+**Credenciais de Primeiro Acesso:**
 ```
-Super Admin:
-  Email: admin@bingodacomunidade.com.br
-  Senha: Admin@2026
-
-Parish Admin:
-  Email: admin@paroquiasaojose.com.br
-  Senha: Admin@2026
+Usuário: Admin
+Senha: admin123
 ```
 
 ---
@@ -253,8 +248,8 @@ docker compose logs -f backend
 
 1. Abra http://localhost:5173
 2. Clique em "Fazer Login"
-3. Use uma das credenciais padrão:
-   - `admin@bingodacomunidade.com.br` / `Admin@2026`
+3. Use as credenciais de primeiro acesso:
+   - `Admin` / `admin123`
 4. Clique em "Entrar"
 5. Você será redirecionado para `/dashboard`
 6. Veja suas informações no dashboard

@@ -534,15 +534,15 @@ POST /auth/login
 
 ---
 
-## 📊 CREDENCIAIS PADRÃO (Seed)
+## 📊 CREDENCIAIS DE PRIMEIRO ACESSO (Bootstrap)
 
 Criadas automaticamente ao iniciar o sistema:
 
-| Tipo | Email | CPF | Senha | Acesso |
-|------|-------|-----|-------|--------|
-| Super Admin | admin@bingodacomunidade.com.br | - | Admin@2026 | Total |
-| Parish Admin | admin@paroquiasaojose.com.br | - | Admin@2026 | Paróquia |
-| Fiel | joao.exemplo@email.com | 12345678901 | Fiel@123 | Participante |
+| Tipo | Login | Senha | Acesso |
+|------|-------|-------|--------|
+| Admin do Site (temporário) | Admin | admin123 | Bootstrap |
+
+Após o login, o Administrador deve concluir o cadastro real do SUPER_ADMIN.
 
 ---
 
