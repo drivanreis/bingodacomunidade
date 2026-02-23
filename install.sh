@@ -26,7 +26,7 @@ echo -e "${NC}"
 # VERIFICAÇÕES DE PRÉ-REQUISITOS
 # ===========================================================================
 
-echo -e "${YELLOW}[1/6] Verificando Docker...${NC}"
+echo -e "${YELLOW}[1/7] Verificando Docker...${NC}"
 if ! command -v docker &> /dev/null; then
     echo -e "${RED}❌ Docker não encontrado!${NC}"
     echo "   Instale o Docker: https://docs.docker.com/engine/install/ubuntu/"
@@ -36,7 +36,7 @@ DOCKER_VERSION=$(docker --version)
 echo -e "${GREEN}✓ Docker instalado: ${DOCKER_VERSION}${NC}"
 
 echo ""
-echo -e "${YELLOW}[2/6] Verificando Docker Compose...${NC}"
+echo -e "${YELLOW}[2/7] Verificando Docker Compose...${NC}"
 if ! docker compose version &> /dev/null; then
     echo -e "${RED}❌ Docker Compose não encontrado!${NC}"
     echo "   Docker Compose v2 é necessário"
@@ -46,7 +46,7 @@ COMPOSE_VERSION=$(docker compose version)
 echo -e "${GREEN}✓ Docker Compose instalado: ${COMPOSE_VERSION}${NC}"
 
 echo ""
-echo -e "${YELLOW}[3/6] Verificando Node.js...${NC}"
+echo -e "${YELLOW}[3/7] Verificando Node.js...${NC}"
 if ! command -v node &> /dev/null; then
     echo -e "${RED}❌ Node.js não encontrado!${NC}"
     echo "   Instale o Node.js 18+: https://nodejs.org/"
@@ -56,7 +56,7 @@ NODE_VERSION=$(node --version)
 echo -e "${GREEN}✓ Node.js instalado: ${NODE_VERSION}${NC}"
 
 echo ""
-echo -e "${YELLOW}[4/6] Verificando npm...${NC}"
+echo -e "${YELLOW}[4/7] Verificando npm...${NC}"
 if ! command -v npm &> /dev/null; then
     echo -e "${RED}❌ npm não encontrado!${NC}"
     exit 1
@@ -65,11 +65,33 @@ NPM_VERSION=$(npm --version)
 echo -e "${GREEN}✓ npm instalado: ${NPM_VERSION}${NC}"
 
 # ===========================================================================
+# INSTALAÇÃO DAS DEPENDÊNCIAS DO BACKEND (NO CONTÊINER)
+# ===========================================================================
+
+echo ""
+echo -e "${YELLOW}[5/7] Instalando dependências Python no contêiner backend...${NC}"
+
+if [ ! -f "backend/requirements.txt" ]; then
+    echo -e "${RED}❌ Arquivo backend/requirements.txt não encontrado!${NC}"
+    exit 1
+fi
+
+echo "   Executando pip install -r requirements.txt no Python global do contêiner..."
+docker compose run --rm backend pip install --no-cache-dir -r requirements.txt
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Dependências do backend instaladas no contêiner${NC}"
+else
+    echo -e "${RED}❌ Erro ao instalar dependências do backend${NC}"
+    exit 1
+fi
+
+# ===========================================================================
 # INSTALAÇÃO DAS DEPENDÊNCIAS DO FRONTEND
 # ===========================================================================
 
 echo ""
-echo -e "${YELLOW}[5/6] Instalando dependências do frontend...${NC}"
+echo -e "${YELLOW}[6/7] Instalando dependências do frontend...${NC}"
 cd frontend
 
 if [ ! -f "package.json" ]; then
@@ -92,7 +114,7 @@ fi
 # ===========================================================================
 
 echo ""
-echo -e "${YELLOW}[6/6] Criando arquivo .env do frontend...${NC}"
+echo -e "${YELLOW}[7/7] Criando arquivo .env do frontend...${NC}"
 
 if [ -f ".env" ]; then
     echo "   Arquivo .env já existe, fazendo backup..."

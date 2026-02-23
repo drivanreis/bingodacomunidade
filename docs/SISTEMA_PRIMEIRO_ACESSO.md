@@ -1,6 +1,22 @@
 # ✅ Sistema de Primeiro Acesso - Implementação Completa
 
+> ⚠️ Documento histórico (arquivado): o script `test_first_access.sh` foi removido. Fluxo atual: `./test.sh --coverage` para validação automatizada.
+
 ## 📅 Data: 25 de Janeiro de 2026
+
+---
+
+## ⚠️ Atualização mandatória (14/02/2026)
+
+Para o **Admin-Site**, o cadastro/autenticação de primeiro acesso deve seguir esta regra:
+
+- Fator 1: email
+- Fator 2: telefone (SMS ou WhatsApp)
+- Senha
+
+**Não exigir Nome Completo nem CPF para Admin-Site.**
+
+CPF continua sendo requisito dos fluxos de Usuário Comum.
 
 ---
 
@@ -33,9 +49,9 @@
 
 **`POST /auth/first-access-setup`** (Público - Proteção Dupla)
 ```python
-# Cria primeiro Desenvolvedor
+# Cria primeiro Admin-Site
 # Validações:
-#   1. NÃO pode existir nenhum Super Admin
+#   1. NÃO pode existir nenhum Admin-Site primário
 #   2. Senha forte obrigatória
 #   3. CPF único no sistema
 # Retorna: JWT token + dados do usuário (login automático)
@@ -79,13 +95,14 @@ else:
 **Localização:** `frontend/src/pages/FirstAccessSetup.tsx`
 
 **Funcionalidades:**
-- ✅ Formulário completo: Nome, CPF, Email, WhatsApp, Senha, Confirmar Senha
-- ✅ Formatação automática: CPF (XXX.XXX.XXX-XX), WhatsApp (+55 XX XXXXX-XXXX)
+- ✅ Formulário Admin-Site: Email, DDD, Telefone (SMS/WhatsApp), Senha, Confirmar Senha
+- ✅ Entrada de contato em campos separados (DDD com 2 dígitos + telefone com 9/10 dígitos)
+- ✅ Regra Brasil: `+55` não é armazenado; é adicionado apenas no momento do envio da mensagem
 - ✅ Validação local de todos os campos
 - ✅ Validação de senha forte (maiúscula, minúscula, número, especial)
 - ✅ Botões de mostrar/ocultar senha
 - ✅ Mensagens de erro com auto-dismiss
-- ✅ Submit para POST /auth/first-access-setup
+- ✅ Submit para POST /auth/bootstrap
 - ✅ Login automático após sucesso
 
 #### 2. Novo Componente: FirstAccessChecker.tsx
@@ -160,6 +177,11 @@ function App() {
    - Pelo menos um número
    - Pelo menos um caractere especial (!@#$%^&*...)
 
+   5. **Contrato de Cadastro do Admin-Site:**
+      - Não solicitar Nome Completo
+      - Não solicitar CPF
+      - Solicitar Email + DDD + Telefone (SMS/WhatsApp) + Senha
+
 ---
 
 ## 🧪 Como Testar
@@ -167,18 +189,14 @@ function App() {
 ### Teste Automatizado
 
 ```bash
-./test_first_access.sh
+./test.sh --coverage
 ```
 
-**O que o script faz:**
-1. Para sistema
-2. Altera SEED_ENABLED para false
-3. Reinicia sistema
-4. Testa GET /auth/first-access (deve retornar needs_setup=true)
-5. Cria primeiro admin via POST /auth/first-access-setup
-6. Tenta criar segundo admin (deve falhar com 403)
-7. Verifica que needs_setup agora é false
-8. Restaura SEED_ENABLED=true
+**O que o comando atual faz:**
+1. Verifica dependências e status da stack
+2. Executa testes do backend
+3. Executa testes do frontend
+4. Gera relatório de cobertura
 
 ### Teste Manual
 
@@ -232,7 +250,7 @@ environment:
 - ✅ Banco de dados vazio
 - ✅ GET /auth/first-access retorna `needs_setup: true`
 - ✅ Frontend redireciona para /first-access-setup
-- ✅ Usuário cria Desenvolvedor manualmente
+- ✅ Usuário cria Admin-Site manualmente
 - ✅ Senha forte obrigatória
 - ✅ Após criar, tela NUNCA MAIS aparece
 
@@ -258,7 +276,7 @@ environment:
 - ✅ `README_NEW.md` - Credenciais removidas
 - ✅ `DOCKER_QUICKSTART.md` - Credenciais removidas
 - ✅ `DEPLOY_PRODUCAO.md` - Guia de deploy em produção
-- ✅ `test_first_access.sh` - Script de teste automatizado
+- ✅ `test.sh --coverage` - Testes automatizados com cobertura
 
 ---
 
@@ -283,7 +301,7 @@ docker compose up -d --build
 #    http://seu-dominio.com
 
 # 4. Tela de primeiro acesso aparece
-#    Criar Desenvolvedor manualmente
+#    Criar Admin-Site manualmente
 
 # 5. Esta tela NUNCA MAIS aparece
 ```
@@ -292,7 +310,7 @@ docker compose up -d --build
 
 ## 🔒 Garantias de Segurança
 
-1. ✅ **Impossível criar segundo Super Admin**
+1. ✅ **Impossível criar segundo Admin-Site primário**
    - Proteção no backend (verifica COUNT antes de criar)
    
 2. ✅ **Senha forte obrigatória**
@@ -349,14 +367,14 @@ docker compose up -d --build
 Execute o teste automatizado:
 
 ```bash
-./test_first_access.sh
+./test.sh --coverage
 ```
 
 **Esperado:**
 ```
 ✅ TESTE CONCLUÍDO COM SUCESSO!
   ✅ Sistema detecta banco vazio corretamente
-  ✅ Permite criar primeiro Desenvolvedor
+   ✅ Permite criar primeiro Admin-Site
   ✅ Proteção contra segundo admin funciona
   ✅ Estado muda corretamente após configuração
 ```

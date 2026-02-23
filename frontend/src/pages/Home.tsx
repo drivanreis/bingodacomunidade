@@ -5,11 +5,66 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const carregarStatusPublico = async () => {
+      try {
+        const response = await api.get('/auth/public-status');
+        if (!active) return;
+        setMaintenanceMode(!!response.data?.maintenance_mode);
+      } catch {
+        if (!active) return;
+        setMaintenanceMode(false);
+      }
+    };
+
+    void carregarStatusPublico();
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
+
+  const normalizedRole = (user?.role || '').toLowerCase();
+  const isAdminSession = [
+    'admin_site',
+    'super_admin',
+    'admin_paroquia',
+    'parish_admin',
+    'paroquia_admin',
+    'paroquia_caixa',
+    'paroquia_recepcao',
+    'paroquia_bingo',
+    'usuario_administrativo',
+  ].includes(normalizedRole);
+
+  const shouldBlockPublicHome = maintenanceMode && !isAdminSession;
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    if (!maintenanceMode || !isAuthenticated || isAdminSession) {
+      return;
+    }
+
+    localStorage.removeItem('@BingoComunidade:token');
+    localStorage.removeItem('@BingoComunidade:user');
+    delete api.defaults.headers.common.Authorization;
+
+    window.location.replace('/');
+  }, [loading, maintenanceMode, isAuthenticated, isAdminSession]);
 
   return (
     <div style={styles.container}>
@@ -21,7 +76,11 @@ export default function Home() {
         </p>
         
         <div style={styles.heroButtons}>
-          {isAuthenticated ? (
+          {shouldBlockPublicHome ? (
+            <div style={styles.maintenanceBox}>
+              ⚠️ Sistema em manutenção para público até configuração do primeiro Admin-Paróquia.
+            </div>
+          ) : isAuthenticated ? (
             <button 
               onClick={() => navigate('/dashboard')} 
               style={styles.primaryButton}
@@ -123,12 +182,14 @@ export default function Home() {
         </div>
 
         <div style={styles.ctaContainer}>
-          <button 
-            onClick={() => navigate('/signup')} 
-            style={styles.ctaButton}
-          >
-            Começar Agora - É Grátis! 🎉
-          </button>
+          {!shouldBlockPublicHome && (
+            <button 
+              onClick={() => navigate('/signup')} 
+              style={styles.ctaButton}
+            >
+              Começar Agora - É Grátis! 🎉
+            </button>
+          )}
         </div>
       </div>
 
@@ -221,6 +282,15 @@ const styles = {
     gap: '20px',
     justifyContent: 'center',
     flexWrap: 'wrap' as const,
+  },
+  maintenanceBox: {
+    background: 'rgba(255, 243, 205, 0.95)',
+    border: '2px solid #ffc107',
+    color: '#856404',
+    borderRadius: '14px',
+    padding: '14px 20px',
+    fontWeight: 'bold',
+    maxWidth: '680px',
   },
   primaryButton: {
     padding: '18px 45px',

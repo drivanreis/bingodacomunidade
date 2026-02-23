@@ -10,8 +10,9 @@ const ResetPassword: React.FC = () => {
   // Pegar token da URL ou do state
   const urlToken = searchParams.get('token');
   const stateToken = location.state?.token;
+  const initialToken = urlToken ?? stateToken ?? '';
   
-  const [token, setToken] = useState('');
+  const [token, setToken] = useState(initialToken);
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,18 +20,25 @@ const ResetPassword: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [tokenInvalid, setTokenInvalid] = useState(false);
+  const [tokenInvalid, setTokenInvalid] = useState(!initialToken);
 
   // Carregar token da URL ao montar o componente
   useEffect(() => {
     if (urlToken) {
       setToken(urlToken);
-    } else if (stateToken) {
-      setToken(stateToken);
-    } else {
-      setTokenInvalid(true);
-      setError('❌ Link inválido ou expirado. Solicite um novo link de recuperação.');
+      setTokenInvalid(false);
+      return;
     }
+
+    if (stateToken) {
+      setToken(stateToken);
+      setTokenInvalid(false);
+      return;
+    }
+
+    setToken('');
+    setTokenInvalid(true);
+    setError('');
   }, [urlToken, stateToken]);
 
   const validatePassword = (password: string): string | null => {
@@ -43,8 +51,8 @@ const ResetPassword: React.FC = () => {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
     setError('');
     setSuccess('');
 
@@ -67,45 +75,47 @@ const ResetPassword: React.FC = () => {
 
     setLoading(true);
 
-    try {
-      await api.post('/auth/reset-password', {
-        token: token.trim(),
-        nova_senha: novaSenha
-      });
-
-      setSuccess('✅ Senha redefinida com sucesso! Redirecionando para login...');
-      
-      // Redirecionar após 2 segundos
-      setTimeout(() => {
-        navigate('/login', { 
-          state: { 
-            message: '✅ Senha alterada! Faça login com sua nova senha.'
-          } 
+    void (async () => {
+      try {
+        await api.post('/auth/reset-password', {
+          token: token.trim(),
+          nova_senha: novaSenha
         });
-      }, 2000);
-    } catch (err) {
-      console.error('❌ Erro ao redefinir senha:', err);
-      
-      let errorMessage = '❌ Erro ao redefinir senha. Tente novamente.';
-      
-      if (err && typeof err === 'object') {
-        const error = err as { 
-          response?: { data?: { detail?: string } }; 
-          message?: string;
-        };
+
+        setSuccess('✅ Senha redefinida com sucesso! Redirecionando para login...');
         
-        if (error.response?.data?.detail) {
-          errorMessage = `❌ ${error.response.data.detail}`;
-        } else if (error.message) {
-          const cleanMessage = error.message.replace('Error: ', '');
-          errorMessage = `❌ ${cleanMessage}`;
+        // Redirecionar após 2 segundos
+        setTimeout(() => {
+          navigate('/login', { 
+            state: { 
+              message: '✅ Senha alterada! Faça login com sua nova senha.'
+            } 
+          });
+        }, 2000);
+      } catch (err) {
+        console.error('❌ Erro ao redefinir senha:', err);
+        
+        let errorMessage = '❌ Erro ao redefinir senha. Tente novamente.';
+        
+        if (err && typeof err === 'object') {
+          const error = err as { 
+            response?: { data?: { detail?: string } }; 
+            message?: string;
+          };
+          
+          if (error.response?.data?.detail) {
+            errorMessage = `❌ ${error.response.data.detail}`;
+          } else if (error.message) {
+            const cleanMessage = error.message.replace('Error: ', '');
+            errorMessage = `❌ ${cleanMessage}`;
+          }
         }
+        
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
       }
-      
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+    })();
   };
 
   return (
@@ -116,7 +126,7 @@ const ResetPassword: React.FC = () => {
           <p style={styles.subtitle}>Digite sua nova senha abaixo</p>
         </div>
 
-        {error && (
+        {error && !tokenInvalid && (
           <div style={styles.errorBox}>
             {error}
           </div>
@@ -149,7 +159,7 @@ const ResetPassword: React.FC = () => {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={styles.form}>
+          <form onSubmit={(e) => handleSubmit(e)} style={styles.form} noValidate>
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
@@ -205,7 +215,8 @@ const ResetPassword: React.FC = () => {
           </div>
 
           <button
-            type="submit"
+            type="button"
+            onClick={() => handleSubmit()}
             style={{
               ...styles.button,
               ...(loading ? styles.buttonDisabled : {})

@@ -218,6 +218,15 @@
 - [ ] Requisições API respondem em < 500ms
 - [ ] Imagens/assets são otimizados
 - [ ] Bundle JavaScript não é muito grande
+
+---
+
+## 🛠️ HOTFIXES APLICADOS (18/02/2026)
+
+- [x] Corrigido `NameError: Usuario is not defined` em `get_current_user` (validação de token para `UsuarioAdministrativo`, `UsuarioComum` e legado).
+- [x] Mantida compatibilidade das rotas que usam `Depends(get_current_user)` retornando payload JWT (`usuario_atual.get("sub")`).
+- [x] Ajustado teste de criação em `/usuarios` para respeitar campo `email` obrigatório no modelo `UsuarioComum`.
+- [x] Reforçada a validação pós-instalação para ambiente limpo sem falsos negativos desses dois pontos.
 - [ ] Não há memory leaks visíveis
 - [ ] Hot-reload é rápido (< 2s)
 

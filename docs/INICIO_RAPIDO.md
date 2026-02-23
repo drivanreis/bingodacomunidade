@@ -38,7 +38,8 @@ Após o login, finalize o cadastro real do Administrador do site.
 | `./install.sh` | Instala dependências (1x apenas) |
 | `./start.sh` | Inicia o sistema |
 | `./start.sh -d` | Inicia em background |
-| `./test.sh` | Roda testes automatizados |
+| `./test.sh` | Roda diagnóstico de saúde do sistema |
+| `./test.sh --coverage` | Roda cobertura backend + frontend |
 | `docker compose down` | Para o sistema |
 | `docker compose logs -f` | Ver logs em tempo real |
 
@@ -57,6 +58,7 @@ Após o login, finalize o cadastro real do Administrador do site.
 1. **Leia:** `STATUS_ATUAL_LINUX.md` (análise completa)
 2. **Leia:** `MIGRACAO_CONCLUIDA.md` (o que foi feito)
 3. **Execute:** `./test.sh` (diagnóstico automático)
+4. **Cobertura:** `./test.sh --coverage`
 
 ---
 

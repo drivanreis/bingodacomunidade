@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -27,8 +28,8 @@ const ForgotPassword: React.FC = () => {
     setCpf(formatted);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
     setError('');
     setSuccess('');
 
@@ -37,50 +38,54 @@ const ForgotPassword: React.FC = () => {
     const cpfLimpo = identificador.replace(/\D/g, '');
     
     if (!isEmail && cpfLimpo.length !== 11) {
-      setError('❌ CPF deve ter 11 dígitos');
+      flushSync(() => {
+        setError('❌ CPF deve ter 11 dígitos');
+      });
       return;
     }
 
     setLoading(true);
 
-    try {
-      const response = await api.post('/auth/forgot-password',
-        isEmail
-          ? { email: identificador }
-          : { cpf: cpfLimpo }
-      );
+    void (async () => {
+      try {
+        const response = await api.post('/auth/forgot-password',
+          isEmail
+            ? { email: identificador }
+            : { cpf: cpfLimpo }
+        );
 
-      setSuccess('✅ Token de recuperação gerado com sucesso!');
-      
-      // Extrair token da mensagem (desenvolvimento)
-      // Sucesso - mostrar mensagem
-      setSuccess(response.data.message);
-      setCpf('');
-      
-      // Não extrair token da resposta - usuário deve receber por email
-    } catch (err) {
-      console.error('❌ Erro ao solicitar recuperação:', err);
-      
-      let errorMessage = '❌ Erro ao solicitar recuperação. Tente novamente.';
-      
-      if (err && typeof err === 'object') {
-        const error = err as { 
-          response?: { data?: { detail?: string } }; 
-          message?: string;
-        };
+        setSuccess('✅ Token de recuperação gerado com sucesso!');
         
-        if (error.response?.data?.detail) {
-          errorMessage = `❌ ${error.response.data.detail}`;
-        } else if (error.message) {
-          const cleanMessage = error.message.replace('Error: ', '');
-          errorMessage = `❌ ${cleanMessage}`;
+        // Extrair token da mensagem (desenvolvimento)
+        // Sucesso - mostrar mensagem
+        setSuccess(response.data.message);
+        setCpf('');
+        
+        // Não extrair token da resposta - usuário deve receber por email
+      } catch (err) {
+        console.error('❌ Erro ao solicitar recuperação:', err);
+        
+        let errorMessage = '❌ Erro ao solicitar recuperação. Tente novamente.';
+        
+        if (err && typeof err === 'object') {
+          const error = err as { 
+            response?: { data?: { detail?: string } }; 
+            message?: string;
+          };
+          
+          if (error.response?.data?.detail) {
+            errorMessage = `❌ ${error.response.data.detail}`;
+          } else if (error.message) {
+            const cleanMessage = error.message.replace('Error: ', '');
+            errorMessage = `❌ ${cleanMessage}`;
+          }
         }
+        
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
       }
-      
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+    })();
   };
 
   return (
@@ -106,7 +111,7 @@ const ForgotPassword: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={styles.form}>
+        <form onSubmit={(e) => handleSubmit(e)} style={styles.form} noValidate>
           <div style={styles.formGroup}>
             <label style={styles.label}>
               CPF ou Email <span style={styles.required}>*</span>
@@ -117,13 +122,13 @@ const ForgotPassword: React.FC = () => {
               onChange={handleCPFChange}
               placeholder="000.000.000-00"
               style={styles.input}
-              required
               disabled={loading || !!success}
             />
           </div>
 
           <button
-            type="submit"
+            type="button"
+            onClick={() => handleSubmit()}
             style={{
               ...styles.button,
               ...((loading || !!success) ? styles.buttonDisabled : {})

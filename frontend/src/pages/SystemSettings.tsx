@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import AdminIdentityHeader from '../components/AdminIdentityHeader';
 
 interface Configuracao {
   chave: string;
@@ -8,6 +8,7 @@ interface Configuracao {
   tipo: 'number' | 'boolean' | 'string';
   categoria: 'mensagens' | 'seguranca' | 'carrinho' | 'formularios' | 'recuperacao_senha';
   descricao: string;
+  sensitive?: boolean;
   alterado_em?: string;
 }
 
@@ -20,11 +21,12 @@ interface ConfigsPorCategoria {
 }
 
 const SystemSettings: React.FC = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [configs, setConfigs] = useState<Configuracao[]>([]);
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
+  const [testEmail, setTestEmail] = useState('');
+  const [testingEmail, setTestingEmail] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -72,6 +74,26 @@ const SystemSettings: React.FC = () => {
 
   const handleChange = (chave: string, valor: string) => {
     setEditedValues(prev => ({ ...prev, [chave]: valor }));
+  };
+
+  const handleTestEmail = async () => {
+    if (!testEmail.trim()) {
+      alert('Informe um e-mail para teste');
+      return;
+    }
+
+    setTestingEmail(true);
+    try {
+      const response = await api.post('/configuracoes/email/teste', {
+        to_email: testEmail.trim(),
+      });
+      alert(response.data?.message || 'E-mail de teste enviado com sucesso');
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail || 'Falha ao enviar e-mail de teste';
+      alert(detail);
+    } finally {
+      setTestingEmail(false);
+    }
   };
 
   const groupByCategory = (): ConfigsPorCategoria => {
@@ -160,10 +182,12 @@ const SystemSettings: React.FC = () => {
         <small className="text-muted d-block mb-2">{config.descricao}</small>
         <div className="d-flex gap-2">
           <input
-            type="text"
+            type={config.sensitive ? 'password' : 'text'}
             className="form-control"
             value={currentValue}
             onChange={(e) => handleChange(config.chave, e.target.value)}
+            placeholder={config.sensitive ? 'Digite nova senha SMTP para alterar' : undefined}
+            autoComplete={config.sensitive ? 'new-password' : undefined}
           />
           {hasChanged && (
             <button
@@ -225,17 +249,10 @@ const SystemSettings: React.FC = () => {
 
   return (
     <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <button 
-            className="btn btn-outline-secondary me-2"
-            onClick={() => navigate('/admin-site/dashboard')}
-          >
-            ← Voltar
-          </button>
-          <h2 className="d-inline-block mb-0">Configurações do Sistema</h2>
-        </div>
-      </div>
+      <AdminIdentityHeader
+        title="Configurações do Sistema"
+        backTo="/admin-site/dashboard"
+      />
 
       {saved && (
         <div className="alert alert-success alert-dismissible fade show" role="alert">
@@ -248,6 +265,36 @@ const SystemSettings: React.FC = () => {
       <div className="alert alert-info mb-4">
         <i className="bi bi-info-circle me-2"></i>
         <strong>Configurações Centralizadas:</strong> Todas as alterações são salvas individualmente e aplicadas imediatamente no sistema.
+      </div>
+
+      <div className="card mb-4">
+        <div className="card-header bg-secondary text-white">
+          <h5 className="mb-0">
+            <i className="bi bi-envelope-check me-2"></i>
+            Teste de E-mail (SMTP)
+          </h5>
+        </div>
+        <div className="card-body">
+          <small className="text-muted d-block mb-2">
+            Após salvar as configurações SMTP, envie um e-mail de teste para validar a entrega real.
+          </small>
+          <div className="d-flex gap-2">
+            <input
+              type="email"
+              className="form-control"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="email@destino.com"
+            />
+            <button
+              className="btn btn-outline-primary"
+              onClick={handleTestEmail}
+              disabled={testingEmail}
+            >
+              {testingEmail ? 'Enviando...' : 'Testar e-mail'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Mensagens e Notificações */}

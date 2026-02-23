@@ -11,6 +11,8 @@ services:
     
     ports:
       - "8000:8000"
+
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
     
     environment:
       - USE_SQLITE=true
@@ -47,6 +49,10 @@ services:
       # - SMTP_PASSWORD=sua_senha_de_app
       # - FROM_EMAIL=seu_email@gmail.com
       # - FROM_NAME=Bingo da Comunidade
+
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/tests:/app/tests
     
     restart: unless-stopped
     
@@ -69,6 +75,11 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8000
       - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     
     depends_on:
       backend:

@@ -26,6 +26,7 @@ from src.utils.time_manager import get_fortaleza_time
 
 # Importar routers
 from src.routers.auth_routes import router as auth_router
+from src.routers.admin_routes import router as admin_router
 
 # ============================================================================
 # CONFIGURAÇÃO DE LOGGING
@@ -175,6 +176,7 @@ async def shutdown_event():
 
 # Incluir router de autenticação (novo sistema com UsuarioComum + UsuarioAdministrativo)
 app.include_router(auth_router)
+app.include_router(admin_router)
 
 
 # ============================================================================
@@ -188,10 +190,11 @@ async def root() -> HealthCheckResponse:
     
     Endpoint raiz que retorna informações básicas de saúde da API.
     """
+    agora = get_fortaleza_time()
     return HealthCheckResponse(
         status="healthy",
-        version="2.0.0",
-        timestamp=get_fortaleza_time().isoformat()
+        timestamp_fortaleza=agora.isoformat(),
+        timezone="America/Fortaleza",
     )
 
 

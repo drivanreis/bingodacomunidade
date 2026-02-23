@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import AdminIdentityHeader from '../components/AdminIdentityHeader';
 
 interface Feedback {
   id: string;
@@ -185,33 +186,28 @@ const FeedbackSystem: React.FC = () => {
 
   return (
     <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <button 
-            className="btn btn-outline-secondary me-2"
-            onClick={() => navigate('/admin-site/dashboard')}
-          >
-            ← Voltar
-          </button>
-          <h2 className="d-inline-block mb-0">Sistema de Feedback</h2>
-        </div>
-        <div>
-          <button 
-            className="btn btn-outline-info me-2"
-            onClick={() => navigate('/admin-site/admins')}
-            title="Gerenciar usuários administradores"
-          >
-            👥 Gerenciar Admins
-          </button>
-          <button 
-            className="btn btn-outline-primary"
-            onClick={loadFeedbacks}
-          >
-            <i className="bi bi-arrow-clockwise me-2"></i>
-            Atualizar
-          </button>
-        </div>
-      </div>
+      <AdminIdentityHeader
+        title="Sistema de Feedback"
+        backTo="/admin-site/dashboard"
+        rightContent={
+          <>
+            <button
+              className="btn btn-outline-info me-2"
+              onClick={() => navigate('/admin-site/admins')}
+              title="Gerenciar usuários administradores"
+            >
+              👥 Gerenciar Admins
+            </button>
+            <button
+              className="btn btn-outline-primary"
+              onClick={loadFeedbacks}
+            >
+              <i className="bi bi-arrow-clockwise me-2"></i>
+              Atualizar
+            </button>
+          </>
+        }
+      />
 
       {/* Estatísticas */}
       <div className="row mb-4">

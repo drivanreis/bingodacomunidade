@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import ContactModule from '../components/form/ContactModule';
+import { getDddCpfMismatchWarning, isValidBrazilDdd } from '../utils/dddUf';
 
 const Profile: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -14,7 +16,8 @@ const Profile: React.FC = () => {
   const [nome, setNome] = useState('');
   const [cpf, setCpf] = useState('');
   const [email, setEmail] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
+  const [ddd, setDdd] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [chavePix, setChavePix] = useState('');
   
   // Senha
@@ -48,13 +51,20 @@ const Profile: React.FC = () => {
         setCpf(userData.cpf || '');
         setEmail(userData.email || '');
         
-        // Formatar WhatsApp se existir
+        // Carregar WhatsApp (DDD + telefone local)
         if (userData.whatsapp) {
           const whatsappNumeros = userData.whatsapp.replace(/\D/g, '');
-          if (whatsappNumeros.length >= 13) {
-            // Remove +55 e formata
-            const semPrefixo = whatsappNumeros.substring(2);
-            setWhatsapp(formatWhatsApp(semPrefixo));
+          let numeroLocal = whatsappNumeros;
+
+          if (whatsappNumeros.length >= 13 && whatsappNumeros.startsWith('55')) {
+            numeroLocal = whatsappNumeros.substring(2);
+          } else if (whatsappNumeros.length > 11) {
+            numeroLocal = whatsappNumeros.slice(-11);
+          }
+
+          if (numeroLocal.length >= 10) {
+            setDdd(numeroLocal.substring(0, 2));
+            setTelefone(numeroLocal.substring(2, 11));
           }
         }
         
@@ -75,24 +85,40 @@ const Profile: React.FC = () => {
     loadUserData();
   }, [user]);
 
-  const formatWhatsApp = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 13) {
-      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  const formatPhoneForDisplay = (dddValue: string, telefoneValue: string) => {
+    if (!dddValue || !telefoneValue) {
+      return '';
     }
-    return value;
+
+    if (telefoneValue.length === 10) {
+      return `(${dddValue}) ${telefoneValue.substring(0, 5)}-${telefoneValue.substring(5)}`;
+    }
+
+    if (telefoneValue.length === 9) {
+      return `(${dddValue}) ${telefoneValue.substring(0, 5)}-${telefoneValue.substring(5)}`;
+    }
+
+    if (telefoneValue.length === 8) {
+      return `(${dddValue}) ${telefoneValue.substring(0, 4)}-${telefoneValue.substring(4)}`;
+    }
+
+    return `(${dddValue}) ${telefoneValue}`;
   };
 
-  const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatWhatsApp(e.target.value);
-    setWhatsapp(formatted);
+  const handleTelefoneChange = (value: string) => {
+    setTelefone(value);
+  };
+
+  const handleDddChange = (value: string) => {
+    setDdd(value);
   };
   const handleCancel = () => {
     setEditing(false);
     setChangingPassword(false);
     setNome(user?.name || '');
     setEmail(user?.email || '');
-    setWhatsapp('');
+    setDdd('');
+    setTelefone('');
     setChavePix('');
     setSenhaAtual('');
     setNovaSenha('');
@@ -109,6 +135,21 @@ const Profile: React.FC = () => {
     // Validações
     if (nome.trim().length < 3) {
       setError('❌ Nome deve ter pelo menos 3 caracteres');
+      return;
+    }
+
+    if ((ddd && !telefone) || (!ddd && telefone)) {
+      setError('❌ DDD e telefone devem ser preenchidos juntos');
+      return;
+    }
+
+    if (ddd && !isValidBrazilDdd(ddd)) {
+      setError('❌ DDD inválido');
+      return;
+    }
+
+    if (telefone && !/^\d{9,10}$/.test(telefone)) {
+      setError('❌ Telefone inválido');
       return;
     }
 
@@ -132,7 +173,7 @@ const Profile: React.FC = () => {
     setLoading(true);
 
     try {
-      const whatsappLimpo = whatsapp ? whatsapp.replace(/\D/g, '') : undefined;
+      const whatsappCompleto = ddd && telefone ? `${ddd}${telefone}` : undefined;
       
       const payload: {
         nome: string;
@@ -149,8 +190,8 @@ const Profile: React.FC = () => {
         payload.email = email.trim();
       }
 
-      if (whatsappLimpo && whatsappLimpo.length === 11) {
-        payload.whatsapp = `+55${whatsappLimpo}`;
+      if (whatsappCompleto) {
+        payload.whatsapp = whatsappCompleto;
       }
 
       if (chavePix && chavePix.trim()) {
@@ -215,6 +256,8 @@ const Profile: React.FC = () => {
     return roles[user.role] || user.role;
   };
 
+  const alertaDddCpf = getDddCpfMismatchWarning(ddd, cpf);
+
   return (
     <div style={styles.container}>
       <div style={styles.formCard}>
@@ -273,7 +316,7 @@ const Profile: React.FC = () => {
 
               <div style={styles.infoItem}>
                 <span style={styles.infoLabel}>WhatsApp:</span>
-                <span style={styles.infoValue}>{whatsapp || 'Não informado'}</span>
+                <span style={styles.infoValue}>{formatPhoneForDisplay(ddd, telefone) || 'Não informado'}</span>
               </div>
 
               <div style={styles.infoItem}>
@@ -348,18 +391,17 @@ const Profile: React.FC = () => {
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>
-                WhatsApp
-              </label>
-              <input
-                type="text"
-                value={whatsapp}
-                onChange={handleWhatsAppChange}
-                placeholder="(85) 99999-9999"
-                maxLength={15}
-                style={styles.input}
+              <ContactModule
+                label="WhatsApp"
+                ddd={ddd}
+                telefone={telefone}
+                onDddChange={handleDddChange}
+                onTelefoneChange={handleTelefoneChange}
                 disabled={loading}
               />
+              {alertaDddCpf && (
+                <p style={styles.warningHint}>⚠️ {alertaDddCpf}</p>
+              )}
             </div>
 
             <div style={styles.formGroup}>
@@ -711,6 +753,33 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '12px',
     color: '#999',
     marginTop: '5px'
+  },
+  warningHint: {
+    fontSize: '12px',
+    color: '#b26a00',
+    marginTop: '6px',
+    lineHeight: '1.4',
+  },
+  phoneRow: {
+    display: 'flex',
+    gap: '10px',
+  },
+  dddInput: {
+    width: '130px',
+    padding: '12px',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    fontSize: '16px',
+    background: '#fff',
+    boxSizing: 'border-box',
+  },
+  phoneInput: {
+    flex: 1,
+    padding: '12px',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    fontSize: '16px',
+    boxSizing: 'border-box',
   },
   divider: {
     height: '1px',

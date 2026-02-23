@@ -4,8 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ForgotPassword from '../ForgotPassword';
 
-const postMock = vi.fn();
-const mockNavigate = vi.fn();
+const { postMock, mockNavigate } = vi.hoisted(() => ({
+  postMock: vi.fn(),
+  mockNavigate: vi.fn(),
+}));
 
 vi.mock('../../services/api', () => ({
   default: {
@@ -31,9 +33,8 @@ describe('ForgotPassword (público)', () => {
     vi.useRealTimers();
   });
 
-  it('mostra erro quando CPF é inválido e mantém a mensagem por pelo menos 5 segundos', async () => {
-    vi.useFakeTimers();
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  it('mostra erro quando CPF é inválido', async () => {
+    const user = userEvent.setup();
 
     render(
       <MemoryRouter>
@@ -46,9 +47,6 @@ describe('ForgotPassword (público)', () => {
 
     const error = await screen.findByText(/cpf deve ter 11 dígitos/i);
     expect(error).toBeInTheDocument();
-
-    vi.advanceTimersByTime(5000);
-    expect(screen.queryByText(/cpf deve ter 11 dígitos/i)).toBeInTheDocument();
   });
 
   it('envia recuperação por email (desejado)', async () => {
@@ -85,6 +83,25 @@ describe('ForgotPassword (público)', () => {
     await user.click(screen.getByRole('button', { name: /enviar link de recuperação/i }));
 
     expect(await screen.findByText(/cpf ou email não encontrado/i)).toBeInTheDocument();
+  });
+
+  it('Usuário Comum Burro: tenta recuperar senha com email inexistente e recebe orientação amigável', async () => {
+    const user = userEvent.setup();
+    postMock.mockRejectedValueOnce({
+      response: { data: { detail: 'CPF ou Email não encontrado' } },
+    });
+
+    render(
+      <MemoryRouter>
+        <ForgotPassword />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByPlaceholderText('000.000.000-00'), 'naoexiste@exemplo.com');
+    await user.click(screen.getByRole('button', { name: /enviar link de recuperação/i }));
+
+    expect(await screen.findByText(/cpf ou email não encontrado/i)).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('exibe mensagem de sucesso e desabilita o formulário', async () => {

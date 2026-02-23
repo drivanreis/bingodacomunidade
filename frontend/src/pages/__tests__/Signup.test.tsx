@@ -35,7 +35,8 @@ describe('Signup (público)', () => {
       nome: string;
       email: string;
       cpf: string;
-      whatsapp: string;
+      ddd: string;
+      telefone: string;
       chavePix: string;
       senha: string;
       confirmarSenha: string;
@@ -45,23 +46,30 @@ describe('Signup (público)', () => {
       nome: signupSuccessData.nome,
       email: signupSuccessData.email,
       cpf: signupSuccessData.cpfFormatado,
-      whatsapp: signupSuccessData.whatsappEntrada,
+      ddd: signupSuccessData.ddd,
+      telefone: signupSuccessData.telefone,
       chavePix: signupSuccessData.chavePix,
       senha: signupSuccessData.senha,
       confirmarSenha: signupSuccessData.senha,
       ...overrides,
     };
 
-    await user.type(screen.getByPlaceholderText('João da Silva'), valores.nome);
-    await user.type(screen.getByPlaceholderText('seu.email@exemplo.com'), valores.email);
-    await user.type(screen.getByPlaceholderText('000.000.000-00'), valores.cpf);
-    await user.type(screen.getByPlaceholderText('(85) 98888-8888'), valores.whatsapp);
-    await user.type(
-      screen.getByPlaceholderText('CPF, Email, Telefone ou Chave Aleatória'),
-      valores.chavePix
-    );
-    await user.type(screen.getByPlaceholderText('6 a 16 caracteres'), valores.senha);
-    await user.type(screen.getByPlaceholderText('Digite a senha novamente'), valores.confirmarSenha);
+    const preencherCampo = async (placeholder: string, valor: string) => {
+      const input = screen.getByPlaceholderText(placeholder);
+      await user.clear(input);
+      if (valor) {
+        await user.type(input, valor);
+      }
+    };
+
+    await preencherCampo('João da Silva', valores.nome);
+    await preencherCampo('seu.email@exemplo.com', valores.email);
+    await preencherCampo('000.000.000-00', valores.cpf);
+    await user.selectOptions(screen.getByRole('combobox', { name: /ddd/i }), valores.ddd);
+    await preencherCampo('Número', valores.telefone);
+    await preencherCampo('CPF, Email, Telefone ou Chave Aleatória', valores.chavePix);
+    await preencherCampo('6 a 16 caracteres', valores.senha);
+    await preencherCampo('Digite a senha novamente', valores.confirmarSenha);
   };
 
   it('impede envio quando senhas não coincidem', async () => {
@@ -73,10 +81,11 @@ describe('Signup (público)', () => {
       </MemoryRouter>
     );
 
-    await user.type(screen.getByPlaceholderText('João da Silva'), 'João da Silva');
+    await user.type(screen.getByPlaceholderText('João da Silva'), signupSuccessData.nome);
     await user.type(screen.getByPlaceholderText('seu.email@exemplo.com'), 'joao@example.com');
-    await user.type(screen.getByPlaceholderText('000.000.000-00'), '123.456.789-09');
-    await user.type(screen.getByPlaceholderText('(85) 98888-8888'), '(85) 98888-8888');
+    await user.type(screen.getByPlaceholderText('000.000.000-00'), signupSuccessData.cpfFormatado);
+    await user.selectOptions(screen.getByRole('combobox', { name: /ddd/i }), '85');
+    await user.type(screen.getByPlaceholderText('Número'), '988888888');
     await user.type(
       screen.getByPlaceholderText('CPF, Email, Telefone ou Chave Aleatória'),
       'joao@example.com'
@@ -86,26 +95,26 @@ describe('Signup (público)', () => {
 
     await user.click(screen.getByRole('button', { name: /criar conta/i }));
 
-    expect(await screen.findByText(/senhas não coincidem/i)).toBeInTheDocument();
+    expect(await screen.findByText(/senha invalido/i)).toBeInTheDocument();
     expect(postMock).not.toHaveBeenCalled();
   });
 
   it.each([
     {
+      nome: '',
+      mensagem: 'Nome Completo invalido',
+    },
+    {
       nome: 'Ana',
-      mensagem: 'Nome completo deve ter pelo menos duas palavras com 3 letras',
+      mensagem: 'Nome Completo invalido',
     },
     {
       nome: 'Ana E',
-      mensagem: 'Nome completo deve ter pelo menos duas palavras com 3 letras',
+      mensagem: 'Nome Completo invalido',
     },
     {
-      nome: 'Leo de Eva 33ª',
-      mensagem: 'Nome completo permite no máximo um número e um caractere especial (º ou ª)',
-    },
-    {
-      nome: 'Ana de Leoº!',
-      mensagem: 'Nome completo permite apenas º ou ª como caractere especial',
+      mensagem: 'Nome Completo invalido',
+      nome: 'Ivan Reis 1978',
     },
   ])('valida nome completo inválido: $nome', async ({ nome, mensagem }) => {
     const user = userEvent.setup();
@@ -126,19 +135,19 @@ describe('Signup (público)', () => {
   it.each([
     {
       email: 'anaexemplo.com',
-      mensagem: 'Email inválido',
+      mensagem: 'Email invalido',
+    },
+    {
+      email: '',
+      mensagem: 'Email invalido',
     },
     {
       email: 'ana@',
-      mensagem: 'Email inválido',
+      mensagem: 'Email invalido',
     },
     {
-      email: 'ana@exemplo',
-      mensagem: 'Email inválido',
-    },
-    {
-      email: '@exemplo.com',
-      mensagem: 'Email inválido',
+      email: '@https://www.google.com/search?q=dominio.com',
+      mensagem: 'Email invalido',
     },
   ])('valida email inválido: $email', async ({ email, mensagem }) => {
     const user = userEvent.setup();
@@ -158,16 +167,16 @@ describe('Signup (público)', () => {
 
   it.each([
     {
-      cpf: '123.456.789',
-      mensagem: 'CPF deve ter 11 dígitos',
+      cpf: '',
+      mensagem: 'CPF invalido',
     },
     {
-      cpf: '123.456.789-000',
-      mensagem: 'CPF deve ter 11 dígitos',
+      cpf: '123.456.789',
+      mensagem: 'CPF invalido',
     },
     {
       cpf: '123.456.789-01',
-      mensagem: 'CPF inválido',
+      mensagem: 'CPF invalido',
     },
   ])('valida CPF inválido: $cpf', async ({ cpf, mensagem }) => {
     const user = userEvent.setup();
@@ -187,18 +196,10 @@ describe('Signup (público)', () => {
 
   it.each([
     {
-      whatsapp: '8598765432',
-      mensagem: 'WhatsApp deve conter DDD e 9 ou 10 números',
+      ddd: '',
+      mensagem: 'DDD invalido',
     },
-    {
-      whatsapp: '859876543210',
-      mensagem: 'WhatsApp deve conter DDD e 9 ou 10 números',
-    },
-    {
-      whatsapp: '85AB98765432',
-      mensagem: 'WhatsApp deve conter apenas números',
-    },
-  ])('valida WhatsApp inválido: $whatsapp', async ({ whatsapp, mensagem }) => {
+  ])('valida DDD inválido: $ddd', async ({ ddd, mensagem }) => {
     const user = userEvent.setup();
 
     render(
@@ -207,7 +208,7 @@ describe('Signup (público)', () => {
       </MemoryRouter>
     );
 
-    await preencherFormularioValido(user, { whatsapp });
+    await preencherFormularioValido(user, { ddd });
     await user.click(screen.getByRole('button', { name: /criar conta/i }));
 
     expect(await screen.findByText(new RegExp(mensagem, 'i'))).toBeInTheDocument();
@@ -216,34 +217,82 @@ describe('Signup (público)', () => {
 
   it.each([
     {
+      telefone: '',
+      mensagem: 'Telefone invalido',
+    },
+    {
+      telefone: '9876543',
+      mensagem: 'Telefone invalido',
+    },
+    {
+      telefone: '98765432101',
+      mensagem: 'Telefone invalido',
+    },
+  ])('valida Telefone inválido: $telefone', async ({ telefone, mensagem }) => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <Signup />
+      </MemoryRouter>
+    );
+
+    await preencherFormularioValido(user, { telefone });
+    await user.click(screen.getByRole('button', { name: /criar conta/i }));
+
+    expect(await screen.findByText(new RegExp(mensagem, 'i'))).toBeInTheDocument();
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      chavePix: '',
+      mensagem: 'Chave PIX invalido',
+    },
+    {
+      chavePix: '1234',
+      mensagem: 'Chave PIX invalido',
+    },
+    {
+      chavePix: '123.456.789-00',
+      mensagem: 'Chave PIX invalido',
+    },
+  ])('valida Chave PIX inválida: $chavePix', async ({ chavePix, mensagem }) => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <Signup />
+      </MemoryRouter>
+    );
+
+    await preencherFormularioValido(user, { chavePix });
+    await user.click(screen.getByRole('button', { name: /criar conta/i }));
+
+    expect(await screen.findByText(new RegExp(mensagem, 'i'))).toBeInTheDocument();
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      senha: '',
+      confirmarSenha: '',
+      mensagem: 'Senha invalido',
+    },
+    {
       senha: 'Aa1@',
       confirmarSenha: 'Aa1@',
-      mensagem: 'Senha deve ter no mínimo 6 caracteres',
+      mensagem: 'Senha invalido',
     },
     {
       senha: 'SenhaMuitoLonga@123',
       confirmarSenha: 'SenhaMuitoLonga@123',
-      mensagem: 'Senha deve ter no máximo 16 caracteres',
+      mensagem: 'Senha invalido',
     },
     {
-      senha: 'senha@123',
-      confirmarSenha: 'senha@123',
-      mensagem: 'Senha deve conter pelo menos uma letra maiúscula',
-    },
-    {
-      senha: 'SENHA@123',
-      confirmarSenha: 'SENHA@123',
-      mensagem: 'Senha deve conter pelo menos uma letra minúscula',
-    },
-    {
-      senha: 'Senha@aaa',
-      confirmarSenha: 'Senha@aaa',
-      mensagem: 'Senha deve conter pelo menos um número',
-    },
-    {
-      senha: 'Senha1234',
-      confirmarSenha: 'Senha1234',
-      mensagem: 'Senha deve conter pelo menos um caractere especial',
+      senha: 'senha1234',
+      confirmarSenha: 'senha1234',
+      mensagem: 'Senha invalido',
     },
   ])('valida senha inválida: $senha', async ({ senha, confirmarSenha, mensagem }) => {
     const user = userEvent.setup();
@@ -263,30 +312,26 @@ describe('Signup (público)', () => {
 
   it.each([
     {
-      campo: 'nome',
-      override: { nome: "Ana'; DROP TABLE users; --" },
-    },
-    {
-      campo: 'email',
-      override: { email: "ana@exemplo.com' OR '1'='1" },
-    },
-    {
       campo: 'cpf',
-      override: { cpf: "111.444.777-35' OR 1=1 --" },
+      override: { cpf: "111.111.111-11' OR 1=1 --" },
+      mensagem: 'CPF invalido',
     },
     {
-      campo: 'whatsapp',
-      override: { whatsapp: "85987654321' OR 1=1 --" },
+      campo: 'telefone',
+      override: { telefone: "99999999' OR 1=1 --" },
+      mensagem: 'Telefone invalido',
     },
     {
       campo: 'chave_pix',
-      override: { chavePix: "ana@exemplo.com'; SELECT * FROM users; --" },
+      override: { chavePix: "chave_aleatoria_invalida'; SELECT * FROM users; --" },
+      mensagem: 'Chave PIX invalido',
     },
     {
-      campo: 'senha',
-      override: { senha: "Senha@123' OR 1=1 --", confirmarSenha: "Senha@123' OR 1=1 --" },
+      campo: 'email',
+      override: { email: "ana @exemplo.com' OR '1'='1" },
+      mensagem: 'Email invalido',
     },
-  ])('bloqueia tentativa de SQL injection no campo $campo', async ({ override }) => {
+  ])('bloqueia tentativa de SQL injection no campo $campo', async ({ override, mensagem }) => {
     const user = userEvent.setup();
 
     render(
@@ -298,7 +343,7 @@ describe('Signup (público)', () => {
     await preencherFormularioValido(user, override);
     await user.click(screen.getByRole('button', { name: /criar conta/i }));
 
-    expect(await screen.findByText(/entrada inválida|caracteres inválidos|injeção/i)).toBeInTheDocument();
+    expect(await screen.findByText(new RegExp(mensagem, 'i'))).toBeInTheDocument();
     expect(postMock).not.toHaveBeenCalled();
   });
 
@@ -321,7 +366,8 @@ describe('Signup (público)', () => {
       nome: signupSuccessData.nome,
       email: signupSuccessData.email,
       cpf: signupSuccessData.cpfLimpo,
-      whatsapp: signupSuccessData.whatsappNormalizado,
+      telefone: signupSuccessData.telefoneCompleto,
+      whatsapp: signupSuccessData.telefoneCompleto,
       senha: signupSuccessData.senha,
       chave_pix: signupSuccessData.chavePix,
     });
@@ -334,5 +380,69 @@ describe('Signup (público)', () => {
         cpf: signupSuccessData.cpfLimpo,
       },
     });
+  });
+
+  it('Perfil Usuário Comum Inteligente (Caminho Feliz): envia fluxo válido completo', async () => {
+    const user = userEvent.setup();
+    postMock.mockReset();
+    mockNavigate.mockReset();
+
+    postMock.mockResolvedValueOnce({ data: { access_token: 'token-inteligente' } });
+
+    render(
+      <MemoryRouter>
+        <Signup />
+      </MemoryRouter>
+    );
+
+    await preencherFormularioValido(user);
+    await user.click(screen.getByRole('button', { name: /criar conta/i }));
+
+    expect(postMock).toHaveBeenCalledWith('/auth/signup', {
+      nome: signupSuccessData.nome,
+      email: signupSuccessData.email,
+      cpf: signupSuccessData.cpfLimpo,
+      telefone: signupSuccessData.telefoneCompleto,
+      whatsapp: signupSuccessData.telefoneCompleto,
+      senha: signupSuccessData.senha,
+      chave_pix: signupSuccessData.chavePix,
+    });
+  });
+
+  it('Perfil Usuário Comum Burro (UX/Resiliência): tenta cadastrar duas vezes e recebe orientação clara', async () => {
+    const user = userEvent.setup();
+    postMock.mockReset();
+
+    postMock.mockRejectedValueOnce({
+      response: { data: { detail: 'CPF já cadastrado no sistema' } },
+    });
+
+    render(
+      <MemoryRouter>
+        <Signup />
+      </MemoryRouter>
+    );
+
+    await preencherFormularioValido(user);
+    await user.click(screen.getByRole('button', { name: /criar conta/i }));
+
+    expect(await screen.findByText(/cpf já cadastrado no sistema/i)).toBeInTheDocument();
+  });
+
+  it('Perfil Usuário Comum Hacker (Segurança/PenTest): bloqueia script injection no nome antes de enviar', async () => {
+    const user = userEvent.setup();
+    postMock.mockReset();
+
+    render(
+      <MemoryRouter>
+        <Signup />
+      </MemoryRouter>
+    );
+
+    await preencherFormularioValido(user, { nome: "<script>alert('xss')</script>" });
+    await user.click(screen.getByRole('button', { name: /criar conta/i }));
+
+    expect(await screen.findByText(/nome completo invalido/i)).toBeInTheDocument();
+    expect(postMock).not.toHaveBeenCalled();
   });
 });

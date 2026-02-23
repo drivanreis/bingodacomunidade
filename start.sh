@@ -8,19 +8,21 @@
 # Uso: ./start.sh [opção]
 #
 # Opções:
-#   (sem opção)  - Inicia em modo normal (logs no terminal)
+#   (sem opção)  - Inicia em modo detached (background)
 #   -d           - Inicia em modo detached (background)
+#   -f|--attach  - Inicia em foreground (logs no terminal)
 #   --build      - Força rebuild das imagens
 #   --fresh      - Remove tudo e inicia do zero
+#   -h|--help    - Mostra esta ajuda
 
 set -e
 
 # Cores
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
+GREEN=$'\033[0;32m'
+BLUE=$'\033[0;34m'
+YELLOW=$'\033[1;33m'
+RED=$'\033[0;31m'
+NC=$'\033[0m'
 
 echo -e "${BLUE}"
 echo "=================================================================="
@@ -47,14 +49,51 @@ fi
 # PROCESSAMENTO DE ARGUMENTOS
 # ===========================================================================
 
-MODE="normal"
+MODE="detached"
 BUILD_FLAG=""
+FRESH_MODE=false
 
-if [ "$1" = "-d" ]; then
-    MODE="detached"
-elif [ "$1" = "--build" ]; then
-    BUILD_FLAG="--build"
-elif [ "$1" = "--fresh" ]; then
+show_help() {
+    echo "Uso: ./start.sh [opções]"
+    echo
+    echo "Opções:"
+    echo "  (sem opção)   Inicia em modo detached (background)"
+    echo "  -d            Inicia em modo detached (background)"
+    echo "  -f, --attach  Inicia em foreground (logs no terminal)"
+    echo "  --build       Força rebuild das imagens"
+    echo "  --fresh       Remove stack/volumes e inicia do zero"
+    echo "  -h, --help    Mostra esta ajuda"
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -d)
+            MODE="detached"
+            ;;
+        -f|--attach)
+            MODE="normal"
+            ;;
+        --build)
+            BUILD_FLAG="--build"
+            ;;
+        --fresh)
+            FRESH_MODE=true
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}❌ Opção inválida: $1${NC}"
+            echo
+            show_help
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+if [[ "$FRESH_MODE" == true ]]; then
     echo -e "${YELLOW}⚠️  Modo FRESH: Isso vai remover todos os containers, volumes e imagens!${NC}"
     read -p "Tem certeza? (s/N): " -n 1 -r
     echo
@@ -134,13 +173,20 @@ if [ "$MODE" = "detached" ]; then
     echo "   Backend:  ${GREEN}http://localhost:8000${NC}"
     echo "   API Docs: ${GREEN}http://localhost:8000/docs${NC}"
     echo ""
+    echo "   Testes (direto no contêiner):"
+    echo "   Backend:  ${GREEN}docker compose exec backend pytest -q${NC}"
+    echo "   Frontend: ${GREEN}docker compose exec frontend npm run test -- --run${NC}"
+    echo ""
     echo -e "${BLUE}=================================================================="
-    echo "👤 CREDENCIAIS PADRÃO:"
+    echo "🔐 PRIMEIRO ACESSO (BOOTSTRAP):"
     echo "=================================================================="
     echo -e "${NC}"
     echo ""
-    echo "   Email: ${GREEN}admin@bingodacomunidade.com.br${NC}"
-    echo "   Senha: ${GREEN}Admin@2026${NC}"
+    echo "   Login seed: ${GREEN}Admin${NC}"
+    echo "   Senha seed: ${GREEN}admin123${NC}"
+    echo ""
+    echo "   Observação: o público permanece em manutenção até existir"
+    echo "   o primeiro ${GREEN}Admin-Paróquia${NC} ativo."
     echo ""
     echo "=================================================================="
 fi

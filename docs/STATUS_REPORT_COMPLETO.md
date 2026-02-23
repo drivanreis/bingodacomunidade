@@ -205,7 +205,7 @@ criado_em         TIMESTAMP
    - Enums tipados
 
 5. **Validators Pydantic v2**
-   - WhatsApp (+55DDNNNNNNNNN)
+   - WhatsApp (DDD + número, sem +55 armazenado)
    - Chave PIX (básico)
    - Rateio (deve somar 100%)
    - Datas (ordem lógica)
@@ -291,7 +291,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 dias
 {
   "nome": "João Silva",
   "cpf": "12345678909",             # Validado (Módulo 11)
-  "whatsapp": "+5585987654321",     # Validado
+   "whatsapp": "85987654321",        # Validado
   "chave_pix": "joao@email.com",    # Validado
   "senha": "SenhaSegura123"         # Min 6 caracteres
 }
@@ -460,7 +460,7 @@ POST /auth/signup
 {
   "nome": "Maria Santos",
   "cpf": "98765432100",
-  "whatsapp": "+5585912345678",
+   "whatsapp": "85912345678",
   "chave_pix": "maria.santos@email.com",
   "senha": "Maria@2026"
 }
@@ -746,7 +746,7 @@ Após o login, o Administrador deve concluir o cadastro real do SUPER_ADMIN.
 - ✅ Endpoint público `POST /auth/signup`
 - ✅ Campos: nome, CPF, WhatsApp, PIX, senha
 - ✅ CPF validado (Módulo 11)
-- ✅ WhatsApp validado (+55DDNNNNNNNNN)
+- ✅ WhatsApp validado (DDD + número, sem +55 armazenado)
 - ✅ Role automático: FIEL
 - ✅ Login com CPF + senha
 

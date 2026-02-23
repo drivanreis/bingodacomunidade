@@ -89,7 +89,7 @@ Execute: `python backend/test_cpf_validator.py` para ver demonstração completa
    ```python
    - nome: str (3-200 caracteres)
    - cpf: str (11 dígitos, validado)
-   - whatsapp: str (+55DDNNNNNNNNN)
+  - whatsapp: str (DDD + número, sem +55 armazenado)
    - chave_pix: str (qualquer formato)
    - senha: str (mínimo 6 caracteres)
    ```
@@ -173,6 +173,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 dias
 - ✅ Vínculo automático à **única paróquia** do sistema
 - ✅ CPF único no sistema (valida duplicação)
 - ✅ WhatsApp único no sistema (valida duplicação)
+- ✅ WhatsApp/telefone persistidos sem `+55` (apenas DDD + número local)
+- ✅ Telefone local com 9 dígitos (regra nacional) e suporte ao caso regional de 10 dígitos
+- ✅ Bloqueio de cadastro quando UF do DDD não está na lista de UFs permitidas pelo Admin-Paróquia
 - ✅ Gera ID temporal (formato: USR_YYYYMMDDHHMMSS)
 - ✅ Hash bcrypt da senha
 
@@ -190,6 +193,9 @@ if db.query(Usuario).filter(Usuario.whatsapp == request.whatsapp).first():
 paroquia = db.query(Paroquia).filter(Paroquia.ativa == True).first()
 if not paroquia:
     raise HTTPException(500, "Nenhuma paróquia ativa")
+
+# UF do DDD permitida para cadastro público?
+ensure_signup_uf_allowed(db, paroquia, request.whatsapp or request.telefone)
 ```
 
 **Resposta:**
@@ -198,7 +204,7 @@ if not paroquia:
   "id": "USR_20260116153045",
   "nome": "João Silva",
   "cpf": "12345678901",
-  "whatsapp": "+5585987654321",
+  "whatsapp": "85987654321",
   "tipo": "fiel",
   "paroquia_id": "PAR_20260113120000",
   "chave_pix": "joao@email.com",
@@ -306,7 +312,7 @@ fiel_exemplo = Usuario(
     nome="João Silva (Exemplo)",
     cpf="12345678901",  # Adicionado
     email="joao.exemplo@email.com",
-    whatsapp="+5585987654321",
+  whatsapp="85987654321",
     senha="Fiel@123",
     tipo=TipoUsuario.FIEL
 )
@@ -380,7 +386,7 @@ backend/src/
 {
   "nome": "Maria Santos",
   "cpf": "98765432100",
-  "whatsapp": "+5585912345678",
+  "whatsapp": "85912345678",
   "chave_pix": "maria.santos@email.com",
   "senha": "Maria@2026"
 }
@@ -505,7 +511,8 @@ backend/src/
 - ✅ Usado como username no login
 
 ### 4. **WhatsApp**
-- ✅ Formato internacional: +55DDNNNNNNNNN
+- ✅ Formato armazenado: DDD + número (sem +55)
+- ✅ `+55` aplicado apenas no envio de mensagem (SMS/WhatsApp)
 - ✅ Validação automática
 - ✅ Unique constraint
 

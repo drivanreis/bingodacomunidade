@@ -1,193 +1,418 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import ContactModule, { buildBrazilContact, isBrazilContactValid } from '../components/form/ContactModule';
+import PasswordField from '../components/form/PasswordField';
+import AdminIdentityHeader from '../components/AdminIdentityHeader';
 
-interface Usuario {
+interface AdminSiteUser {
   id: string;
+  nome: string;
+  login: string;
+  email: string;
+  cpf?: string;
+  telefone?: string;
+  whatsapp?: string;
+  ativo: boolean;
+  criado_por_id?: string | null;
+  criado_em?: string | null;
+  is_current: boolean;
+  can_resend_initial_password?: boolean;
+}
+
+interface CreateAdminSiteForm {
   nome: string;
   email: string;
   cpf: string;
-  tipo: 'super_admin' | 'parish_admin' | 'paroquia_admin' | 'faithful';
-  paroquia_id?: string;
-  paroquia_nome?: string;
-  criado_em: string;
+  ddd: string;
+  telefone: string;
+  senhaTemporaria: string;
+  confirmarSenhaTemporaria: string;
 }
 
+const INITIAL_FORM: CreateAdminSiteForm = {
+  nome: '',
+  email: '',
+  cpf: '',
+  ddd: '',
+  telefone: '',
+  senhaTemporaria: '',
+  confirmarSenhaTemporaria: '',
+};
+
 const AdminUsers: React.FC = () => {
-  const navigate = useNavigate();
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [admins, setAdmins] = useState<AdminSiteUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
-  const [newRole, setNewRole] = useState<string>('');
+  const [formData, setFormData] = useState<CreateAdminSiteForm>(INITIAL_FORM);
+  const [selectedAdmin, setSelectedAdmin] = useState<AdminSiteUser | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [myPasswordForm, setMyPasswordForm] = useState({
+    senhaAtual: '',
+    novaSenha: '',
+    confirmarNovaSenha: '',
+  });
+  const [targetPasswordForm, setTargetPasswordForm] = useState({
+    novaSenha: '',
+    confirmarNovaSenha: '',
+  });
+  const [showMyCurrentPassword, setShowMyCurrentPassword] = useState(false);
+  const [showMyNewPassword, setShowMyNewPassword] = useState(false);
+  const [showMyConfirmPassword, setShowMyConfirmPassword] = useState(false);
+  const [showTargetNewPassword, setShowTargetNewPassword] = useState(false);
+  const [showTargetConfirmPassword, setShowTargetConfirmPassword] = useState(false);
+  const [showCreateTempPassword, setShowCreateTempPassword] = useState(false);
+  const [showCreateTempConfirmPassword, setShowCreateTempConfirmPassword] = useState(false);
+
+  const normalizeCpf = (value: string) => value.replace(/\D/g, '').slice(0, 11);
+
+  const isValidCpf = (cpfRaw: string) => {
+    const cpf = normalizeCpf(cpfRaw);
+    if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+
+    const calcDigit = (base: string) => {
+      let sum = 0;
+      for (let i = 0; i < base.length; i += 1) {
+        sum += Number(base[i]) * (base.length + 1 - i);
+      }
+      const mod = sum % 11;
+      return mod < 2 ? 0 : 11 - mod;
+    };
+
+    const d1 = calcDigit(cpf.slice(0, 9));
+    const d2 = calcDigit(cpf.slice(0, 10));
+    return Number(cpf[9]) === d1 && Number(cpf[10]) === d2;
+  };
 
   useEffect(() => {
-    loadUsuarios();
+    loadAdmins();
   }, []);
 
-  const loadUsuarios = async () => {
+  const loadAdmins = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/usuarios');
-      setUsuarios(response.data);
+      const response = await api.get('/auth/admin-site/admins');
+      setAdmins(response.data?.admins || []);
       setError(null);
     } catch (err) {
-      console.error('Erro ao carregar usuários:', err);
-      setError('Erro ao carregar usuários do sistema');
+      console.error('Erro ao carregar Admin-Site:', err);
+      setError('Erro ao carregar usuários do site');
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePromote = async (usuarioId: string, novoTipo: string) => {
+  const closeModal = () => {
+    setShowModal(false);
+    setFormData(INITIAL_FORM);
+    setShowCreateTempPassword(false);
+    setShowCreateTempConfirmPassword(false);
+  };
+
+  const openDetailsModal = (admin: AdminSiteUser) => {
+    setSelectedAdmin(admin);
+    setShowDetailsModal(true);
+    setMyPasswordForm({ senhaAtual: '', novaSenha: '', confirmarNovaSenha: '' });
+    setTargetPasswordForm({ novaSenha: '', confirmarNovaSenha: '' });
+    setShowMyCurrentPassword(false);
+    setShowMyNewPassword(false);
+    setShowMyConfirmPassword(false);
+    setShowTargetNewPassword(false);
+    setShowTargetConfirmPassword(false);
+  };
+
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedAdmin(null);
+    setMyPasswordForm({ senhaAtual: '', novaSenha: '', confirmarNovaSenha: '' });
+    setTargetPasswordForm({ novaSenha: '', confirmarNovaSenha: '' });
+    setShowMyCurrentPassword(false);
+    setShowMyNewPassword(false);
+    setShowMyConfirmPassword(false);
+    setShowTargetNewPassword(false);
+    setShowTargetConfirmPassword(false);
+  };
+
+  const handleCreateAdminSite = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.nome.trim() || formData.nome.trim().length < 3) {
+      alert('Preencha nome/apelido com pelo menos 3 caracteres');
+      return;
+    }
+
+    if (!formData.email || !isBrazilContactValid(formData.ddd, formData.telefone)) {
+      alert('Preencha e-mail, DDD e telefone válido (9 ou 10 dígitos)');
+      return;
+    }
+
+    if (!isValidCpf(formData.cpf)) {
+      alert('Informe um CPF válido para o usuário do site');
+      return;
+    }
+
+    if (!formData.senhaTemporaria || !formData.confirmarSenhaTemporaria) {
+      alert('Preencha senha temporária e confirmação');
+      return;
+    }
+
+    if (formData.senhaTemporaria !== formData.confirmarSenhaTemporaria) {
+      alert('A confirmação da senha temporária não confere');
+      return;
+    }
+
+    const contato = buildBrazilContact(formData.ddd, formData.telefone);
+
     try {
-      await api.put(`/usuarios/${usuarioId}/tipo`, { tipo: novoTipo });
-      
-      // Atualizar lista
-      loadUsuarios();
-      setShowModal(false);
-      setSelectedUser(null);
-      alert('✅ Usuário promovido com sucesso!');
+      setSaving(true);
+      await api.post('/auth/admin-site/criar-admin-site', {
+        nome: formData.nome.trim(),
+        email: formData.email.trim(),
+        cpf: normalizeCpf(formData.cpf),
+        telefone: contato,
+        whatsapp: contato,
+        senha: formData.senhaTemporaria,
+      });
+
+      alert('✅ Usuário do site (reserva) criado com sucesso! Entregue a senha temporária ao usuário e peça a troca obrigatória no primeiro login.');
+      closeModal();
+      await loadAdmins();
     } catch (err) {
-      console.error('Erro ao atualizar usuário:', err);
-      const errorMessage = (err instanceof Object && 'response' in err) 
-        ? (err as {response?: {data?: {detail?: string}}}).response?.data?.detail || 'Erro desconhecido'
-        : 'Erro desconhecido';
-      alert('❌ Erro ao atualizar usuário: ' + errorMessage);
+      console.error('Erro ao criar usuário do site:', err);
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      alert(`❌ Erro ao criar usuário do site: ${detail || 'Falha inesperada'}`);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getRoleBadge = (tipo: string) => {
-    const roleConfig: { [key: string]: { label: string; color: string } } = {
-      'super_admin': { label: '👑 Super Admin', color: '#d4af37' },
-      'parish_admin': { label: '👨‍💼 Admin Paróquia', color: '#1e90ff' },
-      'paroquia_admin': { label: '👨‍💼 Admin Paróquia', color: '#1e90ff' },
-      'faithful': { label: '👤 Fiel', color: '#6c757d' },
-    };
-    const config = roleConfig[tipo] || { label: tipo, color: '#6c757d' };
-    return (
-      <span style={{
-        background: config.color,
-        color: 'white',
-        padding: '5px 12px',
-        borderRadius: '20px',
-        fontSize: '12px',
-        fontWeight: 'bold'
-      }}>
-        {config.label}
-      </span>
-    );
+  const handleToggleStatus = async (admin: AdminSiteUser) => {
+    const acao = admin.ativo ? 'inativar' : 'ativar';
+
+    if (!window.confirm(`Confirma ${acao} o usuário do site ${admin.login}?`)) {
+      return;
+    }
+
+    try {
+      await api.put(`/auth/admin-site/admins/${admin.id}/status`, null, {
+        params: {
+          ativo: !admin.ativo,
+        },
+      });
+
+      alert(`✅ Status atualizado com sucesso (${!admin.ativo ? 'Ativo' : 'Inativo'})`);
+      await loadAdmins();
+    } catch (err) {
+      console.error('Erro ao atualizar status:', err);
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      alert(`❌ Erro ao atualizar status: ${detail || 'Falha inesperada'}`);
+    }
+  };
+
+  const handleResendPassword = async (admin: AdminSiteUser) => {
+    if (!window.confirm(`Reenviar nova senha temporária para ${admin.email}? A senha anterior deixará de funcionar.`)) {
+      return;
+    }
+
+    try {
+      await api.post(`/auth/admin-site/admins/${admin.id}/reenviar-senha`);
+      alert('✅ Nova senha temporária enviada por e-mail com sucesso.');
+    } catch (err) {
+      console.error('Erro ao reenviar senha:', err);
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      alert(`❌ Erro ao reenviar senha: ${detail || 'Falha inesperada'}`);
+    }
+  };
+
+  const handleChangeMyPassword = async () => {
+    if (!selectedAdmin?.is_current) return;
+
+    if (!myPasswordForm.senhaAtual || !myPasswordForm.novaSenha || !myPasswordForm.confirmarNovaSenha) {
+      alert('Preencha senha atual, nova senha e confirmação');
+      return;
+    }
+
+    if (myPasswordForm.novaSenha !== myPasswordForm.confirmarNovaSenha) {
+      alert('A confirmação da nova senha não confere');
+      return;
+    }
+
+    try {
+      setPasswordSaving(true);
+      await api.post('/auth/admin-site/minha-senha', {
+        senha_atual: myPasswordForm.senhaAtual,
+        nova_senha: myPasswordForm.novaSenha,
+      });
+
+      alert('✅ Sua senha foi alterada com sucesso.');
+      setMyPasswordForm({ senhaAtual: '', novaSenha: '', confirmarNovaSenha: '' });
+      await loadAdmins();
+    } catch (err) {
+      console.error('Erro ao alterar minha senha:', err);
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      alert(`❌ Erro ao alterar sua senha: ${detail || 'Falha inesperada'}`);
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const handleSetTargetPassword = async () => {
+    if (!selectedAdmin || selectedAdmin.is_current) return;
+
+    if (!targetPasswordForm.novaSenha || !targetPasswordForm.confirmarNovaSenha) {
+      alert('Preencha nova senha e confirmação');
+      return;
+    }
+
+    if (targetPasswordForm.novaSenha !== targetPasswordForm.confirmarNovaSenha) {
+      alert('A confirmação da nova senha não confere');
+      return;
+    }
+
+    try {
+      setPasswordSaving(true);
+      await api.post(`/auth/admin-site/admins/${selectedAdmin.id}/definir-senha`, {
+        nova_senha: targetPasswordForm.novaSenha,
+      });
+
+      alert('✅ Senha do usuário atualizada com sucesso. Comunique a nova senha por canal seguro.');
+      setTargetPasswordForm({ novaSenha: '', confirmarNovaSenha: '' });
+      await loadAdmins();
+    } catch (err) {
+      console.error('Erro ao definir senha do usuário:', err);
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      alert(`❌ Erro ao definir senha do usuário: ${detail || 'Falha inesperada'}`);
+    } finally {
+      setPasswordSaving(false);
+    }
   };
 
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <div style={{
-          width: '50px',
-          height: '50px',
-          border: '4px solid #f3f3f3',
-          borderTop: '4px solid #667eea',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-          margin: '0 auto 20px'
-        }}></div>
-        <p>Carregando usuários...</p>
+        <p>Carregando usuários do site...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
-      {/* Cabeçalho */}
-      <div style={{ marginBottom: '40px' }}>
-        <h1>👥 Gerenciar Usuários do Admin</h1>
-        <p style={{ color: '#666', marginTop: '5px' }}>
-          Promova usuários para Super Admin ou remova privilégios administrativos
-        </p>
-      </div>
-
-      {/* Botão voltar */}
-      <button
-        onClick={() => navigate('/admin-site/feedback')}
-        style={{
-          marginBottom: '20px',
-          padding: '10px 20px',
-          background: '#6c757d',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px',
-          cursor: 'pointer',
-          fontSize: '14px'
-        }}
-      >
-        ← Voltar para Feedback
-      </button>
+    <div style={{ padding: '40px', maxWidth: '1100px', margin: '0 auto' }}>
+      <AdminIdentityHeader
+        title="👑 Gerenciar Usuários do Site"
+        subtitle="Sucessão de Admin-Site, renovação/troca/recuperação de senha e gestão dos pares do site."
+        backTo="/admin-site/dashboard"
+        rightContent={
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              padding: '10px 16px',
+              border: 'none',
+              background: '#1e3c72',
+              color: 'white',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 700,
+            }}
+          >
+            + Novo Usuário do Site (Reserva)
+          </button>
+        }
+      />
 
       {error && (
-        <div style={{
-          background: '#f8d7da',
-          color: '#721c24',
-          padding: '12px',
-          borderRadius: '5px',
-          marginBottom: '20px'
-        }}>
+        <div style={{ background: '#f8d7da', color: '#842029', padding: '12px', borderRadius: '6px', marginBottom: '16px' }}>
           ⚠️ {error}
         </div>
       )}
 
-      {/* Tabela de usuários */}
-      <div style={{
-        overflowX: 'auto',
-        background: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          fontSize: '14px'
-        }}>
+      <div style={{ background: 'white', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-              <th style={{ padding: '15px', textAlign: 'left' }}>Nome</th>
-              <th style={{ padding: '15px', textAlign: 'left' }}>Email</th>
-              <th style={{ padding: '15px', textAlign: 'left' }}>CPF</th>
-              <th style={{ padding: '15px', textAlign: 'left' }}>Tipo</th>
-              <th style={{ padding: '15px', textAlign: 'center' }}>Ações</th>
+            <tr style={{ background: '#f8f9fa' }}>
+              <th style={{ textAlign: 'left', padding: '12px' }}>Login</th>
+              <th style={{ textAlign: 'left', padding: '12px' }}>Email</th>
+              <th style={{ textAlign: 'left', padding: '12px' }}>Telefone</th>
+              <th style={{ textAlign: 'left', padding: '12px' }}>Status</th>
+              <th style={{ textAlign: 'left', padding: '12px' }}>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {usuarios.map((usuario) => (
-              <tr key={usuario.id} style={{ borderBottom: '1px solid #dee2e6' }}>
-                <td style={{ padding: '15px' }}>{usuario.nome}</td>
-                <td style={{ padding: '15px' }}>{usuario.email || '-'}</td>
-                <td style={{ padding: '15px' }}>
-                  <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: '3px' }}>
-                    {usuario.cpf.slice(0, 3)}.***.***-{usuario.cpf.slice(-2)}
-                  </code>
-                </td>
-                <td style={{ padding: '15px' }}>{getRoleBadge(usuario.tipo)}</td>
-                <td style={{ padding: '15px', textAlign: 'center' }}>
+            {admins.map((admin) => (
+              <tr key={admin.id} style={{ borderTop: '1px solid #ececec' }}>
+                <td style={{ padding: '12px' }}>
                   <button
-                    onClick={() => {
-                      setSelectedUser(usuario);
-                      setNewRole(usuario.tipo);
-                      setShowModal(true);
-                    }}
+                    type="button"
+                    onClick={() => openDetailsModal(admin)}
                     style={{
-                      padding: '6px 12px',
-                      background: '#667eea',
-                      color: 'white',
                       border: 'none',
-                      borderRadius: '4px',
+                      background: 'transparent',
+                      padding: 0,
+                      margin: 0,
+                      color: '#0d6efd',
                       cursor: 'pointer',
+                      fontWeight: 700,
+                      textDecoration: 'underline',
+                    }}
+                    aria-label={`abrir propriedades de ${admin.login}`}
+                  >
+                    {admin.login}
+                  </button>
+                  {admin.is_current && (
+                    <span style={{ marginLeft: '8px', fontSize: '12px', background: '#e7f1ff', color: '#084298', padding: '2px 6px', borderRadius: '12px' }}>
+                      você
+                    </span>
+                  )}
+                </td>
+                <td style={{ padding: '12px' }}>{admin.email}</td>
+                <td style={{ padding: '12px' }}>{admin.telefone || '-'}</td>
+                <td style={{ padding: '12px' }}>
+                  <span
+                    style={{
                       fontSize: '12px',
-                      fontWeight: 'bold'
+                      color: 'white',
+                      background: admin.ativo ? '#198754' : '#6c757d',
+                      borderRadius: '12px',
+                      padding: '4px 8px',
                     }}
                   >
-                    ⚙️ Editar
-                  </button>
+                    {admin.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
+                </td>
+                <td style={{ padding: '12px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {admin.can_resend_initial_password && (
+                      <button
+                        onClick={() => handleResendPassword(admin)}
+                        style={{
+                          padding: '6px 10px',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          background: '#0d6efd',
+                          color: 'white',
+                        }}
+                      >
+                        Reenviar senha
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleToggleStatus(admin)}
+                      disabled={admin.is_current}
+                      style={{
+                        padding: '6px 10px',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: admin.is_current ? 'not-allowed' : 'pointer',
+                        opacity: admin.is_current ? 0.55 : 1,
+                        background: admin.ativo ? '#dc3545' : '#198754',
+                        color: 'white',
+                      }}
+                    >
+                      {admin.ativo ? 'Inativar' : 'Ativar'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -195,121 +420,314 @@ const AdminUsers: React.FC = () => {
         </table>
       </div>
 
-      {usuarios.length === 0 && (
-        <div style={{
-          textAlign: 'center',
-          padding: '40px',
-          color: '#999'
-        }}>
-          Nenhum usuário encontrado
-        </div>
+      {admins.length === 0 && (
+        <div style={{ textAlign: 'center', marginTop: '20px', color: '#666' }}>Nenhum usuário do site encontrado.</div>
       )}
 
-      {/* Modal de edição */}
-      {showModal && selectedUser && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '30px',
-            borderRadius: '8px',
-            maxWidth: '400px',
-            width: '90%',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
-          }}>
-            <h2>Editar Usuário</h2>
-            <p style={{ color: '#666', marginBottom: '20px' }}>
-              <strong>{selectedUser.nome}</strong>
-              <br />
-              {selectedUser.email}
-            </p>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
-                Tipo de Conta:
-              </label>
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '5px',
-                  fontSize: '14px',
-                  fontFamily: 'Arial, sans-serif'
-                }}
-              >
-                <option value="faithful">👤 Fiel (Usuário comum)</option>
-                <option value="paroquia_admin">👨‍💼 Admin de Paróquia</option>
-                <option value="super_admin">👑 Super Admin (Sistema todo)</option>
-              </select>
-            </div>
-
-            {newRole === 'super_admin' && (
-              <div style={{
-                background: '#fff3cd',
-                border: '1px solid #ffc107',
-                padding: '12px',
-                borderRadius: '5px',
-                marginBottom: '20px',
-                fontSize: '12px',
-                color: '#664d03'
-              }}>
-                ⚠️ <strong>Atenção!</strong> Super Admins têm acesso total ao sistema. Use com cuidado!
+      {showModal && (
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Criar Usuário do Site (Reserva)</h5>
+                <button type="button" className="btn-close" onClick={closeModal}></button>
               </div>
-            )}
+              <form onSubmit={handleCreateAdminSite}>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label htmlFor="admin-reserva-nome" className="form-label">Nome / apelido *</label>
+                    <input
+                      id="admin-reserva-nome"
+                      type="text"
+                      className="form-control"
+                      value={formData.nome}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, nome: e.target.value }))}
+                      required
+                      minLength={3}
+                    />
+                  </div>
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  padding: '10px 20px',
-                  background: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handlePromote(selectedUser.id, newRole)}
-                style={{
-                  padding: '10px 20px',
-                  background: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                💾 Salvar
-              </button>
+                  <div className="mb-3">
+                    <label htmlFor="admin-reserva-email" className="form-label">E-mail *</label>
+                    <input
+                      id="admin-reserva-email"
+                      type="email"
+                      className="form-control"
+                      value={formData.email}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div className="mb-3">
+                    <label htmlFor="admin-reserva-cpf" className="form-label">CPF *</label>
+                    <input
+                      id="admin-reserva-cpf"
+                      type="text"
+                      className="form-control"
+                      value={formData.cpf}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, cpf: normalizeCpf(e.target.value) }))}
+                      inputMode="numeric"
+                      maxLength={11}
+                      required
+                    />
+                  </div>
+
+                  <ContactModule
+                    ddd={formData.ddd}
+                    telefone={formData.telefone}
+                    onDddChange={(value) => setFormData((prev) => ({ ...prev, ddd: value }))}
+                    onTelefoneChange={(value) => setFormData((prev) => ({ ...prev, telefone: value }))}
+                    required
+                  />
+
+                  <div className="row g-2">
+                    <div className="col-md-6">
+                      <PasswordField
+                        id="admin-reserva-senha-temporaria"
+                        label="Senha temporária"
+                        name="senhaTemporaria"
+                        value={formData.senhaTemporaria}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, senhaTemporaria: e.target.value }))}
+                        placeholder="Defina a senha temporária"
+                        required
+                        show={showCreateTempPassword}
+                        onToggleShow={() => setShowCreateTempPassword((prev) => !prev)}
+                        containerStyle={{}}
+                        inputStyle={{ width: '100%', padding: '10px 40px 10px 10px', border: '1px solid #ced4da', borderRadius: 6 }}
+                        buttonStyle={{ position: 'absolute', right: 10, background: 'none', border: 'none', cursor: 'pointer' }}
+                        hint="Mínimo 6 caracteres com letras maiúsculas, minúsculas, número e caractere especial."
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <PasswordField
+                        id="admin-reserva-confirmar-senha-temporaria"
+                        label="Confirmar senha temporária"
+                        name="confirmarSenhaTemporaria"
+                        value={formData.confirmarSenhaTemporaria}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, confirmarSenhaTemporaria: e.target.value }))}
+                        placeholder="Repita a senha temporária"
+                        required
+                        show={showCreateTempConfirmPassword}
+                        onToggleShow={() => setShowCreateTempConfirmPassword((prev) => !prev)}
+                        containerStyle={{}}
+                        inputStyle={{ width: '100%', padding: '10px 40px 10px 10px', border: '1px solid #ced4da', borderRadius: 6 }}
+                        buttonStyle={{ position: 'absolute', right: 10, background: 'none', border: 'none', cursor: 'pointer' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="alert alert-info mb-0" role="status">
+                    Defina e entregue a senha temporária ao usuário. Ele será obrigado a trocar no primeiro login.
+                  </div>
+                  <div className="alert alert-warning mt-2 mb-0" role="note">
+                    <strong>Importante:</strong> no Admin-Site, o <strong>login é o próprio e-mail</strong>. Não é permitido repetir
+                    <strong> e-mail</strong>, <strong>telefone</strong> ou <strong>CPF</strong> entre usuários do site.
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={closeModal}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                    {saving ? 'Criando...' : 'Criar reserva'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
       )}
 
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+      {showDetailsModal && selectedAdmin && (
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Propriedades do Usuário do Site</h5>
+                <button type="button" className="btn-close" onClick={closeDetailsModal}></button>
+              </div>
+              <div className="modal-body">
+                <div className="table-responsive">
+                  <table className="table table-sm table-borderless mb-0">
+                    <tbody>
+                      <tr>
+                        <th style={{ width: '220px' }}>ID</th>
+                        <td>{selectedAdmin.id}</td>
+                      </tr>
+                      <tr>
+                        <th>Login</th>
+                        <td>{selectedAdmin.login}</td>
+                      </tr>
+                      <tr>
+                        <th>E-mail</th>
+                        <td>{selectedAdmin.email || '-'}</td>
+                      </tr>
+                      <tr>
+                        <th>CPF</th>
+                        <td>{selectedAdmin.cpf || '-'}</td>
+                      </tr>
+                      <tr>
+                        <th>Telefone</th>
+                        <td>{selectedAdmin.telefone || '-'}</td>
+                      </tr>
+                      <tr>
+                        <th>WhatsApp</th>
+                        <td>{selectedAdmin.whatsapp || '-'}</td>
+                      </tr>
+                      <tr>
+                        <th>Status</th>
+                        <td>{selectedAdmin.ativo ? 'Ativo' : 'Inativo'}</td>
+                      </tr>
+                      <tr>
+                        <th>Criado por</th>
+                        <td>{selectedAdmin.criado_por_id || '-'}</td>
+                      </tr>
+                      <tr>
+                        <th>Criado em</th>
+                        <td>{selectedAdmin.criado_em ? new Date(selectedAdmin.criado_em).toLocaleString('pt-BR') : '-'}</td>
+                      </tr>
+                      <tr>
+                        <th>Senha inicial pendente</th>
+                        <td>{selectedAdmin.can_resend_initial_password ? 'Sim' : 'Não'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="alert alert-secondary mt-3 mb-0" role="status">
+                  Ações disponíveis neste usuário: ativar/inativar e reenviar senha temporária (quando permitido).
+                </div>
+
+                <div className="mt-3">
+                  {selectedAdmin.is_current ? (
+                    <>
+                      <h6 className="mb-2">Trocar minha senha</h6>
+                      <div className="row g-2">
+                        <div className="col-12">
+                          <PasswordField
+                            id="my-password-current"
+                            label="Senha atual"
+                            name="myPasswordCurrent"
+                            value={myPasswordForm.senhaAtual}
+                            onChange={(e) => setMyPasswordForm((prev) => ({ ...prev, senhaAtual: e.target.value }))}
+                            show={showMyCurrentPassword}
+                            onToggleShow={() => setShowMyCurrentPassword((prev) => !prev)}
+                            containerStyle={{ marginBottom: 0 }}
+                            inputStyle={{ width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '6px' }}
+                            buttonStyle={{ position: 'absolute', right: 8, border: 'none', background: 'transparent', cursor: 'pointer' }}
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <PasswordField
+                            id="my-password-new"
+                            label="Nova senha"
+                            name="myPasswordNew"
+                            value={myPasswordForm.novaSenha}
+                            onChange={(e) => setMyPasswordForm((prev) => ({ ...prev, novaSenha: e.target.value }))}
+                            show={showMyNewPassword}
+                            onToggleShow={() => setShowMyNewPassword((prev) => !prev)}
+                            containerStyle={{ marginBottom: 0 }}
+                            inputStyle={{ width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '6px' }}
+                            buttonStyle={{ position: 'absolute', right: 8, border: 'none', background: 'transparent', cursor: 'pointer' }}
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <PasswordField
+                            id="my-password-confirm"
+                            label="Confirmar nova senha"
+                            name="myPasswordConfirm"
+                            value={myPasswordForm.confirmarNovaSenha}
+                            onChange={(e) => setMyPasswordForm((prev) => ({ ...prev, confirmarNovaSenha: e.target.value }))}
+                            show={showMyConfirmPassword}
+                            onToggleShow={() => setShowMyConfirmPassword((prev) => !prev)}
+                            containerStyle={{ marginBottom: 0 }}
+                            inputStyle={{ width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '6px' }}
+                            buttonStyle={{ position: 'absolute', right: 8, border: 'none', background: 'transparent', cursor: 'pointer' }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <button type="button" className="btn btn-warning" onClick={handleChangeMyPassword} disabled={passwordSaving}>
+                          {passwordSaving ? 'Salvando...' : 'Alterar minha senha'}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h6 className="mb-2">Definir senha do usuário</h6>
+                      <div className="row g-2">
+                        <div className="col-md-6">
+                          <PasswordField
+                            id="target-password-new"
+                            label="Nova senha"
+                            name="targetPasswordNew"
+                            value={targetPasswordForm.novaSenha}
+                            onChange={(e) => setTargetPasswordForm((prev) => ({ ...prev, novaSenha: e.target.value }))}
+                            show={showTargetNewPassword}
+                            onToggleShow={() => setShowTargetNewPassword((prev) => !prev)}
+                            containerStyle={{ marginBottom: 0 }}
+                            inputStyle={{ width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '6px' }}
+                            buttonStyle={{ position: 'absolute', right: 8, border: 'none', background: 'transparent', cursor: 'pointer' }}
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <PasswordField
+                            id="target-password-confirm"
+                            label="Confirmar nova senha"
+                            name="targetPasswordConfirm"
+                            value={targetPasswordForm.confirmarNovaSenha}
+                            onChange={(e) => setTargetPasswordForm((prev) => ({ ...prev, confirmarNovaSenha: e.target.value }))}
+                            show={showTargetConfirmPassword}
+                            onToggleShow={() => setShowTargetConfirmPassword((prev) => !prev)}
+                            containerStyle={{ marginBottom: 0 }}
+                            inputStyle={{ width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '6px' }}
+                            buttonStyle={{ position: 'absolute', right: 8, border: 'none', background: 'transparent', cursor: 'pointer' }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <button type="button" className="btn btn-warning" onClick={handleSetTargetPassword} disabled={passwordSaving}>
+                          {passwordSaving ? 'Salvando...' : 'Definir nova senha'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {selectedAdmin.can_resend_initial_password && (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={async () => {
+                        await handleResendPassword(selectedAdmin);
+                      }}
+                    >
+                      Reenviar senha
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={selectedAdmin.ativo ? 'btn btn-danger' : 'btn btn-success'}
+                    disabled={selectedAdmin.is_current}
+                    onClick={async () => {
+                      await handleToggleStatus(selectedAdmin);
+                      closeDetailsModal();
+                    }}
+                  >
+                    {selectedAdmin.ativo ? 'Inativar' : 'Ativar'}
+                  </button>
+                </div>
+                <button type="button" className="btn btn-secondary" onClick={closeDetailsModal}>
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

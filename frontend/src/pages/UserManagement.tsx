@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import AdminIdentityHeader from '../components/AdminIdentityHeader';
+import TextField from '../components/form/TextField';
+import PasswordField from '../components/form/PasswordField';
+import ContactModule, { buildBrazilContact, isBrazilContactValid } from '../components/form/ContactModule';
+import { getHumanRoleLabel } from '../utils/userRoles';
 
 interface Usuario {
   id: number;
   nome: string;
   email?: string;
+  telefone?: string;
+  whatsapp?: string;
   cpf?: string;
   tipo: string;
   paroquia_id?: number;
@@ -21,7 +27,13 @@ interface Paroquia {
 }
 
 const UserManagement: React.FC = () => {
-  const navigate = useNavigate();
+  const ALLOWED_TYPES = ['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo'] as const;
+  const ROLE_OPTIONS: Array<{ value: typeof ALLOWED_TYPES[number]; label: string }> = [
+    { value: 'paroquia_admin', label: getHumanRoleLabel('paroquia_admin') },
+    { value: 'paroquia_caixa', label: getHumanRoleLabel('paroquia_caixa') },
+    { value: 'paroquia_recepcao', label: getHumanRoleLabel('paroquia_recepcao') },
+    { value: 'paroquia_bingo', label: getHumanRoleLabel('paroquia_bingo') },
+  ];
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [paroquias, setParoquias] = useState<Paroquia[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,12 +41,20 @@ const UserManagement: React.FC = () => {
   const [filterTipo, setFilterTipo] = useState('todos');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [ddd, setDdd] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
     cpf: '',
     senha: '',
-    tipo: 'usuario_publico',
+    confirmarSenha: '',
+    senhaAtual: '',
+    novaSenha: '',
+    confirmarNovaSenha: '',
+    tipo: 'paroquia_recepcao',
     paroquia_id: '',
     ativo: true
   });
@@ -51,6 +71,9 @@ const UserManagement: React.FC = () => {
       ]);
       setUsuarios(usuariosRes.data);
       setParoquias(paroquiasRes.data);
+      if (paroquiasRes.data?.length > 0) {
+        setFormData((prev) => ({ ...prev, paroquia_id: String(paroquiasRes.data[0].id) }));
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       alert('Erro ao carregar dados');
@@ -67,32 +90,78 @@ const UserManagement: React.FC = () => {
       return;
     }
 
-    // Validação específica por tipo
-    if (formData.tipo === 'super_admin' && !formData.email) {
-      alert('E-mail é obrigatório para Super Admin');
+    if (!ALLOWED_TYPES.includes(formData.tipo as typeof ALLOWED_TYPES[number])) {
+      alert('Função inválida para cadastro nesta área');
       return;
     }
 
-    if (formData.tipo !== 'super_admin' && !formData.cpf) {
-      alert('CPF é obrigatório para este tipo de usuário');
+    if (!formData.cpf) {
+      alert('CPF é obrigatório para usuário da paróquia');
       return;
     }
 
-    if (formData.tipo.includes('paroquia_') && !formData.paroquia_id) {
-      alert('Selecione uma paróquia');
+    if (!formData.email.trim()) {
+      alert('E-mail é obrigatório');
       return;
+    }
+
+    if (!isBrazilContactValid(ddd, telefone)) {
+      alert('Telefone com DDD é obrigatório e deve ser válido');
+      return;
+    }
+
+    const paroquiaUnica = paroquias[0];
+    if (!paroquiaUnica?.id) {
+      alert('Paróquia não encontrada. Edite a paróquia seed antes de cadastrar usuários.');
+      return;
+    }
+
+    if (!editingId && formData.senha !== formData.confirmarSenha) {
+      alert('Confirmação de senha não confere');
+      return;
+    }
+
+    if (editingId) {
+      const hasCurrentPassword = !!formData.senhaAtual;
+      const hasNewPassword = !!formData.novaSenha;
+      const hasNewPasswordConfirmation = !!formData.confirmarNovaSenha;
+      const wantsChangePassword = hasCurrentPassword || hasNewPassword || hasNewPasswordConfirmation;
+
+      if (wantsChangePassword && (!hasCurrentPassword || !hasNewPassword || !hasNewPasswordConfirmation)) {
+        alert('Para trocar a senha, preencha senha atual, nova senha e confirmação');
+        return;
+      }
+
+      if (wantsChangePassword && formData.novaSenha !== formData.confirmarNovaSenha) {
+        alert('A confirmação da nova senha não confere');
+        return;
+      }
     }
 
     try {
+      const contato = buildBrazilContact(ddd, telefone);
       const payload = {
-        ...formData,
-        paroquia_id: formData.paroquia_id ? parseInt(formData.paroquia_id) : null
+        nome: formData.nome,
+        email: formData.email.trim(),
+        cpf: formData.cpf,
+        telefone: contato,
+        whatsapp: contato,
+        senha: formData.senha,
+        tipo: formData.tipo,
+        ativo: editingId ? formData.ativo : true,
+        paroquia_id: String(paroquiaUnica.id)
       };
 
       if (editingId) {
         // Na edição, só envia senha se foi preenchida
         const updatePayload: Partial<typeof payload> = { ...payload };
+        delete updatePayload.cpf;
         if (!updatePayload.senha) {
+          delete updatePayload.senha;
+        }
+        if (formData.senhaAtual && formData.novaSenha) {
+          (updatePayload as Partial<typeof payload> & { senha_atual?: string; nova_senha?: string }).senha_atual = formData.senhaAtual;
+          (updatePayload as Partial<typeof payload> & { senha_atual?: string; nova_senha?: string }).nova_senha = formData.novaSenha;
           delete updatePayload.senha;
         }
         await api.put(`/usuarios/${editingId}`, updatePayload);
@@ -110,21 +179,51 @@ const UserManagement: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Erro ao salvar usuário:', error);
-      alert('Erro ao salvar usuário');
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      alert(detail || 'Erro ao salvar usuário');
     }
   };
 
   const handleEdit = (usuario: Usuario) => {
+    const parseStoredContact = (rawContact?: string) => {
+      const onlyDigits = String(rawContact || '').replace(/\D/g, '');
+      const withoutCountryCode = onlyDigits.startsWith('55') && onlyDigits.length >= 12
+        ? onlyDigits.slice(2)
+        : onlyDigits;
+
+      if (withoutCountryCode.length < 10) {
+        return { ddd: '', telefone: '' };
+      }
+
+      const telefoneLimpo = withoutCountryCode.slice(2);
+      const telefoneAjustado = telefoneLimpo.length > 10 ? telefoneLimpo.slice(0, 10) : telefoneLimpo;
+
+      return {
+        ddd: withoutCountryCode.slice(0, 2),
+        telefone: telefoneAjustado,
+      };
+    };
+
     setEditingId(usuario.id);
+    setShowPassword(false);
     setFormData({
       nome: usuario.nome,
       email: usuario.email || '',
       cpf: usuario.cpf || '',
       senha: '', // Não carrega a senha
-      tipo: usuario.tipo,
-      paroquia_id: usuario.paroquia_id?.toString() || '',
+      confirmarSenha: '',
+      senhaAtual: '',
+      novaSenha: '',
+      confirmarNovaSenha: '',
+      tipo: (ALLOWED_TYPES.includes(usuario.tipo as typeof ALLOWED_TYPES[number])
+        ? (usuario.tipo as typeof ALLOWED_TYPES[number])
+        : 'paroquia_recepcao'),
+      paroquia_id: String(paroquias[0]?.id || usuario.paroquia_id || ''),
       ativo: usuario.ativo
     });
+    const contatoAtual = parseStoredContact(usuario.telefone || usuario.whatsapp);
+    setDdd(contatoAtual.ddd);
+    setTelefone(contatoAtual.telefone);
     setShowModal(true);
   };
 
@@ -151,13 +250,21 @@ const UserManagement: React.FC = () => {
   const closeModal = () => {
     setShowModal(false);
     setEditingId(null);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setDdd('');
+    setTelefone('');
     setFormData({
       nome: '',
       email: '',
       cpf: '',
       senha: '',
-      tipo: 'usuario_publico',
-      paroquia_id: '',
+      confirmarSenha: '',
+      senhaAtual: '',
+      novaSenha: '',
+      confirmarNovaSenha: '',
+      tipo: 'paroquia_recepcao',
+      paroquia_id: String(paroquias[0]?.id || ''),
       ativo: true
     });
   };
@@ -171,18 +278,10 @@ const UserManagement: React.FC = () => {
   };
 
   const getTipoLabel = (tipo: string) => {
-    const labels: Record<string, string> = {
-      'super_admin': 'Super Admin',
-      'paroquia_admin': 'Admin Paróquia',
-      'paroquia_operador': 'Operador',
-      'paroquia_vendedor': 'Vendedor',
-      'paroquia_caixa': 'Caixa',
-      'usuario_publico': 'Usuário Público'
-    };
-    return labels[tipo] || tipo;
+    return getHumanRoleLabel(tipo);
   };
 
-  const filteredUsuarios = usuarios.filter(u => {
+  const filteredUsuarios = usuarios.filter((u) => u.tipo.startsWith('paroquia_')).filter(u => {
     const matchSearch = 
       u.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -206,24 +305,27 @@ const UserManagement: React.FC = () => {
   }
 
   return (
-    <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <button 
-            className="btn btn-outline-secondary me-2"
-            onClick={() => navigate('/admin-site/dashboard')}
+    <div
+      className="container py-3"
+      style={{
+        height: '100vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <AdminIdentityHeader
+        title="Gerenciar Usuários da Paróquia"
+        backTo="/admin-site/dashboard"
+        rightContent={
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowModal(true)}
           >
-            ← Voltar
+            + Novo Usuário da Paróquia
           </button>
-          <h2 className="d-inline-block mb-0">Gerenciar Usuários</h2>
-        </div>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowModal(true)}
-        >
-          + Novo Usuário
-        </button>
-      </div>
+        }
+      />
 
       <div className="card mb-4">
         <div className="card-body">
@@ -248,34 +350,30 @@ const UserManagement: React.FC = () => {
                 value={filterTipo}
                 onChange={(e) => setFilterTipo(e.target.value)}
               >
-                <option value="todos">Todos os tipos</option>
-                <option value="super_admin">Super Admin</option>
-                <option value="paroquia_admin">Admin Paróquia</option>
-                <option value="paroquia_operador">Operador</option>
-                <option value="paroquia_vendedor">Vendedor</option>
-                <option value="paroquia_caixa">Caixa</option>
-                <option value="usuario_publico">Usuário Público</option>
+                <option value="todos">Todas as funções</option>
+                {ROLE_OPTIONS.map((role) => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
+                ))}
               </select>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
+      <div className="card" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div className="card-body" style={{ minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {filteredUsuarios.length === 0 ? (
             <div className="text-center py-5">
               <p className="text-muted">Nenhum usuário encontrado</p>
             </div>
           ) : (
-            <div className="table-responsive">
+            <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
               <table className="table table-hover">
                 <thead>
                   <tr>
                     <th>Nome</th>
-                    <th>Tipo</th>
-                    <th>Identificação</th>
-                    <th>Paróquia</th>
+                    <th>Função</th>
+                    <th>Contato / CPF</th>
                     <th>Status</th>
                     <th>Ações</th>
                   </tr>
@@ -284,7 +382,14 @@ const UserManagement: React.FC = () => {
                   {filteredUsuarios.map(usuario => (
                     <tr key={usuario.id}>
                       <td>
-                        {usuario.nome}
+                        <button
+                          type="button"
+                          className="btn btn-link p-0 text-decoration-underline fw-semibold"
+                          onClick={() => handleEdit(usuario)}
+                          aria-label={`abrir edição de ${usuario.nome}`}
+                        >
+                          {usuario.nome}
+                        </button>
                         {usuario.is_bootstrap && (
                           <span className="badge bg-warning text-dark ms-2">Bootstrap</span>
                         )}
@@ -294,7 +399,6 @@ const UserManagement: React.FC = () => {
                         {usuario.email && <div className="small">{usuario.email}</div>}
                         {usuario.cpf && <div className="small">{formatCPF(usuario.cpf)}</div>}
                       </td>
-                      <td>{usuario.paroquia_nome || '-'}</td>
                       <td>
                         <span className={`badge ${usuario.ativo ? 'bg-success' : 'bg-secondary'}`}>
                           {usuario.ativo ? 'Ativo' : 'Inativo'}
@@ -331,14 +435,14 @@ const UserManagement: React.FC = () => {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">
-                  {editingId ? 'Editar Usuário' : 'Novo Usuário'}
+                  {editingId ? 'Editar Usuário da Paróquia' : 'Novo Usuário da Paróquia'}
                 </h5>
                 <button type="button" className="btn-close" onClick={closeModal}></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
                   <div className="row">
-                    <div className="col-md-8 mb-3">
+                    <div className={editingId ? 'col-md-8 mb-3' : 'col-md-12 mb-3'}>
                       <label className="form-label">Nome *</label>
                       <input
                         type="text"
@@ -348,90 +452,234 @@ const UserManagement: React.FC = () => {
                         required
                       />
                     </div>
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label">Status</label>
-                      <select
-                        className="form-select"
-                        value={formData.ativo ? 'true' : 'false'}
-                        onChange={(e) => setFormData({...formData, ativo: e.target.value === 'true'})}
-                      >
-                        <option value="true">Ativo</option>
-                        <option value="false">Inativo</option>
-                      </select>
-                    </div>
+                    {editingId && (
+                      <div className="col-md-4 mb-3">
+                        <label className="form-label">Status</label>
+                        <select
+                          className="form-select"
+                          value={formData.ativo ? 'true' : 'false'}
+                          onChange={(e) => setFormData({...formData, ativo: e.target.value === 'true'})}
+                        >
+                          <option value="true">Ativo</option>
+                          <option value="false">Inativo</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label">Tipo de Usuário *</label>
+                    <label htmlFor="user-role" className="form-label">Função *</label>
                     <select
+                      id="user-role"
                       className="form-select"
                       value={formData.tipo}
-                      onChange={(e) => setFormData({...formData, tipo: e.target.value, paroquia_id: ''})}
+                      onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
                       required
                     >
-                      <option value="super_admin">Super Admin</option>
-                      <option value="paroquia_admin">Admin Paróquia</option>
-                      <option value="paroquia_operador">Operador</option>
-                      <option value="paroquia_vendedor">Vendedor</option>
-                      <option value="paroquia_caixa">Caixa</option>
-                      <option value="usuario_publico">Usuário Público</option>
+                      {ROLE_OPTIONS.map((role) => (
+                        <option key={role.value} value={role.value}>{role.label}</option>
+                      ))}
                     </select>
                   </div>
 
-                  {formData.tipo === 'super_admin' ? (
-                    <div className="mb-3">
-                      <label className="form-label">E-mail *</label>
-                      <input
-                        type="email"
-                        className="form-control"
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        required
-                      />
-                    </div>
-                  ) : (
-                    <div className="mb-3">
-                      <label className="form-label">CPF *</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={formData.cpf}
-                        onChange={(e) => setFormData({...formData, cpf: e.target.value})}
-                        placeholder="000.000.000-00"
-                        required
-                      />
-                    </div>
-                  )}
-
-                  {formData.tipo.includes('paroquia_') && (
-                    <div className="mb-3">
-                      <label className="form-label">Paróquia *</label>
-                      <select
-                        className="form-select"
-                        value={formData.paroquia_id}
-                        onChange={(e) => setFormData({...formData, paroquia_id: e.target.value})}
-                        required
-                      >
-                        <option value="">Selecione uma paróquia</option>
-                        {paroquias.map(p => (
-                          <option key={p.id} value={p.id}>{p.nome}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
                   <div className="mb-3">
-                    <label className="form-label">
-                      Senha {editingId ? '(deixe em branco para não alterar)' : '*'}
-                    </label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      value={formData.senha}
-                      onChange={(e) => setFormData({...formData, senha: e.target.value})}
-                      required={!editingId}
+                    <TextField
+                      label="E-mail"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      placeholder="email@paroquia.com"
+                      required
+                      style={{ marginBottom: 0 }}
+                      inputStyle={{
+                        width: '100%',
+                        padding: '0.375rem 0.75rem',
+                        border: '1px solid #ced4da',
+                        borderRadius: '0.375rem',
+                        fontSize: '1rem',
+                      }}
+                      hint="Obrigatório para comunicação e recuperação de acesso."
                     />
                   </div>
+
+                  <ContactModule
+                    ddd={ddd}
+                    telefone={telefone}
+                    onDddChange={setDdd}
+                    onTelefoneChange={(value) => setTelefone(value)}
+                    required
+                    label="Telefone (SMS/WhatsApp/voz)"
+                  />
+
+                  <div className="mb-3">
+                    <label className="form-label">CPF *</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={formData.cpf}
+                      onChange={(e) => setFormData({...formData, cpf: e.target.value})}
+                      placeholder="000.000.000-00"
+                      readOnly={!!editingId}
+                      required
+                    />
+                    {editingId && (
+                      <small className="text-muted">CPF é fixo após cadastro e não pode ser alterado.</small>
+                    )}
+                  </div>
+
+                  {!editingId ? (
+                    <>
+                      <div className="mb-3">
+                        <PasswordField
+                          id="paroquia-user-password"
+                          label="Senha"
+                          name="senha"
+                          value={formData.senha}
+                          onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                          required
+                          show={showPassword}
+                          onToggleShow={() => setShowPassword((prev) => !prev)}
+                          placeholder="Digite a senha"
+                          containerStyle={{ marginBottom: 0 }}
+                          inputStyle={{
+                            width: '100%',
+                            padding: '0.375rem 2.25rem 0.375rem 0.75rem',
+                            border: '1px solid #ced4da',
+                            borderRadius: '0.375rem',
+                            fontSize: '1rem',
+                          }}
+                          buttonStyle={{
+                            position: 'absolute',
+                            right: '8px',
+                            border: 'none',
+                            padding: 0,
+                            background: 'transparent',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </div>
+
+                      <div className="mb-3">
+                        <PasswordField
+                          id="paroquia-user-confirm-password"
+                          label="Confirmar senha"
+                          name="confirmarSenha"
+                          value={formData.confirmarSenha}
+                          onChange={(e) => setFormData({ ...formData, confirmarSenha: e.target.value })}
+                          required
+                          show={showConfirmPassword}
+                          onToggleShow={() => setShowConfirmPassword((prev) => !prev)}
+                          placeholder="Repita a senha"
+                          containerStyle={{ marginBottom: 0 }}
+                          inputStyle={{
+                            width: '100%',
+                            padding: '0.375rem 2.25rem 0.375rem 0.75rem',
+                            border: '1px solid #ced4da',
+                            borderRadius: '0.375rem',
+                            fontSize: '1rem',
+                          }}
+                          buttonStyle={{
+                            position: 'absolute',
+                            right: '8px',
+                            border: 'none',
+                            padding: 0,
+                            background: 'transparent',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-3">
+                        <PasswordField
+                          id="paroquia-user-current-password"
+                          label="Senha atual (opcional)"
+                          name="senhaAtual"
+                          value={formData.senhaAtual}
+                          onChange={(e) => setFormData({ ...formData, senhaAtual: e.target.value })}
+                          show={showPassword}
+                          onToggleShow={() => setShowPassword((prev) => !prev)}
+                          placeholder="Digite a senha atual"
+                          containerStyle={{ marginBottom: 0 }}
+                          inputStyle={{
+                            width: '100%',
+                            padding: '0.375rem 2.25rem 0.375rem 0.75rem',
+                            border: '1px solid #ced4da',
+                            borderRadius: '0.375rem',
+                            fontSize: '1rem',
+                          }}
+                          buttonStyle={{
+                            position: 'absolute',
+                            right: '8px',
+                            border: 'none',
+                            padding: 0,
+                            background: 'transparent',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </div>
+
+                      <div className="mb-3">
+                        <PasswordField
+                          id="paroquia-user-new-password"
+                          label="Nova senha (opcional)"
+                          name="novaSenha"
+                          value={formData.novaSenha}
+                          onChange={(e) => setFormData({ ...formData, novaSenha: e.target.value })}
+                          show={showConfirmPassword}
+                          onToggleShow={() => setShowConfirmPassword((prev) => !prev)}
+                          placeholder="Digite a nova senha"
+                          containerStyle={{ marginBottom: 0 }}
+                          inputStyle={{
+                            width: '100%',
+                            padding: '0.375rem 2.25rem 0.375rem 0.75rem',
+                            border: '1px solid #ced4da',
+                            borderRadius: '0.375rem',
+                            fontSize: '1rem',
+                          }}
+                          buttonStyle={{
+                            position: 'absolute',
+                            right: '8px',
+                            border: 'none',
+                            padding: 0,
+                            background: 'transparent',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </div>
+
+                      <div className="mb-3">
+                        <PasswordField
+                          id="paroquia-user-confirm-new-password"
+                          label="Confirmar nova senha (opcional)"
+                          name="confirmarNovaSenha"
+                          value={formData.confirmarNovaSenha}
+                          onChange={(e) => setFormData({ ...formData, confirmarNovaSenha: e.target.value })}
+                          show={showConfirmPassword}
+                          onToggleShow={() => setShowConfirmPassword((prev) => !prev)}
+                          placeholder="Repita a nova senha"
+                          containerStyle={{ marginBottom: 0 }}
+                          inputStyle={{
+                            width: '100%',
+                            padding: '0.375rem 2.25rem 0.375rem 0.75rem',
+                            border: '1px solid #ced4da',
+                            borderRadius: '0.375rem',
+                            fontSize: '1rem',
+                          }}
+                          buttonStyle={{
+                            position: 'absolute',
+                            right: '8px',
+                            border: 'none',
+                            padding: 0,
+                            background: 'transparent',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={closeModal}>

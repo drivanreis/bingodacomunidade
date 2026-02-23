@@ -1,5 +1,7 @@
 # 🧪 Teste Manual - Sistema de Primeiro Acesso
 
+> ⚠️ Documento histórico (arquivado): os scripts `alternar_modo.sh` e `test_first_access.sh` foram removidos. Fluxo atual: `./test.sh --coverage` para testes e alteração manual de `SEED_ENABLED` no `docker-compose.yml`.
+
 ## 🎯 Objetivo
 
 Testar o fluxo completo do sistema de primeiro acesso diretamente no navegador.
@@ -71,13 +73,7 @@ environment:
 
 ### Alternar para Modo Produção
 
-**Opção A - Script Automático:**
-```bash
-./alternar_modo.sh
-# Escolher opção 2 (Modo PRODUÇÃO)
-```
-
-**Opção B - Manual:**
+**Configuração manual (atual):**
 
 1. **Parar sistema:**
    ```bash
@@ -127,7 +123,7 @@ http://localhost:5173
 
 **Resultado esperado:**
 - ✅ Acesse diretamente `/first-access-setup`
-- ✅ Aparece tela: **"🎉 Bem-vindo! Configure sua conta de Desenvolvedor"**
+- ✅ Aparece tela: **"🎉 Bem-vindo! Configure sua conta de Admin-Site"**
 
 ✅ **Checklist:**
 - [ ] Acesso direto funciona
@@ -136,10 +132,11 @@ http://localhost:5173
 #### 3️⃣ Preencher Formulário
 
 **Dados de teste:**
-- Nome: `Desenvolvedor Teste`
+- Nome: `Admin-Site Teste`
 - CPF: `123.456.789-09` (válido)
 - Email: `dev@teste.com`
-- WhatsApp: `+55 (85) 98765-4321`
+- DDD: `85`
+- Telefone (SMS/WhatsApp): `987654321` (ou `9999999999`)
 - Senha: `Teste@123`
 - Confirmar Senha: `Teste@123`
 
@@ -167,7 +164,9 @@ d) **Dados Válidos:**
 - [ ] Validação de senhas diferentes funciona
 - [ ] Validação de CPF funciona
 - [ ] Formatação automática de CPF funciona (XXX.XXX.XXX-XX)
-- [ ] Formatação automática de WhatsApp funciona (+55 XX XXXXX-XXXX)
+- [ ] Validação de DDD funciona (2 dígitos)
+- [ ] Validação de Telefone funciona (9 ou 10 dígitos)
+- [ ] Regra de armazenamento sem +55 está respeitada
 - [ ] Botões de mostrar/ocultar senha funcionam
 
 #### 4️⃣ Enviar Formulário
@@ -236,7 +235,7 @@ curl -X POST http://localhost:8000/auth/bootstrap \
       "nome": "Hacker",
       "login": "98765432100",
       "email": "hacker@teste.com",
-      "whatsapp": "+5585912345678",
+      "whatsapp": "85912345678",
       "senha": "Hack@123"
    }'
 ```
@@ -265,14 +264,7 @@ curl -X POST http://localhost:8000/auth/bootstrap \
 
 ## 🔄 Restaurar Modo Desenvolvimento
 
-### Opção A - Script Automático
-
-```bash
-./alternar_modo.sh
-# Escolher opção 1 (Modo DESENVOLVIMENTO)
-```
-
-### Opção B - Manual
+### Configuração manual (atual)
 
 1. **Parar sistema:**
    ```bash
@@ -331,7 +323,7 @@ sleep 5
 # Testar novamente
 ```
 
-### Problema 3: Erro 500 ao Criar Desenvolvedor
+### Problema 3: Erro 500 ao Criar Admin-Site
 
 **Causa:** Validação de senha ou CPF falhou
 
@@ -361,7 +353,7 @@ sleep 5
 - [ ] Redireciona para Dashboard após criar conta
 
 ### Segurança
-- [ ] Impossível criar segundo Super Admin
+- [ ] Impossível criar segundo Admin-Site primário
 - [ ] Senha forte obrigatória
 - [ ] CPF validado com Módulo 11
 - [ ] Tela aparece apenas UMA vez
@@ -373,8 +365,8 @@ sleep 5
 
 - **Documentação Técnica:** `SISTEMA_PRIMEIRO_ACESSO.md`
 - **Deploy em Produção:** `DEPLOY_PRODUCAO.md`
-- **Teste Automatizado:** `./test_first_access.sh`
-- **Alternar Modos:** `./alternar_modo.sh`
+- **Teste automatizado e cobertura:** `./test.sh --coverage`
+- **Alternar modos:** ajuste `SEED_ENABLED` no `docker-compose.yml` e reinicie com `docker compose up -d --build`
 
 ---
 

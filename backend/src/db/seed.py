@@ -8,8 +8,8 @@ do primeiro SUPER_ADMIN.
 - Cria usuário temporário: Admin / admin123
 - Usuário temporário NÃO tem acesso ao sistema
 - No primeiro login, FORÇA criação do primeiro SUPER_ADMIN
-- Após criar SUPER_ADMIN, o usuário temporário é DELETADO automaticamente
-- Este usuário temporário NÃO PODE continuar existindo após o bootstrap
+- Após criar SUPER_ADMIN, o usuário seed é INATIVADO (não removido)
+- O registro seed é preservado para integridade de testes e rastreabilidade
 """
 
 import os
@@ -18,8 +18,11 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
 from src.models.models import (
+    AdminSiteUser,
     UsuarioAdministrativo,
     NivelAcessoAdmin,
+    RoleParoquia,
+    RoleParoquiaCodigo,
     UsuarioLegado,
     Paroquia,
     Configuracao,
@@ -54,8 +57,33 @@ def check_seed_needed(db: Session) -> bool:
     Returns:
         True se precisa criar seed, False se já existe ADMIN_SITE
     """
-    total_admins = db.query(UsuarioAdministrativo).count()
-    return total_admins == 0
+    total_admins_legado = db.query(UsuarioAdministrativo).count()
+    total_admins_site = db.query(AdminSiteUser).count()
+    return (total_admins_legado + total_admins_site) == 0
+
+
+def ensure_roles_paroquia_defaults(db: Session) -> None:
+    roles_default = [
+        (RoleParoquiaCodigo.ADMIN.value, "Administrador", "Acesso total da paróquia", 1),
+        (RoleParoquiaCodigo.CAIXA.value, "Caixa", "Operações financeiras da paróquia", 2),
+        (RoleParoquiaCodigo.RECEPCAO.value, "Recepção", "Atendimento e cadastro local", 3),
+        (RoleParoquiaCodigo.BINGO.value, "Bingo", "Operação de sorteios", 3),
+        (RoleParoquiaCodigo.PORTEIRO.value, "Porteiro", "Acesso operacional restrito", 4),
+    ]
+
+    for codigo, nome, descricao, nivel in roles_default:
+        existente = db.query(RoleParoquia).filter(RoleParoquia.codigo == codigo).first()
+        if not existente:
+            db.add(RoleParoquia(
+                id=generate_temporal_id_with_microseconds('ROL'),
+                codigo=codigo,
+                nome=nome,
+                descricao=descricao,
+                nivel=nivel,
+                ativo=True,
+            ))
+
+    db.flush()
 
 
 def registrar_auditoria_sistema(db: Session) -> None:
@@ -66,7 +94,8 @@ def registrar_auditoria_sistema(db: Session) -> None:
     registro = db.query(SistemaAuditoria).filter(SistemaAuditoria.id == "SYSTEM").first()
 
     seed_ativo = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.login == "Admin"
+        UsuarioAdministrativo.login == "Admin",
+        UsuarioAdministrativo.ativo == True
     ).first() is not None
 
     if registro:
@@ -99,8 +128,8 @@ def seed_database(db: Session) -> bool:
     ⚠️ IMPORTANTE:
     - Este usuário é TEMPORÁRIO
     - Serve APENAS para forçar a criação do primeiro SUPER_ADMIN
-    - Será DELETADO automaticamente após o primeiro acesso
-    - NÃO tem acesso real ao sistema (flag is_bootstrap=True)
+    - Será INATIVADO após o primeiro acesso real
+    - NÃO tem acesso real ao sistema
     
     Args:
         db: Sessão do banco de dados
@@ -109,13 +138,16 @@ def seed_database(db: Session) -> bool:
         bool: True se dados foram criados, False se já existiam
     """
     try:
+        ensure_roles_paroquia_defaults(db)
+
         # Verificar se já existe ADMIN_SITE
         if not check_seed_needed(db):
+            db.commit()
             logger.info("✓ Sistema já possui ADMIN_SITE - Bootstrap não necessário")
             return False
         
         logger.info("🔧 Criando paróquia padrão e usuário temporário de bootstrap...")
-        
+
         # ====================================================================
         # CRIAR PARÓQUIA PADRÃO
         # ====================================================================
@@ -140,9 +172,13 @@ def seed_database(db: Session) -> bool:
         logger.info(f"✓ Paróquia padrão criada: {paroquia_default.nome}")
         
         # ====================================================================
-        # REMOVER BOOTSTRAP LEGADO (SE EXISTIR)
+        # INATIVAR BOOTSTRAP LEGADO (SE EXISTIR)
         # ====================================================================
-        db.query(UsuarioLegado).filter(UsuarioLegado.is_bootstrap == True).delete()
+        db.query(UsuarioLegado).filter(
+            UsuarioLegado.is_bootstrap == True
+        ).update({
+            UsuarioLegado.ativo: False
+        }, synchronize_session=False)
 
         # ====================================================================
         # CRIAR ADMIN SITE TEMPORÁRIO (BOOTSTRAP)
@@ -180,16 +216,16 @@ def seed_database(db: Session) -> bool:
         logger.info("  ⚠️  IMPORTANTE:")
         logger.info("     - Este usuário NÃO tem acesso ao sistema")
         logger.info("     - Ao fazer login, você DEVE criar o primeiro SUPER_ADMIN")
-        logger.info("     - Após criar o SUPER_ADMIN, este usuário será DELETADO")
+        logger.info("     - Após criar o SUPER_ADMIN, este usuário seed será INATIVADO")
         logger.info("")
         logger.info("  🎯 Próximos Passos:")
         logger.info("     1. Acesse: /admin-site/login")
         logger.info("     2. Login: Admin / admin123")
         logger.info("     3. Complete o formulário de primeiro acesso")
         logger.info("     4. Seu SUPER_ADMIN será criado")
-        logger.info("     5. Usuário temporário será excluído automaticamente")
+        logger.info("     5. Usuário seed permanecerá no banco, porém inativo")
         logger.info("")
-        logger.info("  🌐 FIELs podem se cadastrar imediatamente em /auth/signup")
+        logger.info("  🌐 Acesso público depende das regras de manutenção configuradas")
         logger.info("")
         logger.info("=" * 70)
         
@@ -214,6 +250,76 @@ def seed_database(db: Session) -> bool:
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.MENSAGENS,
                 descricao="Duração de exibição de mensagens de sucesso (em segundos)"
+            ),
+            Configuracao(
+                chave="emailDevMode",
+                valor="true",
+                tipo=TipoConfiguracao.BOOLEAN,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="Se true, não envia e-mail real (apenas log). Para produção, use false"
+            ),
+            Configuracao(
+                chave="smtpHost",
+                valor="smtp.gmail.com",
+                tipo=TipoConfiguracao.STRING,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="Servidor SMTP para envio de e-mails"
+            ),
+            Configuracao(
+                chave="smtpPort",
+                valor="587",
+                tipo=TipoConfiguracao.NUMBER,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="Porta SMTP (geralmente 587 com TLS)"
+            ),
+            Configuracao(
+                chave="smtpSecurity",
+                valor="tls",
+                tipo=TipoConfiguracao.STRING,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="Segurança SMTP: tls (porta 587), ssl (porta 465) ou none"
+            ),
+            Configuracao(
+                chave="smtpUser",
+                valor="",
+                tipo=TipoConfiguracao.STRING,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="Usuário SMTP (normalmente seu e-mail remetente)"
+            ),
+            Configuracao(
+                chave="smtpPasswordEncrypted",
+                valor="",
+                tipo=TipoConfiguracao.STRING,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="Senha SMTP protegida (criptografada no backend)"
+            ),
+            Configuracao(
+                chave="fromEmail",
+                valor="",
+                tipo=TipoConfiguracao.STRING,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="E-mail remetente exibido no envio"
+            ),
+            Configuracao(
+                chave="fromName",
+                valor="Bingo da Comunidade",
+                tipo=TipoConfiguracao.STRING,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="Nome exibido como remetente"
+            ),
+            Configuracao(
+                chave="frontendUrl",
+                valor="http://localhost:5173",
+                tipo=TipoConfiguracao.STRING,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="URL pública do frontend usada em links de e-mail"
+            ),
+            Configuracao(
+                chave="smtpValidatedAt",
+                valor="",
+                tipo=TipoConfiguracao.STRING,
+                categoria=CategoriaConfiguracao.MENSAGENS,
+                descricao="Timestamp ISO da última validação SMTP com envio real"
             ),
             
             # SEGURANÇA E AUTENTICAÇÃO
@@ -306,6 +412,15 @@ def seed_database(db: Session) -> bool:
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.RECUPERACAO_SENHA,
                 descricao="Tempo de validade do token de verificação de email (em horas)"
+            ),
+
+            # CADASTRO PÚBLICO POR UF (ADMIN-PARÓQUIA)
+            Configuracao(
+                chave="signup_ufs_permitidas",
+                valor="ALL",
+                tipo=TipoConfiguracao.STRING,
+                categoria=CategoriaConfiguracao.FORMULARIOS,
+                descricao="UFs permitidas para cadastro público (ALL ou lista CSV, ex: CE,PB,RN,PI)"
             ),
         ]
         

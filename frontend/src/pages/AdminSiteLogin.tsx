@@ -22,57 +22,59 @@ const AdminSiteLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [bootstrapAvailable, setBootstrapAvailable] = useState<boolean>(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadBootstrapStatus = async () => {
+      try {
+        const response = await api.get('/auth/bootstrap/status', {
+          validateStatus: () => true,
+        });
+
+        if (!mounted) {
+          return;
+        }
+
+        if (response.status >= 200 && response.status < 300) {
+          setBootstrapAvailable(Boolean(response.data?.bootstrap_available));
+        }
+      } catch {
+        if (mounted) {
+          setBootstrapAvailable(true);
+        }
+      }
+    };
+
+    loadBootstrapStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    try {
-      // Chamar endpoint específico de ADMIN_SITE
-      const response = await api.post('/auth/admin-site/login', {
-        login: username,
-        senha: password
-      });
+    const loginInformado = username.trim();
+    const isSeedLoginAttempt = loginInformado.toLowerCase() === 'admin';
 
-      const { access_token, usuario } = response.data;
-
-      // Verificar se é realmente ADMIN_SITE (normalizar case)
-      const nivelAcesso = (usuario?.nivel_acesso || '').toString().toLowerCase();
-      const loginUsuario = (usuario?.login || '').toString();
-      const tipoUsuario = (usuario?.tipo || '').toString().toLowerCase();
-      if (nivelAcesso !== 'admin_site' && loginUsuario !== 'Admin' && tipoUsuario !== 'usuario_administrativo') {
-        setError('Acesso negado. Esta área é exclusiva para Administradores do Site.');
+    if (isSeedLoginAttempt) {
+      if (!bootstrapAvailable) {
+        setError('O primeiro acesso já foi concluído! Entre com as credenciais que você cadastrou.');
+        setLoading(false);
         return;
       }
 
-      // Salvar token e usuário
-      localStorage.setItem('@BingoComunidade:token', access_token);
-      localStorage.setItem('@BingoComunidade:user', JSON.stringify(usuario));
-      
-      // Configurar header de autorização
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-
-      // Se ainda é bootstrap, forçar primeiro acesso
-      if (usuario?.login === 'Admin' && !usuario?.email) {
-        navigate('/first-access-setup');
-        return;
-      }
-
-      // Redirecionar para dashboard administrativo
-      navigate('/admin-site/dashboard');
-    } catch (err) {
-      console.error('Erro ao fazer login:', err);
-      const error = err as { response?: { data?: { detail?: string } ; status?: number } };
-      const mensagem = error.response?.data?.detail || 'Erro ao fazer login. Verifique suas credenciais.';
-
-      // Tentar login bootstrap (Admin/admin123)
-      if (username.trim().toLowerCase() === 'admin') {
+      try {
         const bootstrapResponse = await api.post(
           '/auth/bootstrap/login',
           {
-            login: username,
+            login: loginInformado,
             senha: password,
           },
           {
@@ -87,6 +89,7 @@ const AdminSiteLogin: React.FC = () => {
         }
 
         if (bootstrapResponse.status === 404) {
+          setBootstrapAvailable(false);
           setError('O primeiro acesso já foi concluído! Entre com as credenciais que você cadastrou.');
           return;
         }
@@ -96,7 +99,74 @@ const AdminSiteLogin: React.FC = () => {
           setError(bootstrapDetail);
           return;
         }
+
+        setError('Login ou senha incorretos');
+        return;
+      } catch (err) {
+        console.error('Erro ao fazer login bootstrap:', err);
+        setError('Erro ao fazer login. Verifique suas credenciais.');
+        return;
+      } finally {
+        setLoading(false);
       }
+    }
+
+    try {
+      // Chamar endpoint específico de ADMIN_SITE
+      const response = await api.post('/auth/admin-site/login', {
+        login: loginInformado,
+        senha: password
+      });
+
+      const { access_token, usuario } = response.data;
+
+      // Verificar se é realmente ADMIN_SITE (normalizar case)
+      const nivelAcesso = (usuario?.nivel_acesso || '').toString().toLowerCase();
+      const loginUsuario = (usuario?.login || '').toString();
+      const isBootstrap = loginUsuario === 'Admin';
+      const isAdminSite = nivelAcesso === 'admin_site';
+
+      if (!isAdminSite && !isBootstrap) {
+        setError('Acesso negado. Esta área é exclusiva para Administradores do Site.');
+        return;
+      }
+
+      // Salvar token e usuário
+      localStorage.setItem('@BingoComunidade:token', access_token);
+      localStorage.setItem('@BingoComunidade:user', JSON.stringify(usuario));
+      
+      // Configurar header de autorização
+      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+
+      // Se ainda é bootstrap, forçar primeiro acesso
+      if (usuario?.login === 'Admin' && !usuario?.email) {
+        setBootstrapAvailable(true);
+        navigate('/first-access-setup');
+        return;
+      }
+
+      // Redirecionar para dashboard administrativo
+      navigate('/admin-site/dashboard');
+    } catch (err) {
+      const error = err as { response?: { data?: { detail?: string } ; status?: number } };
+      if (error.response?.status !== 401) {
+        console.error('Erro ao fazer login:', err);
+      }
+      const detail = error.response?.data?.detail as unknown;
+
+      if (error.response?.status === 428 && detail && typeof detail === 'object' && (detail as any).needs_password_change) {
+        navigate('/admin-site/primeira-senha', {
+          state: {
+            login: username.trim(),
+            senhaAtual: password,
+          },
+        });
+        return;
+      }
+
+      const mensagem = typeof detail === 'string'
+        ? detail
+        : 'Erro ao fazer login. Verifique suas credenciais.';
 
       setError(mensagem);
     } finally {
@@ -121,12 +191,12 @@ const AdminSiteLogin: React.FC = () => {
           )}
 
           <div style={styles.inputGroup}>
-            <label style={styles.label}>CPF ou Email</label>
+            <label style={styles.label}>Login ou Email</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="CPF ou email@dominio.com"
+              placeholder="login ou email@dominio.com"
               style={styles.input}
               required
               autoFocus
@@ -164,14 +234,16 @@ const AdminSiteLogin: React.FC = () => {
         </form>
 
         <div style={styles.footer}>
-          <div style={styles.credentialsBox}>
-            <p style={styles.credentialsTitle}>Para o primeiro acesso, utilize:</p>
-            <p><strong>Usuário:</strong> Admin</p>
-            <p><strong>Senha:</strong> admin123</p>
-            <p style={styles.credentialsHint}>
-              Após o login, complete o cadastro real do Administrador do site em até 30 dias.
-            </p>
-          </div>
+          {bootstrapAvailable && (
+            <div style={styles.credentialsBox}>
+              <p style={styles.credentialsTitle}>Para o primeiro acesso, utilize:</p>
+              <p><strong>Usuário:</strong> Admin</p>
+              <p><strong>Senha:</strong> admin123</p>
+              <p style={styles.credentialsHint}>
+                Após o login, complete o cadastro real do Administrador do site em até 30 dias.
+              </p>
+            </div>
+          )}
           <p style={styles.footerText}>
             🔒 Área restrita - Apenas Super Administradores
           </p>

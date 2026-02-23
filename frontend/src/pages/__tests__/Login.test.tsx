@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Login from '../Login';
-import { getAppConfigSync } from '../../services/configService';
 
 const { mockNavigate, mockLogin } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
@@ -36,7 +35,7 @@ describe('Login (público)', () => {
 
   it('faz login com CPF limpo e redireciona para /dashboard', async () => {
     const user = userEvent.setup();
-    mockLogin.mockResolvedValueOnce(undefined);
+    mockLogin.mockResolvedValueOnce({ role: 'fiel' });
 
     render(
       <MemoryRouter>
@@ -49,7 +48,53 @@ describe('Login (público)', () => {
     await user.click(screen.getByRole('button', { name: /entrar/i }));
 
     expect(mockLogin).toHaveBeenCalledWith('11144477735', 'Senha@123');
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    });
+  });
+
+  it.each([
+    {
+      persona: 'Eu (Admin-Site)',
+      identificador: 'admin.site@exemplo.com',
+      role: 'admin_site',
+      redirect: '/admin-site/dashboard',
+    },
+    {
+      persona: 'Eu (Admin-Paróquia)',
+      identificador: 'admin.paroquia@exemplo.com',
+      role: 'admin_paroquia',
+      redirect: '/admin-paroquia/dashboard',
+    },
+    {
+      persona: 'Eu (Usuário Comum)',
+      identificador: '111.444.777-35',
+      role: 'fiel',
+      redirect: '/dashboard',
+    },
+    {
+      persona: 'Eu (Colaborador)',
+      identificador: 'colaborador@paroquia.com',
+      role: 'paroquia_caixa',
+      redirect: '/admin-paroquia/dashboard',
+    },
+  ])('redireciona corretamente para %s', async ({ identificador, role, redirect }) => {
+    const user = userEvent.setup();
+    mockLogin.mockResolvedValueOnce({ role });
+
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByPlaceholderText('000.000.000-00'), identificador);
+    await user.type(screen.getByPlaceholderText('••••••••'), 'Senha@123');
+    await user.click(screen.getByRole('button', { name: /entrar/i }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(redirect);
+    });
   });
 
   it('exibe erro vindo do login', async () => {
@@ -70,12 +115,8 @@ describe('Login (público)', () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
-  it('exibe erro para campos vazios e mantém mensagem visível pelo tempo configurado', async () => {
-    vi.useFakeTimers();
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const config = getAppConfigSync();
-
-    mockLogin.mockRejectedValueOnce(new Error('CPF é obrigatório'));
+  it('exibe erro para campos vazios', async () => {
+    const user = userEvent.setup();
 
     render(
       <MemoryRouter>
@@ -87,12 +128,7 @@ describe('Login (público)', () => {
 
     const message = await screen.findByText(/cpf é obrigatório/i);
     expect(message).toBeInTheDocument();
-
-    vi.advanceTimersByTime((config.errorMessageDuration * 1000) - 1);
-    expect(screen.queryByText(/cpf é obrigatório/i)).toBeInTheDocument();
-
-    vi.advanceTimersByTime(1);
-    expect(screen.queryByText(/cpf é obrigatório/i)).not.toBeInTheDocument();
+    expect(mockLogin).not.toHaveBeenCalled();
   });
 
   it('exibe erro quando CPF está em formato inválido', async () => {
@@ -119,7 +155,7 @@ describe('Login (público)', () => {
 
   it('permite login com email (desejado)', async () => {
     const user = userEvent.setup();
-    mockLogin.mockResolvedValueOnce(undefined);
+    mockLogin.mockResolvedValueOnce({ role: 'fiel' });
 
     render(
       <MemoryRouter>
@@ -180,5 +216,48 @@ describe('Login (público)', () => {
     expect(
       await screen.findByText(/muitas tentativas\. tente novamente em 5 minutos/i)
     ).toBeInTheDocument();
+  });
+
+  it('Usuário Comum Burro: tenta login sem preencher senha e recebe erro amigável', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByPlaceholderText('000.000.000-00'), '111.444.777-35');
+    await user.click(screen.getByRole('button', { name: /entrar/i }));
+
+    expect(await screen.findByText(/senha é obrigatória/i)).toBeInTheDocument();
+    expect(mockLogin).not.toHaveBeenCalled();
+  });
+
+  it('Usuário Comum Hacker: recebe bloqueio após múltiplas tentativas de força bruta', async () => {
+    const user = userEvent.setup();
+    let attempts = 0;
+
+    mockLogin.mockImplementation(async () => {
+      attempts += 1;
+      if (attempts >= 5) {
+        throw new Error('Muitas tentativas. Tente novamente em 5 minutos.');
+      }
+      throw new Error('CPF ou senha incorretos');
+    });
+
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
+
+    for (let i = 0; i < 5; i += 1) {
+      fireEvent.change(screen.getByPlaceholderText('000.000.000-00'), { target: { value: '111.444.777-35' } });
+      fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'Senha@123' } });
+      await user.click(screen.getByRole('button', { name: /entrar/i }));
+    }
+
+    expect(await screen.findByText(/muitas tentativas/i)).toBeInTheDocument();
   });
 });

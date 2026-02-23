@@ -41,7 +41,7 @@ const api: AxiosInstance = axios.create({
 // Request Interceptor: Adiciona token JWT automaticamente
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token')
+    const token = localStorage.getItem('@BingoComunidade:token') || localStorage.getItem('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -56,21 +56,26 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiError>) => {
+    const requestUrl = error.config?.url || ''
+    const isAuthEndpoint = requestUrl.includes('/auth/')
+    const isExpectedAuth401 = error.response?.status === 401 && isAuthEndpoint
+
     // Log detalhado para o administrador (Console do Navegador)
-    console.error('❌ [API Error Interceptor]', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    });
+    if (!isExpectedAuth401) {
+      console.error('❌ [API Error Interceptor]', {
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+    }
 
     // Se 401 Unauthorized, limpa token e redireciona conforme contexto (exceto endpoints de auth)
     if (error.response?.status === 401) {
-      const requestUrl = error.config?.url || ''
-      const isAuthEndpoint = requestUrl.includes('/auth/')
-
       if (!isAuthEndpoint) {
+        localStorage.removeItem('@BingoComunidade:token')
+        localStorage.removeItem('@BingoComunidade:user')
         localStorage.removeItem('access_token')
         localStorage.removeItem('usuario')
 
@@ -123,7 +128,8 @@ api.interceptors.response.use(
       errorMessage = error.message || 'Erro ao configurar requisição.';
     }
 
-    return Promise.reject(new Error(errorMessage))
+    error.message = errorMessage
+    return Promise.reject(error)
   }
 )
 

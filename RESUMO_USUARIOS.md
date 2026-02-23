@@ -145,16 +145,14 @@ Status:
 ```
 Fluxo Admin-Site:
 1. Admin-Site acessa: /admin-site/admins
-2. Cria novo admin:
-   ├─ Nome
-   ├─ Email (opcional)
-   ├─ Login/Usuário (único)
-   ├─ Telefone (opcional)
-   ├─ Nível: ADMIN_SITE ou ADMIN_PAROQUIA
-   └─ Paróquia (se ADMIN_PAROQUIA)
-3. Gera senha temporária
-4. Envia credenciais por email
-5. Admin faz primeiro login e muda senha
+2. Gerencia Usuários do Site (pares ADMIN_SITE)
+3. Cria usuário do site (reserva):
+   ├─ Email (identidade)
+   ├─ Telefone (2FA)
+   ├─ WhatsApp (opcional)
+   └─ Senha inicial
+4. Lista contas ativas/inativas e identifica o usuário atual
+5. Ativa/inativa reservas conforme a passagem do bastão
 
 Fluxo Admin-Paroquia:
 1. Admin-Paroquia acessa: /admin-paroquia/admins
@@ -169,7 +167,9 @@ Fluxo Admin-Paroquia:
 Regras:
 ├─ Cada admin criado registra: criado_por_id
 ├─ Admin-Paroquia vê apenas seus subordinados
-├─ Pode desativar/reativar admins
+├─ No Admin-Site: não pode inativar o próprio usuário
+├─ No Admin-Site: não pode inativar o último ADMIN_SITE ativo
+├─ Pode ativar/desativar reservas
 ├─ Senha resetada por superior via token
 └─ Histórico de todas operações auditado
 ```
@@ -356,8 +356,8 @@ UsuarioAdministrativo {
 |--------|------|-----------|
 | **Login Admin** | `/admin-site/login` | Autenticação com login + senha |
 | **Dashboard** | `/admin-site/dashboard` | Visão geral do sistema |
-| **Usuários Comuns** | `/admin-site/usuarios` | Ver, ativar, desativar fiéis |
-| **Administradores** | `/admin-site/admins` | Criar, editar, remover admins |
+| **Gerenciar Usuários da Paróquia** | `/admin-site/usuarios` | Criar e gerenciar equipe paroquial (Admin-Site/Admin-Paróquia) |
+| **Gerenciar Usuários do Site** | `/admin-site/admins` | Sucessão Admin-Site, reservas e gestão de status |
 | **Paróquias** | `/admin-site/paroquias` | CRUD de paróquias |
 | **Bingos** | `/admin-site/bingos` | Gerenciar bingos globalmente |
 | **Feedbacks** | `/admin-site/feedback` | Ver/responder feedbacks |
@@ -415,9 +415,10 @@ UsuarioAdministrativo {
 ```
 ✅ Página dedicada: /admin-site/admins
 ✅ Super Admin pode:
-   ├─ Visualizar todos os usuários do sistema
-   ├─ Promover qualquer usuário a Super Admin
-   ├─ Rebaixar Super Admin para outro tipo
+   ├─ Visualizar usuários do site (ADMIN_SITE) ativos e inativos
+   ├─ Criar usuário do site reserva
+   ├─ Ativar/inativar reservas
+   └─ Garantir continuidade operacional em férias e sucessão
    ├─ Ver histórico de criação
    └─ Interface segura com aviso de privilégio
 

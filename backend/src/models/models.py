@@ -122,6 +122,15 @@ class NivelAcessoAdmin(str, enum.Enum):
     ADMIN_PAROQUIA = "admin_paroquia"   # Administrador da paróquia
 
 
+class RoleParoquiaCodigo(str, enum.Enum):
+    """Códigos de papéis dos usuários internos da paróquia."""
+    ADMIN = "paroquia_admin"
+    CAIXA = "paroquia_caixa"
+    RECEPCAO = "paroquia_recepcao"
+    BINGO = "paroquia_bingo"
+    PORTEIRO = "paroquia_porteiro"
+
+
 # ============================================================================
 # MODELO: PARÓQUIA
 # ============================================================================
@@ -173,10 +182,136 @@ class Paroquia(Base):
     # Relacionamentos
     usuarios = relationship("UsuarioLegado", back_populates="paroquia")
     usuarios_comuns = relationship("UsuarioComum", back_populates="paroquia")
+    usuarios_paroquia = relationship("UsuarioParoquia", back_populates="paroquia")
+    admins_site = relationship("AdminSiteUser", back_populates="paroquia_referencia")
     sorteios = relationship("Sorteio", back_populates="paroquia")
     
     def __repr__(self):
         return f"<Paroquia(id={self.id}, nome={self.nome})>"
+
+
+# ============================================================================
+# MODELO: FUNÇÕES/PAPÉIS DA PARÓQUIA
+# ============================================================================
+
+class RoleParoquia(Base):
+    """Catálogo de funções da paróquia para controle de acesso por papel."""
+    __tablename__ = "roles_paroquia"
+
+    id = Column(String(50), primary_key=True, index=True)
+    codigo = Column(String(50), nullable=False, unique=True, index=True)
+    nome = Column(String(120), nullable=False)
+    descricao = Column(String(255), nullable=True)
+    nivel = Column(Integer, nullable=False, default=3)
+    ativo = Column(Boolean, default=True, nullable=False)
+
+    criado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="Timestamp de criação (timezone: America/Fortaleza)"
+    )
+    atualizado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="Timestamp de atualização (timezone: America/Fortaleza)"
+    )
+
+    usuarios = relationship("UsuarioParoquia", back_populates="role")
+
+
+# ============================================================================
+# MODELO: ADMINISTRADOR DO SITE
+# ============================================================================
+
+class AdminSiteUser(Base):
+    """Administrador do site (sem campo role)."""
+    __tablename__ = "admins_site"
+
+    id = Column(String(50), primary_key=True, index=True)
+    nome = Column(String(200), nullable=False, index=True)
+    login = Column(String(100), nullable=False, unique=True, index=True)
+    senha_hash = Column(String(255), nullable=False)
+
+    email = Column(String(200), nullable=True, unique=True, index=True)
+    cpf = Column(String(11), nullable=True, unique=True, index=True)
+    telefone = Column(String(20), nullable=True, unique=True, index=True)
+    whatsapp = Column(String(20), nullable=True)
+
+    criado_por_id = Column(String(50), nullable=True)
+    paroquia_referencia_id = Column(String(50), ForeignKey("paroquias.id"), nullable=True, index=True)
+
+    token_recuperacao = Column(String(100), nullable=True, index=True)
+    token_expiracao = Column(DateTime(timezone=True), nullable=True)
+    tentativas_login = Column(Integer, default=0)
+    bloqueado_ate = Column(DateTime(timezone=True), nullable=True)
+
+    ativo = Column(Boolean, default=True, nullable=False)
+
+    criado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="Timestamp de criação (timezone: America/Fortaleza)"
+    )
+    atualizado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="Timestamp de atualização (timezone: America/Fortaleza)"
+    )
+    ultimo_acesso = Column(DateTime(timezone=True), nullable=True)
+
+    paroquia_referencia = relationship("Paroquia", back_populates="admins_site")
+
+
+# ============================================================================
+# MODELO: USUÁRIOS DA PARÓQUIA
+# ============================================================================
+
+class UsuarioParoquia(Base):
+    """Usuários internos da paróquia com acesso definido por role."""
+    __tablename__ = "usuarios_paroquia"
+
+    id = Column(String(50), primary_key=True, index=True)
+    nome = Column(String(200), nullable=False, index=True)
+    login = Column(String(100), nullable=False, unique=True, index=True)
+    senha_hash = Column(String(255), nullable=False)
+
+    email = Column(String(200), nullable=True, index=True)
+    cpf = Column(String(11), nullable=True, index=True)
+    telefone = Column(String(20), nullable=True)
+    whatsapp = Column(String(20), nullable=True)
+
+    paroquia_id = Column(String(50), ForeignKey("paroquias.id"), nullable=False, index=True)
+    role_id = Column(String(50), ForeignKey("roles_paroquia.id"), nullable=False, index=True)
+
+    criado_por_id = Column(String(50), nullable=True)
+    tentativas_login = Column(Integer, default=0)
+    bloqueado_ate = Column(DateTime(timezone=True), nullable=True)
+
+    ativo = Column(Boolean, default=True, nullable=False)
+
+    criado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="Timestamp de criação (timezone: America/Fortaleza)"
+    )
+    atualizado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="Timestamp de atualização (timezone: America/Fortaleza)"
+    )
+    ultimo_acesso = Column(DateTime(timezone=True), nullable=True)
+
+    paroquia = relationship("Paroquia", back_populates="usuarios_paroquia")
+    role = relationship("RoleParoquia", back_populates="usuarios")
 
 
 # ============================================================================
@@ -270,6 +405,21 @@ class UsuarioComum(Base):
         return f"<UsuarioComum(id={self.id}, nome={self.nome}, cpf={self.cpf})>"
 
 
+class TentativaCadastroDispositivo(Base):
+    """Registro de tentativas de cadastro público por fingerprint de dispositivo."""
+    __tablename__ = "tentativas_cadastro_dispositivo"
+
+    id = Column(String(50), primary_key=True, index=True)
+    device_fingerprint = Column(String(128), nullable=False, index=True)
+    sucesso = Column(Boolean, default=False, nullable=False)
+    criado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="Timestamp da tentativa (timezone: America/Fortaleza)"
+    )
+
+
 # ============================================================================
 # MODELO: USUÁRIO ADMINISTRATIVO
 # ============================================================================
@@ -300,6 +450,7 @@ class UsuarioAdministrativo(Base):
     
     # Contato (OPCIONAIS)
     email = Column(String(200), nullable=True, unique=True, index=True)
+    cpf = Column(String(11), nullable=True, unique=True, index=True)
     telefone = Column(String(20), nullable=True)
     whatsapp = Column(String(20), nullable=True)
     

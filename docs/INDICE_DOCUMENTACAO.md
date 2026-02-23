@@ -1,7 +1,20 @@
 # 📚 Índice da Documentação - Sistema Bingo da Comunidade
 
-**Versão**: 1.0.0  
-**Última Atualização**: 13/01/2026
+**Versão**: 1.1.0  
+**Última Atualização**: 21/02/2026
+
+> **Registro de Governança (17/02/2026):** o diretório `legacy/` foi removido por redundância. A fonte oficial e vigente de documentação passa a ser exclusivamente esta pasta `docs/`, sob prevalência de `DIRETRIZES_IMUTAVEIS_IA.md` em caso de conflito.
+
+> **Atualização de Centralização (21/02/2026):** foi criado um ponto único de governança e histórico de mudanças para evitar regressões por falta de documentação. Consulte primeiro `CENTRAL_DOCUMENTACAO_OPERACIONAL.md` e `CHANGELOG_CENTRAL.md`.
+
+---
+
+## 🧭 Governança Central (LEITURA OBRIGATÓRIA)
+
+| Documento | Descrição | Público |
+|-----------|-----------|---------|
+| [CENTRAL_DOCUMENTACAO_OPERACIONAL.md](CENTRAL_DOCUMENTACAO_OPERACIONAL.md) | **Ponto único de operação, precedência e processo de documentação** | 🌟 Todos |
+| [CHANGELOG_CENTRAL.md](CHANGELOG_CENTRAL.md) | **Histórico único de mudanças (inclui alterações de 21/02/2026)** | 🌟 Todos |
 
 ---
 
@@ -13,6 +26,9 @@
 | [LEIA_ISTO_PRIMEIRO.md](LEIA_ISTO_PRIMEIRO.md) | **🚨 ERRO? Leia isto ANTES de pedir ajuda** | 🆘 Todos |
 | [COMANDOS_RAPIDOS.md](COMANDOS_RAPIDOS.md) | Referência rápida de comandos | 👨‍💻 Dev |
 | [TESTES_SISTEMA.md](TESTES_SISTEMA.md) | 10 passos para validar instalação | ✅ Todos |
+| [DIRETRIZES_IMUTAVEIS_IA.md](DIRETRIZES_IMUTAVEIS_IA.md) | **Regras imutáveis para evitar regressão/loop** | 🧭 Crítico |
+| [PROMPT_SUCESSOR_LLM.md](PROMPT_SUCESSOR_LLM.md) | **Prompt mestre anti-perda de contexto entre trocas de LLM** | 🧠 Crítico |
+| [PROMPT_EMERGENCIA_10_LINHAS.md](PROMPT_EMERGENCIA_10_LINHAS.md) | **Prompt curto (copiar/colar) para retomada imediata** | ⚡ Crítico |
 | [QUEM_RESOLVE_O_QUE.md](QUEM_RESOLVE_O_QUE.md) | **Guia: Admin da Paróquia vs Desenvolvedor** | 🧒 Todos (até crianças!) |
 | [FLUXOGRAMA_SUPORTE.md](FLUXOGRAMA_SUPORTE.md) | **Fluxograma visual de suporte** | 🎨 Visual |
 
@@ -45,6 +61,8 @@
 |-----------|-----------|---------|
 | [Dev. Guide.md](Dev.%20Guide.md) | Guia completo de desenvolvimento | 👨‍💻 Dev |
 | [COMO_USAR.md](COMO_USAR.md) | Como usar o sistema (usuário final) | 👤 Usuários |
+| [DIRETRIZES_ESTILO_IDENTIDADE_VISUAL.md](DIRETRIZES_ESTILO_IDENTIDADE_VISUAL.md) | **Diretriz oficial de branding multi-tenant e mobile-first** | 🎨 Produto/UX |
+| [DIRETRIZES_COMUNICACAO_E_CONTATOS.md](DIRETRIZES_COMUNICACAO_E_CONTATOS.md) | **Regra oficial de comunicação: nome + e-mail + telefone (DDD)** | 📣 Produto/Operação |
 
 ---
 
@@ -56,6 +74,7 @@
 | [SISTEMA_PRIMEIRO_ACESSO.md](SISTEMA_PRIMEIRO_ACESSO.md) | **🚀 Primeiro acesso seguro (NOVO!)** | 🔐 Crítico |
 | [DEPLOY_PRODUCAO.md](DEPLOY_PRODUCAO.md) | **📦 Deploy em produção (NOVO!)** | 🚀 DevOps |
 | [FASE2_AUTENTICACAO.md](FASE2_AUTENTICACAO.md) | Endpoints de autenticação | 🔒 Backend Dev |
+| [MIGRACAO_3_TABELAS_USUARIOS.md](MIGRACAO_3_TABELAS_USUARIOS.md) | Migração estrutural de usuários (Admin-Site, Paróquia, Comum) + antifraude por dispositivo | 🧩 Arquitetura/Security |
 | [VALIDACAO_CPF.md](VALIDACAO_CPF.md) | Algoritmo Módulo 11 explicado | 🧮 Dev |
 | [MENSAGENS_ERRO.md](MENSAGENS_ERRO.md) | **Guia completo de mensagens de erro** | 🧒 Todos (até crianças!) |
 | [FASE2_INICIADA.md](FASE2_INICIADA.md) | Status da Fase 2 | 📊 Gestão |

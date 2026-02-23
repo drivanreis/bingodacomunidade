@@ -23,18 +23,21 @@ from src.models.models import TipoUsuario, StatusSorteio, StatusCartela
 # ============================================================================
 
 def validate_whatsapp(v: Optional[str]) -> Optional[str]:
-    """Valida formato de WhatsApp brasileiro (+55DDNNNNNNNNN)."""
+    """Valida formato de WhatsApp brasileiro sem persistir DDI (+55)."""
     if v is None:
         return v
     
     # Remove caracteres não numéricos
     v = re.sub(r'\D', '', v)
     
-    # Valida formato brasileiro
-    if not re.match(r'^55\d{10,11}$', v):
-        raise ValueError('WhatsApp deve estar no formato +55DDNNNNNNNNN (11 ou 12 dígitos após +55)')
-    
-    return f"+{v}"
+    if v.startswith('55') and len(v) in (12, 13):
+        v = v[2:]
+
+    # DDD + local (9 ou 10 dígitos) => total 11 ou 12
+    if not re.match(r'^\d{11,12}$', v):
+        raise ValueError('WhatsApp deve estar no formato DDD + número local (9 ou 10 dígitos)')
+
+    return v
 
 
 def validate_chave_pix(v: Optional[str]) -> Optional[str]:
@@ -50,6 +53,28 @@ def validate_chave_pix(v: Optional[str]) -> Optional[str]:
     # Aceita qualquer formato por enquanto (CPF, email, telefone, chave aleatória)
     # Em produção, adicionar validações específicas por tipo
     return v
+
+
+def validate_nome_completo(v: Optional[str]) -> Optional[str]:
+    """Valida nome completo e bloqueia padrões maliciosos/inválidos."""
+    if v is None:
+        return v
+
+    nome = v.strip()
+    if len(nome) < 3:
+        raise ValueError('Nome Completo invalido')
+
+    if re.search(r"['\";]|--|/\*|\*/|<\s*script|\b(or|select|drop|insert|delete|update)\b", nome, re.IGNORECASE):
+        raise ValueError('Nome Completo invalido')
+
+    if re.search(r"\d", nome):
+        raise ValueError('Nome Completo invalido')
+
+    partes = [p for p in re.split(r"\s+", nome) if p]
+    if len(partes) < 2:
+        raise ValueError('Nome Completo invalido')
+
+    return nome
 
 
 def validate_cpf(v: Optional[str]) -> Optional[str]:
@@ -564,11 +589,17 @@ class SignupFielRequest(BaseModel):
     email: EmailStr = Field(..., description="Email para recuperação de senha")
     cpf: str = Field(..., description="CPF (11 dígitos, único no sistema)")
     telefone: str = Field(..., description="Telefone para 2FA por SMS")
-    whatsapp: str = Field(..., description="WhatsApp para notificações de prêmios (+55DDNNNNNNNNN)")
+    whatsapp: str = Field(..., description="WhatsApp para notificações de prêmios (DDD + número local)")
     chave_pix: Optional[str] = Field(None, description="Chave PIX para receber prêmios (opcional)")
+    device_fingerprint: Optional[str] = Field(None, max_length=128, description="Fingerprint do dispositivo para antifraude")
     senha: str = Field(..., min_length=6, description="Senha (mínimo 6 caracteres)")
     
     # Validadores
+    @field_validator('nome')
+    @classmethod
+    def _validate_nome(cls, v):
+        return validate_nome_completo(v)
+
     @field_validator('cpf')
     @classmethod
     def _validate_cpf(cls, v):
@@ -619,6 +650,30 @@ class AdminParoquiaLoginRequest(BaseModel):
     """Schema para autenticação de Admin-Paroquia - Rota /admin-paroquia/login"""
     login: str = Field(..., description="Login único do administrador paroquial")
     senha: str = Field(..., description="Senha do administrador")
+
+
+class AdminInitialPasswordChangeRequest(BaseModel):
+    """Schema para troca obrigatória de senha temporária no primeiro login administrativo."""
+    login: str = Field(..., description="Login ou email do administrador")
+    senha_atual: str = Field(..., min_length=6, description="Senha temporária atual")
+    nova_senha: str = Field(..., min_length=6, max_length=64, description="Nova senha definitiva")
+
+    @field_validator('nova_senha')
+    @classmethod
+    def validate_password_strength(cls, v):
+        if len(v) < 6:
+            raise ValueError('Senha deve ter no mínimo 6 caracteres')
+        if len(v) > 64:
+            raise ValueError('Senha deve ter no máximo 64 caracteres')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra maiúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra minúscula')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('Senha deve conter pelo menos um número')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Senha deve conter pelo menos um caractere especial')
+        return v
 
 
 class TokenResponse(BaseModel):
@@ -697,12 +752,35 @@ class HealthCheckResponse(BaseModel):
 
 class CreateAdminSiteRequest(BaseModel):
     """Schema para criação de um novo ADMIN_SITE."""
-    nome: str = Field(..., min_length=3, max_length=200, description="Nome do novo administrador")
-    login: str = Field(..., min_length=3, max_length=100, description="Login único para o administrador")
+    nome: Optional[str] = Field(None, min_length=3, max_length=120, description="Nome/apelido do administrador")
     senha: str = Field(..., min_length=6, description="Senha (mínimo 6 caracteres)")
-    email: Optional[EmailStr] = Field(None, description="Email do administrador (opcional)")
-    telefone: Optional[str] = Field(None, description="Telefone do administrador (opcional)")
+    email: EmailStr = Field(..., description="Email do administrador (fator 1)")
+    cpf: str = Field(..., min_length=11, max_length=14, description="CPF do administrador (único)")
+    telefone: str = Field(..., min_length=10, max_length=20, description="Telefone para SMS/WhatsApp (fator 2)")
     whatsapp: Optional[str] = Field(None, description="WhatsApp do administrador (opcional)")
+
+    @field_validator('nome')
+    @classmethod
+    def _validate_nome(cls, v):
+        if v is None:
+            return v
+        nome = v.strip()
+        if len(nome) < 3:
+            raise ValueError('Nome/apelido deve ter pelo menos 3 caracteres')
+        return nome
+
+    @field_validator('telefone')
+    @classmethod
+    def _validate_telefone(cls, v):
+        telefone_limpo = re.sub(r'\D', '', v or '')
+        if len(telefone_limpo) < 10 or len(telefone_limpo) > 13:
+            raise ValueError('Telefone inválido para SMS/WhatsApp')
+        return v
+
+    @field_validator('cpf')
+    @classmethod
+    def _validate_cpf(cls, v):
+        return validate_cpf(v)
     
     @field_validator('whatsapp')
     @classmethod
@@ -728,6 +806,51 @@ class CreateAdminParoquiaRequest(BaseModel):
         if v is None:
             return v
         return validate_whatsapp(v)
+
+
+class ChangeOwnAdminSitePasswordRequest(BaseModel):
+    """Schema para ADMIN_SITE trocar a própria senha."""
+    senha_atual: str = Field(..., min_length=6, description="Senha atual")
+    nova_senha: str = Field(..., min_length=6, max_length=64, description="Nova senha")
+
+    @field_validator('nova_senha')
+    @classmethod
+    def validate_password_strength(cls, v):
+        if len(v) < 6:
+            raise ValueError('Senha deve ter no mínimo 6 caracteres')
+        if len(v) > 64:
+            raise ValueError('Senha deve ter no máximo 64 caracteres')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra maiúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra minúscula')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('Senha deve conter pelo menos um número')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Senha deve conter pelo menos um caractere especial')
+        return v
+
+
+class SetAdminSitePasswordRequest(BaseModel):
+    """Schema para ADMIN_SITE definir senha de outro ADMIN_SITE."""
+    nova_senha: str = Field(..., min_length=6, max_length=64, description="Nova senha para o administrador alvo")
+
+    @field_validator('nova_senha')
+    @classmethod
+    def validate_password_strength(cls, v):
+        if len(v) < 6:
+            raise ValueError('Senha deve ter no mínimo 6 caracteres')
+        if len(v) > 64:
+            raise ValueError('Senha deve ter no máximo 64 caracteres')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra maiúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Senha deve conter pelo menos uma letra minúscula')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('Senha deve conter pelo menos um número')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Senha deve conter pelo menos um caractere especial')
+        return v
 
 
 # ============================================================================
@@ -761,6 +884,7 @@ __all__ = [
     'LoginFielRequest',
     'AdminSiteLoginRequest',
     'AdminParoquiaLoginRequest',
+    'AdminInitialPasswordChangeRequest',
     'CreateAdminSiteRequest',
     'CreateAdminParoquiaRequest',
     'TokenResponse',

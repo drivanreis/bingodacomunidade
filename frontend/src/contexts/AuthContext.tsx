@@ -4,11 +4,13 @@ import api from '../services/api';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import { limparItensExpirados } from '../utils/carrinhoManager';
 
+const AUTH_SESSION_MARKER = '@BingoComunidade:session-active';
+
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'super_admin' | 'parish_admin' | 'faithful';
+  role: 'super_admin' | 'admin_site' | 'parish_admin' | 'faithful';
   cpf?: string;
   parish_id?: string;
 }
@@ -17,7 +19,7 @@ interface AuthContextData {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (identificador: string, password: string) => Promise<void>;
+  login: (identificador: string, password: string) => Promise<User>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   isAuthenticated: boolean;
@@ -28,6 +30,12 @@ interface AuthContextData {
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const clearPersistedAuth = () => {
+      localStorage.removeItem('@BingoComunidade:token');
+      localStorage.removeItem('@BingoComunidade:user');
+      delete api.defaults.headers.common['Authorization'];
+    };
+
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,8 +62,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setToken(null);
     
     // 2. Limpar COMPLETAMENTE localStorage
-    localStorage.removeItem('@BingoComunidade:token');
-    localStorage.removeItem('@BingoComunidade:user');
+    clearPersistedAuth();
     // Limpar qualquer outro item relacionado
     Object.keys(localStorage).forEach(key => {
       if (key.includes('@BingoComunidade') || key.includes('carrinho')) {
@@ -82,9 +89,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Monitoramento de inatividade (apenas se estiver autenticado)
+  const hasSession = !!token || !!localStorage.getItem('@BingoComunidade:token');
+
   const { showWarning: showInactivityWarning, timeRemaining } = useInactivityTimeout({
+    enabled: hasSession,
     onTimeout: () => {
-      const hasSession = !!localStorage.getItem('@BingoComunidade:token');
       if (!hasSession) {
         return;
       }
@@ -92,31 +101,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       logout();
     },
     onWarning: () => {
+      if (!hasSession) {
+        return;
+      }
       console.warn('⚠️ Aviso: você será desconectado em breve por inatividade');
     },
   });
 
   useEffect(() => {
+    const hasBrowserSessionMarker = sessionStorage.getItem(AUTH_SESSION_MARKER) === '1';
+
     // Recuperar token do localStorage ao iniciar
     const storedToken = localStorage.getItem('@BingoComunidade:token');
     const storedUser = localStorage.getItem('@BingoComunidade:user');
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
+    if (storedToken && !hasBrowserSessionMarker) {
+      clearPersistedAuth();
+    }
+
+    const effectiveStoredToken = localStorage.getItem('@BingoComunidade:token');
+    const effectiveStoredUser = localStorage.getItem('@BingoComunidade:user');
+
+    if (effectiveStoredToken && effectiveStoredUser) {
+      setToken(effectiveStoredToken);
       
       // Converter dados do backend (português) para o formato do contexto (inglês)
-      const usuarioData = JSON.parse(storedUser);
+      const usuarioData = JSON.parse(effectiveStoredUser);
+      const role = usuarioData.tipo || usuarioData.nivel_acesso;
       setUser({
         id: usuarioData.id,
         name: usuarioData.nome || '',
         email: usuarioData.email || '',
-        role: usuarioData.tipo,
+        role,
         cpf: usuarioData.cpf,
         parish_id: usuarioData.paroquia_id
       });
       
-      api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      api.defaults.headers.common['Authorization'] = `Bearer ${effectiveStoredToken}`;
     }
+
+    sessionStorage.setItem(AUTH_SESSION_MARKER, '1');
 
     setLoading(false);
 
@@ -129,7 +153,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => clearInterval(carrinhoInterval);
   }, []);
 
-  const login = async (identificador: string, password: string) => {
+  const login = async (identificador: string, password: string): Promise<User> => {
     try {
       const payload = identificador.includes('@')
         ? { email: identificador, senha: password }
@@ -139,22 +163,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const { access_token, usuario } = response.data;
 
-      // Salvar no estado e localStorage
-      setToken(access_token);
-      setUser({
+      const authenticatedUser: User = {
         id: usuario.id,
         name: usuario.nome,
         email: usuario.email || '',
-        role: usuario.tipo,
+        role: usuario.tipo || usuario.nivel_acesso,
         cpf: usuario.cpf,
         parish_id: usuario.paroquia_id
-      });
+      };
+
+      // Salvar no estado e localStorage
+      setToken(access_token);
+      setUser(authenticatedUser);
       
       localStorage.setItem('@BingoComunidade:token', access_token);
       localStorage.setItem('@BingoComunidade:user', JSON.stringify(usuario));
+      sessionStorage.setItem(AUTH_SESSION_MARKER, '1');
       
       // Configurar token para próximas requisições
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+
+      return authenticatedUser;
     } catch (error: any) {
       console.error('Erro ao fazer login:', error);
       throw new Error(error.response?.data?.detail || 'Erro ao fazer login');
@@ -189,7 +218,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logout,
         updateUser,
         isAuthenticated: !!token,
-        showInactivityWarning: (!!token || !!localStorage.getItem('@BingoComunidade:token')) && showInactivityWarning,
+        showInactivityWarning: hasSession && showInactivityWarning,
         timeRemaining,
       }}
     >

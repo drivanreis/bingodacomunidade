@@ -8,10 +8,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { UF_OPTIONS } from '../utils/dddUf';
+import { getHumanRoleLabel } from '../utils/userRoles';
 
 interface User {
   id: string;
   nome: string;
+  login?: string;
   email: string;
   tipo: string;
   paroquia_id: string;
@@ -26,10 +29,15 @@ const AdminParoquiaDashboard: React.FC = () => {
     totalVendas: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [allowedUfs, setAllowedUfs] = useState<string[]>([]);
+  const [ufConfigLoading, setUfConfigLoading] = useState(false);
+  const [ufConfigSaving, setUfConfigSaving] = useState(false);
+  const [ufConfigMessage, setUfConfigMessage] = useState('');
 
   useEffect(() => {
     loadUserData();
     loadStats();
+    loadSignupUfConfig();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -67,6 +75,63 @@ const AdminParoquiaDashboard: React.FC = () => {
     }
   };
 
+  const loadSignupUfConfig = async () => {
+    try {
+      setUfConfigLoading(true);
+      const response = await api.get('/configuracoes');
+      const config = response.data.find((item: { chave: string; valor: string }) => item.chave === 'signup_ufs_permitidas');
+
+      if (!config || !config.valor || config.valor === 'ALL') {
+        setAllowedUfs(UF_OPTIONS.map((item) => item.uf));
+        return;
+      }
+
+      const ufs = String(config.valor)
+        .split(',')
+        .map((value) => value.trim().toUpperCase())
+        .filter(Boolean);
+
+      setAllowedUfs(ufs);
+    } catch {
+      setAllowedUfs(UF_OPTIONS.map((item) => item.uf));
+    } finally {
+      setUfConfigLoading(false);
+    }
+  };
+
+  const toggleAllowedUf = (uf: string) => {
+    setAllowedUfs((current) => {
+      if (current.includes(uf)) {
+        return current.filter((item) => item !== uf);
+      }
+
+      return [...current, uf];
+    });
+  };
+
+  const saveSignupUfConfig = async () => {
+    if (allowedUfs.length === 0) {
+      setUfConfigMessage('Selecione pelo menos 1 estado permitido.');
+      return;
+    }
+
+    try {
+      setUfConfigSaving(true);
+      const allSelected = allowedUfs.length === UF_OPTIONS.length;
+      const valor = allSelected ? 'ALL' : [...allowedUfs].sort().join(',');
+
+      await api.put('/configuracoes/signup_ufs_permitidas', null, {
+        params: { valor },
+      });
+
+      setUfConfigMessage('Configuração de estados permitidos salva com sucesso.');
+    } catch {
+      setUfConfigMessage('Não foi possível salvar a configuração de estados permitidos.');
+    } finally {
+      setUfConfigSaving(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('@BingoComunidade:token');
     localStorage.removeItem('@BingoComunidade:user');
@@ -76,13 +141,7 @@ const AdminParoquiaDashboard: React.FC = () => {
   };
 
   const getRoleName = (tipo: string) => {
-    const roles: Record<string, string> = {
-      paroquia_admin: 'Administrador',
-      paroquia_caixa: 'Caixa',
-      paroquia_recepcao: 'Recepção',
-      paroquia_bingo: 'Coordenador de Bingo',
-    };
-    return roles[tipo] || tipo;
+    return getHumanRoleLabel(tipo);
   };
 
   if (loading) {
@@ -104,8 +163,8 @@ const AdminParoquiaDashboard: React.FC = () => {
         </div>
         <div style={styles.headerRight}>
           <div style={styles.userInfo}>
-            <span style={styles.userName}>{user?.nome}</span>
-            <span style={styles.userRole}>{getRoleName(user?.tipo || '')}</span>
+            <span style={styles.userName}>{user?.nome || user?.login || user?.email}</span>
+            <span style={styles.userRole}>{user?.tipo ? getRoleName(user.tipo) : '-'}</span>
           </div>
           <button onClick={handleLogout} style={styles.logoutButton}>
             🚪 Sair
@@ -198,6 +257,51 @@ const AdminParoquiaDashboard: React.FC = () => {
               <h3 style={styles.actionTitle}>Usuários</h3>
               <p style={styles.actionDesc}>Gerenciar equipe paroquial</p>
             </button>
+          </div>
+
+          <div style={styles.ufConfigCard}>
+            <h3 style={styles.ufConfigTitle}>Cadastro Público por Estado</h3>
+            <p style={styles.ufConfigDescription}>
+              Marque os estados (UF) permitidos para cadastro de Usuário Comum nesta paróquia.
+            </p>
+
+            {ufConfigLoading ? (
+              <p style={styles.ufConfigHint}>Carregando configuração de UFs...</p>
+            ) : (
+              <>
+                <div style={styles.ufCheckboxGrid}>
+                  {UF_OPTIONS.map((item) => (
+                    <label key={item.uf} style={styles.ufCheckboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={allowedUfs.includes(item.uf)}
+                        onChange={() => toggleAllowedUf(item.uf)}
+                        disabled={ufConfigSaving}
+                      />
+                      <span>{item.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div style={styles.ufConfigActions}>
+                  <button
+                    onClick={saveSignupUfConfig}
+                    style={styles.ufSaveButton}
+                    disabled={ufConfigSaving}
+                  >
+                    {ufConfigSaving ? 'Salvando...' : 'Salvar Estados Permitidos'}
+                  </button>
+                </div>
+
+                <p style={styles.ufConfigHint}>
+                  Exemplo regional: para priorizar Nordeste interior, selecione CE, PB, RN e PI.
+                </p>
+
+                {ufConfigMessage && (
+                  <p style={styles.ufConfigMessage}>{ufConfigMessage}</p>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -366,6 +470,62 @@ const styles = {
   } as React.CSSProperties,
   infoIcon: {
     fontSize: '24px',
+  },
+  ufConfigCard: {
+    marginTop: '20px',
+    background: 'white',
+    border: '2px solid #e0e0e0',
+    borderRadius: '12px',
+    padding: '20px',
+  } as React.CSSProperties,
+  ufConfigTitle: {
+    margin: '0 0 8px 0',
+    fontSize: '18px',
+    color: '#333',
+  },
+  ufConfigDescription: {
+    margin: '0 0 16px 0',
+    color: '#555',
+    fontSize: '14px',
+  },
+  ufCheckboxGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: '10px',
+  } as React.CSSProperties,
+  ufCheckboxLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '14px',
+    color: '#333',
+  } as React.CSSProperties,
+  ufConfigActions: {
+    marginTop: '16px',
+    display: 'flex',
+    justifyContent: 'flex-start',
+  } as React.CSSProperties,
+  ufSaveButton: {
+    padding: '10px 16px',
+    border: 'none',
+    borderRadius: '8px',
+    background: '#667eea',
+    color: 'white',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+  } as React.CSSProperties,
+  ufConfigHint: {
+    marginTop: '10px',
+    marginBottom: 0,
+    fontSize: '12px',
+    color: '#666',
+  },
+  ufConfigMessage: {
+    marginTop: '10px',
+    marginBottom: 0,
+    fontSize: '13px',
+    color: '#1f4f99',
+    fontWeight: 'bold',
   },
 };
 

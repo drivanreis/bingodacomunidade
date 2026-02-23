@@ -16,6 +16,7 @@ import AdminSiteLogin from './pages/AdminSiteLogin';
 import AdminSiteDashboard from './pages/AdminSiteDashboard';
 import AdminParoquiaLogin from './pages/AdminParoquiaLogin';
 import AdminParoquiaDashboard from './pages/AdminParoquiaDashboard';
+import AdminInitialPasswordChange from './pages/AdminInitialPasswordChange';
 
 // Páginas de Gerenciamento Admin
 import ParishManagement from './pages/ParishManagement';
@@ -56,6 +57,7 @@ function App() {
           {/* Rotas Administrativas - SUPER_ADMIN */}
           <Route path="/admin-site" element={<Navigate to="/admin-site/login" replace />} />
           <Route path="/admin-site/login" element={<AdminSiteLogin />} />
+          <Route path="/admin-site/primeira-senha" element={<AdminInitialPasswordChange mode="admin-site" />} />
           <Route
             path="/admin-site/dashboard"
             element={
@@ -120,17 +122,10 @@ function App() {
               </SuperAdminRoute>
             }
           />
-          <Route
-            path="/admin-site/usuarios"
-            element={
-              <SuperAdminRoute>
-                <AdminUsers />
-              </SuperAdminRoute>
-            }
-          />
           
           {/* Rotas Administrativas - PARÓQUIA */}
           <Route path="/admin-paroquia/login" element={<AdminParoquiaLogin />} />
+          <Route path="/admin-paroquia/primeira-senha" element={<AdminInitialPasswordChange mode="admin-paroquia" />} />
           <Route
             path="/admin-paroquia/dashboard"
             element={

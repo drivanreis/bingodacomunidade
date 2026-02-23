@@ -1,8 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import type { FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAppConfigSync } from '../services/configService';
+
+const resolveDashboardByRole = (role?: string): string => {
+  const normalizedRole = (role || '').toLowerCase();
+
+  if (normalizedRole === 'admin_site' || normalizedRole === 'super_admin') {
+    return '/admin-site/dashboard';
+  }
+
+  if (
+    normalizedRole === 'admin_paroquia' ||
+    normalizedRole === 'parish_admin' ||
+    normalizedRole === 'paroquia_admin' ||
+    normalizedRole === 'paroquia_caixa' ||
+    normalizedRole === 'paroquia_recepcao' ||
+    normalizedRole === 'paroquia_bingo'
+  ) {
+    return '/admin-paroquia/dashboard';
+  }
+
+  return '/dashboard';
+};
 
 const Login: React.FC = () => {
   const location = useLocation();
@@ -21,9 +42,10 @@ const Login: React.FC = () => {
   // Auto-ocultar mensagem de erro após o tempo configurado
   useEffect(() => {
     if (error) {
+      const durationMs = (appConfig.errorMessageDuration ?? 3) * 1000;
       const timer = setTimeout(() => {
         setError('');
-      }, appConfig.errorMessageDuration * 1000); // Converter para milissegundos
+      }, durationMs); // Converter para milissegundos
 
       return () => clearTimeout(timer);
     }
@@ -32,9 +54,10 @@ const Login: React.FC = () => {
   // Auto-ocultar mensagem de sucesso após o tempo configurado
   useEffect(() => {
     if (success) {
+      const durationMs = (appConfig.successMessageDuration ?? 2) * 1000;
       const timer = setTimeout(() => {
         setSuccess('');
-      }, appConfig.successMessageDuration * 1000);
+      }, durationMs);
 
       return () => clearTimeout(timer);
     }
@@ -58,28 +81,47 @@ const Login: React.FC = () => {
     setCpf(formatted);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
     setError('');
     setSuccess('');
-    setLoading(true);
 
     const identificador = cpf.trim();
+    const senhaLimpa = password.trim();
+
+
+    if (!identificador) {
+      flushSync(() => {
+        setError('CPF é obrigatório');
+      });
+      return;
+    }
+
+    if (!senhaLimpa) {
+      flushSync(() => {
+        setError('Senha é obrigatória');
+      });
+      return;
+    }
+
+    setLoading(true);
     const cpfLimpo = identificador.replace(/\D/g, '');
     const loginValue = identificador.includes('@') ? identificador : cpfLimpo;
 
-    try {
-      await login(loginValue, password);
-      navigate('/dashboard');
-    } catch (err: any) {
-      // Capturamos a mensagem real do erro (que vem da API ou do interceptor)
-      const mensagemErro = err.message || "Erro ao tentar fazer login. Verifique suas credenciais.";
-      
-      // Exibimos a mensagem na UI em vez de usar alert()
-      setError(mensagemErro);
-    } finally {
-      setLoading(false);
-    }
+    void (async () => {
+      try {
+        const authenticatedUser = await login(loginValue, password);
+        navigate(resolveDashboardByRole(authenticatedUser.role));
+      } catch (err: any) {
+        // Capturamos a mensagem real do erro (que vem da API ou do interceptor)
+        const mensagemErro = err.message || "Erro ao tentar fazer login. Verifique suas credenciais.";
+        
+        // Exibimos a mensagem na UI em vez de usar alert()
+        setError(mensagemErro);
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
 
   return (
@@ -102,7 +144,7 @@ const Login: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={styles.form}>
+        <form onSubmit={(e) => handleSubmit(e)} style={styles.form} noValidate>
           <div style={styles.inputGroup}>
             <label style={styles.label}>CPF ou Email</label>
             <input
@@ -110,7 +152,6 @@ const Login: React.FC = () => {
               value={cpf}
               onChange={handleCPFChange}
               placeholder="000.000.000-00"
-              required
               style={styles.input}
               disabled={loading}
             />
@@ -124,7 +165,6 @@ const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                required
                 style={styles.input}
                 disabled={loading}
               />
@@ -139,14 +179,10 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          {error && (
-            <div style={styles.error}>
-              ⚠️ {error}
-            </div>
-          )}
 
           <button
-            type="submit"
+            type="button"
+            onClick={() => handleSubmit()}
             style={{
               ...styles.button,
               ...(loading ? styles.buttonDisabled : {}),

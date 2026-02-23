@@ -2,6 +2,17 @@
 
 > **Guia rápido:** Toda documentação técnica está organizada na pasta [`docs/`](docs/)
 
+> **Ponto único obrigatório:** antes de qualquer operação ou manutenção, leia [`docs/CENTRAL_DOCUMENTACAO_OPERACIONAL.md`](docs/CENTRAL_DOCUMENTACAO_OPERACIONAL.md) e depois [`docs/CHANGELOG_CENTRAL.md`](docs/CHANGELOG_CENTRAL.md).
+
+---
+
+## 🧭 GOVERNANÇA CENTRAL
+
+- **[Central de Documentação Operacional](docs/CENTRAL_DOCUMENTACAO_OPERACIONAL.md)** - Regras oficiais, precedência e fluxo de documentação
+- **[Changelog Central](docs/CHANGELOG_CENTRAL.md)** - Histórico único das mudanças do projeto (inclui alterações de hoje)
+- **[Diretrizes de Estilo e Identidade Visual](docs/DIRETRIZES_ESTILO_IDENTIDADE_VISUAL.md)** - Branding multi-tenant + prioridade mobile-first (obrigatório)
+- **[Diretrizes de Comunicação e Contatos](docs/DIRETRIZES_COMUNICACAO_E_CONTATOS.md)** - Comunicação obrigatória para todos os participantes
+
 ---
 
 ## 🚀 INÍCIO RÁPIDO

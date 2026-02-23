@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import AdminIdentityHeader from '../components/AdminIdentityHeader';
 
 interface ReportData {
   usuarios_paroquia: {
     total: number;
     admins: number;
-    operadores: number;
-    vendedores: number;
+    recepcao: number;
+    bingo: number;
     caixa: number;
   };
   fieis: {
@@ -36,14 +36,13 @@ interface ReportData {
 }
 
 const Reports: React.FC = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ReportData>({
     usuarios_paroquia: {
       total: 0,
       admins: 0,
-      operadores: 0,
-      vendedores: 0,
+      recepcao: 0,
+      bingo: 0,
       caixa: 0
     },
     fieis: {
@@ -95,10 +94,14 @@ const Reports: React.FC = () => {
         u.tipo.includes('paroquia_')
       );
 
-      // Conta por tipo
+      // Conta por função (com compatibilidade de tipos legados)
       const admins = usuariosParoquia.filter((u: { tipo: string }) => u.tipo === 'paroquia_admin').length;
-      const operadores = usuariosParoquia.filter((u: { tipo: string }) => u.tipo === 'paroquia_operador').length;
-      const vendedores = usuariosParoquia.filter((u: { tipo: string }) => u.tipo === 'paroquia_vendedor').length;
+      const recepcao = usuariosParoquia.filter((u: { tipo: string }) =>
+        u.tipo === 'paroquia_recepcao' || u.tipo === 'paroquia_operador' || u.tipo === 'paroquia_porteiro' || u.tipo === 'paroquia_zelador'
+      ).length;
+      const bingo = usuariosParoquia.filter((u: { tipo: string }) =>
+        u.tipo === 'paroquia_bingo' || u.tipo === 'paroquia_gerente' || u.tipo === 'paroquia_vendedor'
+      ).length;
       const caixa = usuariosParoquia.filter((u: { tipo: string }) => u.tipo === 'paroquia_caixa').length;
 
       // Fiéis (usuários públicos)
@@ -110,8 +113,8 @@ const Reports: React.FC = () => {
         usuarios_paroquia: {
           total: usuariosParoquia.length,
           admins,
-          operadores,
-          vendedores,
+          recepcao,
+          bingo,
           caixa
         },
         fieis: {
@@ -153,8 +156,8 @@ const Reports: React.FC = () => {
       ['=== EQUIPE DA PARÓQUIA ===', ''],
       ['Total de Funcionários', data.usuarios_paroquia.total],
       ['Administradores', data.usuarios_paroquia.admins],
-      ['Operadores', data.usuarios_paroquia.operadores],
-      ['Vendedores', data.usuarios_paroquia.vendedores],
+      ['Porteiro / Zelador', data.usuarios_paroquia.recepcao],
+      ['Gerente / Regente', data.usuarios_paroquia.bingo],
       ['Caixa', data.usuarios_paroquia.caixa],
       ['', ''],
       ['=== FIÉIS CADASTRADOS ===', ''],
@@ -202,24 +205,19 @@ const Reports: React.FC = () => {
 
   return (
     <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <button 
-            className="btn btn-outline-secondary me-2"
-            onClick={() => navigate('/admin-site/dashboard')}
+      <AdminIdentityHeader
+        title="Relatórios e Estatísticas"
+        backTo="/admin-site/dashboard"
+        rightContent={
+          <button
+            className="btn btn-success"
+            onClick={exportToCSV}
           >
-            ← Voltar
+            <i className="bi bi-download me-2"></i>
+            Exportar CSV
           </button>
-          <h2 className="d-inline-block mb-0">Relatórios e Estatísticas</h2>
-        </div>
-        <button 
-          className="btn btn-success"
-          onClick={exportToCSV}
-        >
-          <i className="bi bi-download me-2"></i>
-          Exportar CSV
-        </button>
-      </div>
+        }
+      />
 
       {/* Filtros de Data */}
       <div className="card mb-4">
@@ -263,7 +261,7 @@ const Reports: React.FC = () => {
               <h3 className="text-primary">{data.usuarios_paroquia.total}</h3>
               <p className="mb-0">Equipe da Paróquia</p>
               <small className="text-muted">
-                {data.usuarios_paroquia.admins} admins, {data.usuarios_paroquia.operadores} operadores
+                {data.usuarios_paroquia.admins} administradores, {data.usuarios_paroquia.caixa} caixas
               </small>
             </div>
           </div>

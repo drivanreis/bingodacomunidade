@@ -7,6 +7,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import TextField from '../components/form/TextField';
+import PasswordField from '../components/form/PasswordField';
+import ContactModule from '../components/form/ContactModule';
+import { getDddCpfMismatchWarning, isValidBrazilDdd } from '../utils/dddUf';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -19,11 +23,15 @@ export default function Signup() {
     nome: '',
     email: '',
     cpf: '',
-    whatsapp: '',
+    ddd: '',
+    telefone: '',
     senha: '',
     confirmarSenha: '',
     chave_pix: '',
   });
+  const [cpfRaw, setCpfRaw] = useState('');
+  const [dddRaw, setDddRaw] = useState('');
+  const [telefoneRaw, setTelefoneRaw] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -40,21 +48,25 @@ export default function Signup() {
       .replace(/(-\d{2})\d+?$/, '$1');
   };
 
-  const formatWhatsApp = (value: string) => {
-    return value
-      .replace(/\D/g, '')
-      .replace(/^(\d{2})(\d)/g, '($1) $2')
-      .replace(/(\d)(\d{4})$/, '$1-$2');
-  };
-
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCPF(e.target.value);
+    const value = e.target.value;
+    setCpfRaw(value);
+    if (/[a-zA-Z'";]/.test(value)) {
+      setFormData(prev => ({ ...prev, cpf: value }));
+      return;
+    }
+    const formatted = formatCPF(value);
     setFormData(prev => ({ ...prev, cpf: formatted }));
   };
 
-  const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatWhatsApp(e.target.value);
-    setFormData(prev => ({ ...prev, whatsapp: formatted }));
+  const handleDDDChange = (value: string) => {
+    setDddRaw(value);
+    setFormData(prev => ({ ...prev, ddd: value }));
+  };
+
+  const handleTelefoneChange = (value: string, rawValue?: string) => {
+    setTelefoneRaw(rawValue ?? value);
+    setFormData(prev => ({ ...prev, telefone: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,25 +74,202 @@ export default function Signup() {
     setError('');
     setSuccess('');
 
+    const hasSuspiciousInput = (value: string) => {
+      return /['";]|--|\/\*|\*\/|\b(or|select|drop|insert|delete|update|uuid|guid)\b/i.test(value);
+    };
+
+    const validateNomeCompleto = (nome: string): string | null => {
+      if (!nome.trim()) {
+        return 'Nome Completo invalido';
+      }
+      if (hasSuspiciousInput(nome)) {
+        return 'Nome Completo invalido';
+      }
+      if (/\d/.test(nome)) {
+        return 'Nome Completo invalido';
+      }
+      const palavras = nome.trim().split(/\s+/);
+      if (palavras.length < 2) {
+        return 'Nome Completo invalido';
+      }
+      const palavraCurta = palavras.some((palavra) => palavra.replace(/[^\p{L}]/gu, '').length < 3);
+      if (palavraCurta) {
+        return 'Nome Completo invalido';
+      }
+      return null;
+    };
+
+    const validateEmail = (email: string): string | null => {
+      const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+      if (!email.trim()) {
+        return 'Email invalido';
+      }
+      if (hasSuspiciousInput(email)) {
+        return 'Email invalido';
+      }
+      if (!emailRegex.test(email)) {
+        return 'Email invalido';
+      }
+      return null;
+    };
+
+    const validateCPFLocal = (cpf: string, rawCpf?: string): string | null => {
+      const rawValue = rawCpf ?? cpf;
+      if (!rawValue.trim()) {
+        return 'CPF invalido';
+      }
+      if (hasSuspiciousInput(rawValue)) {
+        return 'CPF invalido';
+      }
+      if (/[a-zA-Z]/.test(rawValue)) {
+        return 'CPF invalido';
+      }
+      const cpfLimpoRaw = rawValue.replace(/\D/g, '');
+      if (cpfLimpoRaw.length !== 11) {
+        return 'CPF invalido';
+      }
+      const cpfLimpo = cpfLimpoRaw;
+      if (/^(\d)\1{10}$/.test(cpfLimpo)) {
+        return 'CPF invalido';
+      }
+
+      const calcDigito = (base: string) => {
+        let soma = 0;
+        for (let i = 0; i < base.length; i += 1) {
+          const peso = base.length + 1 - i;
+          soma += parseInt(base[i], 10) * peso;
+        }
+        const resto = soma % 11;
+        return resto < 2 ? '0' : String(11 - resto);
+      };
+
+      const digito1 = calcDigito(cpfLimpo.substring(0, 9));
+      const digito2 = calcDigito(cpfLimpo.substring(0, 10));
+
+      if (cpfLimpo[9] !== digito1 || cpfLimpo[10] !== digito2) {
+        return 'CPF invalido';
+      }
+
+      return null;
+    };
+
+    const validateDDD = (ddd: string, rawValue?: string): string | null => {
+      const value = rawValue ?? ddd;
+      if (!value.trim()) {
+        return 'DDD invalido';
+      }
+      if (hasSuspiciousInput(value)) {
+        return 'DDD invalido';
+      }
+      if (/\D/.test(value)) {
+        return 'DDD invalido';
+      }
+      if (!isValidBrazilDdd(value)) {
+        return 'DDD invalido';
+      }
+      return null;
+    };
+
+    const validateTelefone = (telefone: string, rawValue?: string): string | null => {
+      const value = rawValue ?? telefone;
+      if (!value.trim()) {
+        return 'Telefone invalido';
+      }
+      if (hasSuspiciousInput(value)) {
+        return 'Telefone invalido';
+      }
+      if (/\D/.test(value)) {
+        return 'Telefone invalido';
+      }
+      if (value.length < 9 || value.length > 10) {
+        return 'Telefone invalido';
+      }
+      if (/^(\d)\1+$/.test(value)) {
+        return 'Telefone invalido';
+      }
+      return null;
+    };
+
+    const validateChavePix = (chavePix: string, cpfLimpo: string): string | null => {
+      const valor = chavePix.trim();
+      const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+      if (!valor) {
+        return 'Chave PIX invalido';
+      }
+      if (hasSuspiciousInput(valor)) {
+        return 'Chave PIX invalido';
+      }
+      if (emailRegex.test(valor)) {
+        return null;
+      }
+      const digits = valor.replace(/\D/g, '');
+      if (digits.length === 11) {
+        if (digits !== cpfLimpo) {
+          return 'Chave PIX invalido';
+        }
+        return null;
+      }
+      if (digits.length === 10 || digits.length === 11) {
+        return null;
+      }
+      return 'Chave PIX invalido';
+    };
+
+    const nomeError = validateNomeCompleto(formData.nome);
+    if (nomeError) {
+      setError(`❌ ${nomeError}`);
+      return;
+    }
+
+    const emailError = validateEmail(formData.email);
+    if (emailError) {
+      setError(`❌ ${emailError}`);
+      return;
+    }
+
+    const cpfError = validateCPFLocal(formData.cpf, cpfRaw);
+    if (cpfError) {
+      setError(`❌ ${cpfError}`);
+      return;
+    }
+
+    const dddError = validateDDD(formData.ddd, dddRaw);
+    if (dddError) {
+      setError(`❌ ${dddError}`);
+      return;
+    }
+
+    const telefoneError = validateTelefone(formData.telefone, telefoneRaw);
+    if (telefoneError) {
+      setError(`❌ ${telefoneError}`);
+      return;
+    }
+
+    const cpfLimpo = (cpfRaw || formData.cpf).replace(/\D/g, '');
+    const chavePixError = validateChavePix(formData.chave_pix, cpfLimpo);
+    if (chavePixError) {
+      setError(`❌ ${chavePixError}`);
+      return;
+    }
+
     // Validações
-    if (formData.senha !== formData.confirmarSenha) {
-      setError('❌ As senhas não coincidem');
+    if (!formData.senha) {
+      setError('❌ Senha invalido');
       return;
     }
 
     if (formData.senha.length < 6 || formData.senha.length > 16) {
-      setError('❌ A senha deve ter entre 6 e 16 caracteres');
+      setError('❌ Senha invalido');
       return;
     }
 
-    // Validar senha forte
-    const temMaiuscula = /[A-Z]/.test(formData.senha);
-    const temMinuscula = /[a-z]/.test(formData.senha);
-    const temNumero = /[0-9]/.test(formData.senha);
-    const temEspecial = /[!@#$%^&*(),.?":{}|<>]/.test(formData.senha);
+    if (!/[A-Z]/.test(formData.senha) || !/[0-9]/.test(formData.senha) || !/[!@#$%^&*(),.?":{}|<>]/.test(formData.senha)) {
+      setError('❌ Senha invalido');
+      return;
+    }
 
-    if (!temMaiuscula || !temMinuscula || !temNumero || !temEspecial) {
-      setError('❌ A senha deve conter: Letra MAIÚSCULA, letra minúscula, número e caractere especial (!@#$%^&*...)');
+    if (formData.senha !== formData.confirmarSenha) {
+      setError('❌ Senha invalido');
       return;
     }
 
@@ -88,13 +277,13 @@ export default function Signup() {
 
     try {
       // Remove formatação do CPF e WhatsApp
-      const cpfLimpo = formData.cpf.replace(/\D/g, '');
-      const whatsappLimpo = '+55' + formData.whatsapp.replace(/\D/g, '');
+      const whatsappLimpo = `${formData.ddd.replace(/\D/g, '')}${formData.telefone.replace(/\D/g, '')}`;
 
       await api.post('/auth/signup', {
         nome: formData.nome,
         email: formData.email,
         cpf: cpfLimpo,
+        telefone: whatsappLimpo,
         whatsapp: whatsappLimpo,
         senha: formData.senha,
         chave_pix: formData.chave_pix,
@@ -107,7 +296,8 @@ export default function Signup() {
         nome: '',
         email: '',
         cpf: '',
-        whatsapp: '',
+        ddd: '',
+        telefone: '',
         senha: '',
         confirmarSenha: '',
         chave_pix: '',
@@ -154,6 +344,8 @@ export default function Signup() {
     }
   };
 
+  const alertaDddCpf = getDddCpfMismatchWarning(formData.ddd, cpfRaw || formData.cpf);
+
   return (
     <div style={styles.container}>
       <div style={styles.formCard}>
@@ -182,129 +374,97 @@ export default function Signup() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={styles.form}>
+        <form onSubmit={handleSubmit} style={styles.form} noValidate>
+          <TextField
+            label="Nome Completo"
+            name="nome"
+            value={formData.nome}
+            onChange={handleChange}
+            required
+            style={styles.formGroup}
+            inputStyle={styles.input}
+            placeholder="João da Silva"
+          />
+
+          <TextField
+            label="Email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            style={styles.formGroup}
+            inputStyle={styles.input}
+            type="email"
+            placeholder="seu.email@exemplo.com"
+          />
+
+          <TextField
+            label="CPF"
+            name="cpf"
+            value={formData.cpf}
+            onChange={handleCPFChange}
+            required
+            style={styles.formGroup}
+            inputStyle={styles.input}
+            placeholder="000.000.000-00"
+          />
+
           <div style={styles.formGroup}>
-            <label style={styles.label}>Nome Completo *</label>
-            <input
-              type="text"
-              name="nome"
-              value={formData.nome}
-              onChange={handleChange}
+            <ContactModule
+              label="WhatsApp"
+              ddd={formData.ddd}
+              telefone={formData.telefone}
+              onDddChange={handleDDDChange}
+              onTelefoneChange={handleTelefoneChange}
               required
-              style={styles.input}
-              placeholder="João da Silva"
             />
+            {alertaDddCpf && (
+              <small style={styles.warningHint}>
+                ⚠️ {alertaDddCpf}
+              </small>
+            )}
           </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Email *</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              style={styles.input}
-              placeholder="seu.email@exemplo.com"
-            />
-          </div>
+          <TextField
+            label="Chave PIX"
+            name="chave_pix"
+            value={formData.chave_pix}
+            onChange={handleChange}
+            required
+            style={styles.formGroup}
+            inputStyle={styles.input}
+            placeholder="CPF, Email, Telefone ou Chave Aleatória"
+            hint="Necessário para receber prêmios em caso de vitória"
+          />
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>CPF *</label>
-            <input
-              type="text"
-              name="cpf"
-              value={formData.cpf}
-              onChange={handleCPFChange}
-              required
-              maxLength={14}
-              style={styles.input}
-              placeholder="000.000.000-00"
-            />
-          </div>
+          <PasswordField
+            label="Senha"
+            name="senha"
+            value={formData.senha}
+            onChange={handleChange}
+            required
+            show={showPassword}
+            onToggleShow={() => setShowPassword(!showPassword)}
+            containerStyle={styles.formGroup}
+            inputStyle={styles.inputPassword}
+            buttonStyle={styles.eyeButton}
+            placeholder="6 a 16 caracteres"
+            hint={`✓ Mínimo 6, máximo 16 caracteres\n✓ Pelo menos: 1 MAIÚSCULA, 1 minúscula, 1 número, 1 especial (!@#$%...)`}
+          />
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>WhatsApp *</label>
-            <input
-              type="text"
-              name="whatsapp"
-              value={formData.whatsapp}
-              onChange={handleWhatsAppChange}
-              required
-              maxLength={15}
-              style={styles.input}
-              placeholder="(85) 98888-8888"
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Chave PIX *</label>
-            <input
-              type="text"
-              name="chave_pix"
-              value={formData.chave_pix}
-              onChange={handleChange}
-              required
-              style={styles.input}
-              placeholder="CPF, Email, Telefone ou Chave Aleatória"
-            />
-            <small style={styles.hint}>
-              Necessário para receber prêmios em caso de vitória
-            </small>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Senha *</label>
-            <div style={styles.passwordContainer}>
-              <input
-                type={showPassword ? "text" : "password"}
-                name="senha"
-                value={formData.senha}
-                onChange={handleChange}
-                required
-                minLength={6}
-                maxLength={16}
-                style={styles.inputPassword}
-                placeholder="6 a 16 caracteres"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
-                aria-label="Mostrar/ocultar senha"
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
-            </div>
-            <small style={styles.hint}>
-              ✓ Mínimo 6, máximo 16 caracteres<br/>
-              ✓ Pelo menos: 1 MAIÚSCULA, 1 minúscula, 1 número, 1 especial (!@#$%...)
-            </small>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Confirmar Senha *</label>
-            <div style={styles.passwordContainer}>
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                name="confirmarSenha"
-                value={formData.confirmarSenha}
-                onChange={handleChange}
-                required
-                minLength={6}
-                style={styles.inputPassword}
-                placeholder="Digite a senha novamente"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={styles.eyeButton}
-                aria-label="Mostrar/ocultar confirmação de senha"
-              >
-                {showConfirmPassword ? '🙈' : '👁️'}
-              </button>
-            </div>
-          </div>
+          <PasswordField
+            label="Confirmar Senha"
+            name="confirmarSenha"
+            value={formData.confirmarSenha}
+            onChange={handleChange}
+            required
+            show={showConfirmPassword}
+            onToggleShow={() => setShowConfirmPassword(!showConfirmPassword)}
+            containerStyle={styles.formGroup}
+            inputStyle={styles.inputPassword}
+            buttonStyle={styles.eyeButton}
+            placeholder="Digite a senha novamente"
+          />
 
           <button 
             type="submit" 
@@ -418,6 +578,13 @@ const styles = {
     fontSize: '14px',
     fontWeight: 'bold' as const,
     color: '#333',
+  },
+  warningHint: {
+    marginTop: '8px',
+    display: 'block',
+    fontSize: '12px',
+    color: '#b26a00',
+    lineHeight: '1.4',
   },
   input: {
     padding: '12px',

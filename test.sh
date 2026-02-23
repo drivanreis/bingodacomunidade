@@ -5,7 +5,7 @@
 # ===========================================================================
 # Plataforma: Linux
 # Descrição: Valida se o sistema está funcionando corretamente
-# Uso: ./test.sh
+# Uso: ./test.sh [--coverage]
 
 set -e
 
@@ -18,6 +18,28 @@ NC='\033[0m'
 
 TESTS_PASSED=0
 TESTS_FAILED=0
+RUN_COVERAGE=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --coverage|-c)
+            RUN_COVERAGE=true
+            ;;
+        -h|--help)
+            echo "Uso: ./test.sh [--coverage]"
+            echo
+            echo "Opções:"
+            echo "  --coverage, -c   Executa cobertura backend e frontend após os testes de saúde"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}❌ Opção inválida: $1${NC}"
+            echo "Use ./test.sh --help"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 echo -e "${BLUE}"
 echo "=================================================================="
@@ -117,7 +139,7 @@ echo ""
 echo -e "${YELLOW}[2/5] Verificando estrutura de arquivos...${NC}"
 
 echo -n "   ⏳ docker compose.yml... "
-if [ -f "docker compose.yml" ]; then
+if [ -f "docker-compose.yml" ]; then
     echo -e "${GREEN}✓ Existe${NC}"
     ((TESTS_PASSED++))
 else
@@ -242,6 +264,33 @@ if [ $TESTS_FAILED -eq 0 ]; then
     echo "   • Frontend: ${GREEN}http://localhost:5173${NC}"
     echo "   • Backend:  ${GREEN}http://localhost:8000/docs${NC}"
     echo ""
+
+    if [ "$RUN_COVERAGE" = true ]; then
+        echo -e "${YELLOW}📈 Executando cobertura (backend + frontend)...${NC}"
+        echo ""
+
+        if ! docker ps --format '{{.Names}}' | grep -q '^bingo_backend$'; then
+            echo -e "${RED}❌ Container bingo_backend não está rodando para cobertura${NC}"
+            exit 1
+        fi
+
+        if ! docker ps --format '{{.Names}}' | grep -q '^bingo_frontend$'; then
+            echo -e "${RED}❌ Container bingo_frontend não está rodando para cobertura${NC}"
+            exit 1
+        fi
+
+        echo "   ⏳ Cobertura backend..."
+        docker compose exec backend pytest --cov=src --cov-report=term
+
+        echo ""
+        echo "   ⏳ Cobertura frontend..."
+        docker compose exec frontend npm run test:coverage
+
+        echo ""
+        echo -e "${GREEN}✅ Cobertura concluída${NC}"
+        echo ""
+    fi
+
     exit 0
 else
     echo -e "${RED}"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import AdminIdentityHeader from '../components/AdminIdentityHeader';
 
 interface Paroquia {
   id: string;
@@ -24,7 +24,6 @@ interface AdminParoquia {
 }
 
 const ParishManagement: React.FC = () => {
-  const navigate = useNavigate();
   const [paroquia, setParoquia] = useState<Paroquia | null>(null);
   const [admins, setAdmins] = useState<AdminParoquia[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,9 +83,23 @@ const ParishManagement: React.FC = () => {
     }
 
     try {
+      const payload = {
+        nome: formData.nome,
+        email: formData.email,
+        telefone: formData.telefone || null,
+        endereco: formData.endereco || null,
+        cidade: formData.cidade || null,
+        estado: formData.estado || null,
+        cep: formData.cep || null,
+        chave_pix: formData.chave_pix,
+      };
+
       if (paroquia) {
-        await api.put(`/paroquias/${paroquia.id}`, formData);
+        await api.put(`/paroquias/${paroquia.id}`, payload);
         alert('Paróquia atualizada com sucesso!');
+      } else {
+        await api.post('/paroquias', payload);
+        alert('Paróquia cadastrada com sucesso!');
       }
       
       closeModal();
@@ -109,7 +122,23 @@ const ParishManagement: React.FC = () => {
       cidade: paroquia.cidade || '',
       estado: paroquia.estado || 'CE',
       cep: paroquia.cep || '',
-      chave_pix: paroquia.chave_pix,
+      chave_pix: paroquia.chave_pix || '',
+      responsavel_id: ''
+    });
+    setShowModal(true);
+  };
+
+  const handleCreate = () => {
+    setFormData({
+      nome: '',
+      cnpj: '',
+      email: '',
+      telefone: '',
+      endereco: '',
+      cidade: 'Fortaleza',
+      estado: 'CE',
+      cep: '',
+      chave_pix: '',
       responsavel_id: ''
     });
     setShowModal(true);
@@ -145,26 +174,29 @@ const ParishManagement: React.FC = () => {
 
   return (
     <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <button 
-            className="btn btn-outline-secondary me-2"
-            onClick={() => navigate('/admin-site/dashboard')}
-          >
-            ← Voltar
-          </button>
-          <h2 className="d-inline-block mb-0">Configurações da Paróquia</h2>
-        </div>
-        {paroquia && (
-          <button 
-            className="btn btn-primary"
-            onClick={handleEdit}
-          >
-            <i className="bi bi-pencil me-2"></i>
-            Editar Informações
-          </button>
-        )}
-      </div>
+      <AdminIdentityHeader
+        title="Configurações da Paróquia"
+        backTo="/admin-site/dashboard"
+        rightContent={
+          !paroquia ? (
+            <button
+              className="btn btn-primary"
+              onClick={handleCreate}
+            >
+              <i className="bi bi-plus-circle me-2"></i>
+              Cadastrar Paróquia
+            </button>
+          ) : (
+            <button
+              className="btn btn-primary"
+              onClick={handleEdit}
+            >
+              <i className="bi bi-pencil me-2"></i>
+              Editar Informações
+            </button>
+          )
+        }
+      />
 
       {!paroquia ? (
         <div className="card">
@@ -268,7 +300,7 @@ const ParishManagement: React.FC = () => {
           <div className="modal-dialog modal-lg">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Editar Informações da Paróquia</h5>
+                <h5 className="modal-title">{paroquia ? 'Editar Informações da Paróquia' : 'Cadastrar Paróquia'}</h5>
                 <button type="button" className="btn-close" onClick={closeModal}></button>
               </div>
               <form onSubmit={handleSubmit}>
@@ -383,6 +415,7 @@ const ParishManagement: React.FC = () => {
                       className="form-select"
                       value={formData.responsavel_id}
                       onChange={(e) => setFormData({...formData, responsavel_id: e.target.value})}
+                      disabled={!paroquia}
                     >
                       <option value="">Selecione um administrador</option>
                       {admins.map(admin => (
@@ -392,7 +425,9 @@ const ParishManagement: React.FC = () => {
                       ))}
                     </select>
                     <small className="text-muted">
-                      {admins.length === 0 
+                      {!paroquia
+                        ? 'Crie a paróquia primeiro. A atribuição de responsável é feita após o cadastro inicial.'
+                        : admins.length === 0 
                         ? 'Nenhum administrador cadastrado. Cadastre um usuário com perfil "Admin Paróquia".'
                         : 'Selecione o administrador principal da paróquia'}
                     </small>

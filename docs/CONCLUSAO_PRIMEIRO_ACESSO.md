@@ -1,5 +1,7 @@
 # 🎉 SISTEMA COMPLETO - Primeiro Acesso Seguro
 
+> ⚠️ Documento histórico (arquivado): o script `test_first_access.sh` foi removido. Fluxo atual: `./test.sh --coverage` para validação automatizada.
+
 ## ✅ Implementação 100% Concluída
 
 ### Data: 25 de Janeiro de 2026, 02:54h (Horário de Fortaleza)
@@ -15,7 +17,7 @@
 
 ### 2. Backend (2 Novos Endpoints)
 - ✅ `GET /auth/first-access` - Verifica se precisa setup
-- ✅ `POST /auth/first-access-setup` - Cria primeiro Desenvolvedor
+- ✅ `POST /auth/first-access-setup` - Cria primeiro Admin-Site
 - ✅ Proteção dupla: frontend + backend
 - ✅ Validação de senha forte obrigatória
 - ✅ SEED_ENABLED integrado no startup
@@ -34,7 +36,7 @@
 ### 5. Documentação
 - ✅ `DEPLOY_PRODUCAO.md` - Guia de deploy
 - ✅ `SISTEMA_PRIMEIRO_ACESSO.md` - Documentação técnica
-- ✅ `test_first_access.sh` - Script de teste
+- ✅ `test.sh --coverage` - Script de teste atual
 
 ### 6. Testes
 - ✅ Script automatizado criado
@@ -66,7 +68,7 @@ docker compose up -d --build
 
 # 3. Acessar http://localhost:5173
 # Tela de primeiro acesso aparece UMA vez
-# Criar Desenvolvedor → Login automático
+# Criar Admin-Site → Login automático
 ```
 
 ---
@@ -75,7 +77,7 @@ docker compose up -d --build
 
 1. **Primeiro Acesso Protegido**
    - Só funciona UMA vez
-   - Verifica COUNT de Super Admins
+   - Verifica COUNT de Admin-Site primário
    - Proteção dupla (frontend + backend)
 
 2. **Senha Forte Obrigatória**
@@ -123,14 +125,14 @@ docker compose up -d --build
 ## 🧪 Validação Completa
 
 ```bash
-./test_first_access.sh
+./test.sh --coverage
 ```
 
 **Resultado:**
 ```
 ✅ TESTE CONCLUÍDO COM SUCESSO!
   ✅ Sistema detecta banco vazio corretamente
-  ✅ Permite criar primeiro Desenvolvedor
+   ✅ Permite criar primeiro Admin-Site
   ✅ Proteção contra segundo admin funciona
   ✅ Estado muda corretamente após configuração
 ```

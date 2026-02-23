@@ -142,6 +142,35 @@ docker-compose up -d --build
 
 ## 📊 COMANDOS ÚTEIS
 
+---
+
+## 👥 REGRA OFICIAL - CADASTRO E EDIÇÃO DE USUÁRIOS
+
+Para gestão de usuários (site/paróquia), adote sempre duas etapas de trabalho:
+
+1. **Tela de Cadastro**
+  - Criar novo usuário com todos os dados iniciais.
+  - Definir CPF apenas no momento do cadastro.
+
+2. **Tela de Edição**
+  - Ajustar dados operacionais do usuário já existente.
+
+### 🔒 Campos imutáveis após cadastro
+
+- **ID** do usuário
+- **CPF** do usuário
+
+### ✏️ Campos que podem ser alterados na edição
+
+- Nome
+- Função/cargo
+- Senha
+- Telefone
+- E-mail
+- Status (ativo/inativo)
+
+> Regra de negócio: depois que o usuário foi criado, CPF e ID não podem ser alterados.
+
 ### **Ver logs em tempo real**
 ```powershell
 docker-compose logs -f backend

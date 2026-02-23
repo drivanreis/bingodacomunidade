@@ -1,5 +1,7 @@
 # 🎊 PROJETO CONCLUÍDO - Sistema de Primeiro Acesso
 
+> ⚠️ Documento histórico (arquivado): os scripts `test_first_access.sh` e `alternar_modo.sh` foram removidos. Fluxo atual: `./test.sh --coverage` e troca de modo via `SEED_ENABLED` no `docker-compose.yml`.
+
 ## 📅 25 de Janeiro de 2026 - 02:55h (Fortaleza-CE)
 
 ---
@@ -46,9 +48,9 @@
 - TESTE_MANUAL_PRIMEIRO_ACESSO.md (guia de testes)
 - CONCLUSAO_PRIMEIRO_ACESSO.md (resumo executivo)
 
-**Scripts:**
-- test_first_access.sh (teste automatizado)
-- alternar_modo.sh (switch dev/prod)
+**Scripts (atual):**
+- test.sh --coverage (teste automatizado com cobertura)
+- controle de modo por SEED_ENABLED no docker-compose.yml
 
 ### Total Geral
 - **Linhas de Código:** ~1.200
@@ -84,7 +86,7 @@
 5. **Impossível Burlar:**
    - Mesmo acessando URL direta: `/first-access-setup`
    - Mesmo chamando API diretamente
-   - Backend SEMPRE valida COUNT de Super Admins
+   - Backend SEMPRE valida COUNT de Admin-Site primário
 
 ---
 
@@ -93,14 +95,14 @@
 ### Teste Automatizado
 
 ```bash
-./test_first_access.sh
+./test.sh --coverage
 ```
 
 **Resultado:**
 ```
 ✅ TESTE CONCLUÍDO COM SUCESSO!
   ✅ Sistema detecta banco vazio corretamente
-  ✅ Permite criar primeiro Desenvolvedor
+   ✅ Permite criar primeiro Admin-Site
   ✅ Proteção contra segundo admin funciona
   ✅ Estado muda corretamente após configuração
 ```
@@ -142,9 +144,8 @@ bingodacomunidade/
 │   ├── CONCLUSAO_PRIMEIRO_ACESSO.md
 │   └── PROJETO_CONCLUIDO.md (este arquivo)
 │
-├── 🧪 SCRIPTS DE TESTE (180 linhas - NOVO!)
-│   ├── test_first_access.sh
-│   └── alternar_modo.sh
+├── 🧪 SCRIPTS DE TESTE (versão atual)
+│   └── test.sh --coverage
 │
 └── ⚙️ CONFIGURAÇÃO
     ├── docker-compose.yml (SEED_ENABLED documentado)
@@ -174,7 +175,7 @@ bingodacomunidade/
 **Características:**
 - ✅ Banco de dados vazio
 - ✅ Tela de primeiro acesso aparece UMA vez
-- ✅ Desenvolvedor criado manualmente
+- ✅ Admin-Site criado manualmente
 - ✅ Senha forte obrigatória
 - ✅ Segurança máxima
 
@@ -208,15 +209,15 @@ docker compose up -d --build
 # 3. Acessar navegador
 #    Tela de primeiro acesso aparece
 
-# 4. Criar Desenvolvedor
+# 4. Criar Admin-Site
 #    Login automático → Dashboard
 ```
 
 ### Alternar Entre Modos
 
 ```bash
-./alternar_modo.sh
-# Menu interativo para trocar facilmente
+# Editar docker-compose.yml e alternar SEED_ENABLED
+docker compose up -d --build
 ```
 
 ---
@@ -285,7 +286,7 @@ Usuario acessa URL direta
     ↓
 Frontend checa needs_setup (GET /auth/first-access)
     ↓
-Backend valida COUNT de Super Admins
+Backend valida COUNT de Admin-Site primário
     ↓
 Só permite se COUNT = 0
     ↓
@@ -370,10 +371,11 @@ docker compose up -d
 # Login: CPF 11144477735 / Senha Fiel@123
 
 # Alternar para produção
-./alternar_modo.sh
+# Editar docker-compose.yml e alternar SEED_ENABLED
+docker compose up -d --build
 
 # Testar primeiro acesso
-./test_first_access.sh
+./test.sh --coverage
 
 # Ver logs
 docker logs bingo_backend
@@ -417,8 +419,8 @@ docker logs bingo_frontend
 4. **CONCLUSAO_PRIMEIRO_ACESSO.md** - Resumo da implementação
 5. **PROJETO_CONCLUIDO.md** - Este arquivo (visão executiva)
 6. **.env.example** - Template de configuração
-7. **test_first_access.sh** - Teste automatizado
-8. **alternar_modo.sh** - Utilitário para trocar modos
+7. **test.sh --coverage** - Teste automatizado com cobertura
+8. **docker-compose.yml (SEED_ENABLED)** - Controle de modo dev/prod
 
 ---
 
@@ -441,14 +443,14 @@ docker compose up -d --build
 
 ✅ **Testar automaticamente:**
 ```bash
-./test_first_access.sh
+./test.sh --coverage
 # Valida todo o fluxo em 30 segundos
 ```
 
 ✅ **Alternar entre modos:**
 ```bash
-./alternar_modo.sh
-# Menu interativo
+# Editar docker-compose.yml e alternar SEED_ENABLED
+docker compose up -d --build
 ```
 
 ---
@@ -517,8 +519,8 @@ docker compose up -d --build
    - limpa.sh (reset completo)
    - install.sh (instalação automática)
    - start.sh (iniciar sistema)
-   - test_first_access.sh (teste do novo sistema)
-   - alternar_modo.sh (switch dev/prod)
+   - test.sh --coverage (teste do novo sistema)
+   - docker-compose.yml (SEED_ENABLED para switch dev/prod)
 
 ---
 
@@ -555,10 +557,11 @@ docker logs bingo_frontend
 docker compose up -d --build
 
 # Testar primeiro acesso
-./test_first_access.sh
+./test.sh --coverage
 
 # Alternar modo
-./alternar_modo.sh
+# Editar docker-compose.yml e alternar SEED_ENABLED
+docker compose up -d --build
 ```
 
 ---

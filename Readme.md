@@ -110,6 +110,20 @@ cd bingodacomunidade
 docker compose up --build
 ```
 
+#### ✅ Fluxo Oficial de Homologação Final (Máquina Limpa)
+
+O fluxo final de validação do projeto é intencionalmente mínimo, usando apenas:
+
+```bash
+git clone https://github.com/seu-usuario/bingodacomunidade.git
+cd bingodacomunidade
+./validar_pos_instalacao.sh
+```
+
+Regra de ouro:
+- Não rodar testes fora dos contêineres.
+- Após a validação, os ajustes operacionais devem ser feitos via navegador com a aplicação já funcionando.
+
 #### 🎯 Acesse o Sistema
 
 Após alguns segundos, o sistema estará disponível:
@@ -146,6 +160,21 @@ docker compose restart
 docker compose down -v
 docker compose up --build
 ```
+
+#### 🧪 Como Rodar Testes (Direto no Contêiner)
+
+```bash
+# Backend (Pytest)
+docker compose exec backend pytest -q
+
+# Frontend (Vitest)
+docker compose exec frontend npm run test -- --run
+
+# Cobertura (atalho do projeto)
+./test.sh --coverage
+```
+
+A execução é feita diretamente no ambiente do contêiner.
 
 #### 📚 Documentação Completa Docker
 - [DOCKER_QUICKSTART.md](DOCKER_QUICKSTART.md) - Guia rápido
@@ -272,8 +301,7 @@ Este é o **ponto de entrada único** do sistema. Ele automatiza **tudo**:
 
 O script irá automaticamente:
 - ✅ Verificar se o Python está instalado
-- ✅ Criar o ambiente virtual (.venv)
-- ✅ Instalar todas as dependências necessárias
+- ✅ Instalar todas as dependências necessárias no ambiente do contêiner
 - ✅ Iniciar o servidor FastAPI
 - ✅ Abrir o navegador automaticamente
 
@@ -290,8 +318,8 @@ O script irá automaticamente:
 [2/5] Detectando interpretador Python...
       ✓ Python encontrado: Python 3.11.5
 
-[3/5] Configurando ambiente virtual...
-      ✓ Ambiente virtual ja existe
+[3/5] Preparando dependências no contêiner...
+   ✓ Dependências prontas no ambiente do contêiner
 
 [4/5] Verificando dependencias...
       ✓ Todas as dependencias estao instaladas
@@ -449,7 +477,7 @@ A chave PIX é **essencial** para receber a arrecadação.
 
 #### **Tipos de Chave PIX aceitos:**
 - 📧 E-mail (ex: `financeiro@paroquiasaojose.com.br`)
-- 📱 Telefone (ex: `+5585999999999`)
+- 📱 Telefone (ex: `85999999999`)
 - 🆔 CPF/CNPJ (ex: `12.345.678/0001-90`)
 - 🔑 Chave aleatória (gerada pelo banco)
 

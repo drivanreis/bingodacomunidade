@@ -18,9 +18,10 @@ import { getAppConfigSync } from '../services/configService';
 interface UseInactivityTimeoutProps {
   onTimeout: () => void;
   onWarning?: () => void;
+  enabled?: boolean;
 }
 
-export const useInactivityTimeout = ({ onTimeout, onWarning }: UseInactivityTimeoutProps) => {
+export const useInactivityTimeout = ({ onTimeout, onWarning, enabled = true }: UseInactivityTimeoutProps) => {
   const config = getAppConfigSync();
   
   const timeoutIdRef = useRef<number | null>(null);
@@ -82,6 +83,11 @@ export const useInactivityTimeout = ({ onTimeout, onWarning }: UseInactivityTime
 
   // Eventos que resetam o timer (indicam atividade)
   useEffect(() => {
+    if (!enabled) {
+      clearTimers();
+      return;
+    }
+
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
 
     const handleActivity = () => {
@@ -106,7 +112,7 @@ export const useInactivityTimeout = ({ onTimeout, onWarning }: UseInactivityTime
         window.removeEventListener(event, handleActivity);
       });
     };
-  }, [resetTimer, clearTimers]);
+  }, [resetTimer, clearTimers, enabled]);
 
   return {
     showWarning,

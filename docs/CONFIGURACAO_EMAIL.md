@@ -48,11 +48,16 @@ environment:
   - EMAIL_DEV_MODE=false
   - SMTP_HOST=smtp.gmail.com
   - SMTP_PORT=587
+   - SMTP_SECURITY=tls
   - SMTP_USER=seu_email@gmail.com
-  - SMTP_PASSWORD=abcdefghijklmnop  # Senha de app (sem espaços)
+   - SMTP_PASSWORD=abcdefghijklmnop  # Senha de app Google (16 dígitos, sem espaços)
   - FROM_EMAIL=seu_email@gmail.com
   - FROM_NAME=Bingo da Comunidade
   - FRONTEND_URL=https://seu-dominio.com.br
+
+# Alternativa Gmail SSL
+# - SMTP_PORT=465
+# - SMTP_SECURITY=ssl
 ```
 
 ### Opção 2: Outros Provedores SMTP
@@ -231,7 +236,7 @@ Teste a recuperação de senha:
 ## ✅ Checklist de Deploy
 
 - [ ] Configurar EMAIL_DEV_MODE=false
-- [ ] Configurar SMTP_HOST, SMTP_PORT
+- [ ] Configurar SMTP_HOST, SMTP_PORT, SMTP_SECURITY
 - [ ] Configurar SMTP_USER, SMTP_PASSWORD
 - [ ] Configurar FROM_EMAIL, FROM_NAME
 - [ ] Atualizar FRONTEND_URL para URL de produção

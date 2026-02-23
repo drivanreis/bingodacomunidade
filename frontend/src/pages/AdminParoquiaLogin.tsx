@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const AdminParoquiaLogin: React.FC = () => {
-  const [cpf, setCpf] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -25,9 +25,14 @@ const AdminParoquiaLogin: React.FC = () => {
     return value;
   };
 
-  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCPF(e.target.value);
-    setCpf(formatted);
+  const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.includes('@') || /[a-zA-Z]/.test(value)) {
+      setIdentifier(value);
+      return;
+    }
+    const formatted = formatCPF(value);
+    setIdentifier(formatted);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,12 +41,13 @@ const AdminParoquiaLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      // Remover formatação do CPF
-      const cleanCPF = cpf.replace(/\D/g, '');
+      const loginValue = identifier.includes('@')
+        ? identifier.trim().toLowerCase()
+        : identifier.replace(/\D/g, '');
 
       // Chamar endpoint específico de Admin Paroquial
       const response = await api.post('/auth/admin-paroquia/login', {
-        cpf: cleanCPF,
+        login: loginValue,
         senha: password
       });
 
@@ -49,7 +55,9 @@ const AdminParoquiaLogin: React.FC = () => {
 
       // Verificar se é administrador paroquial
       const paroquialRoles = ['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo'];
-      if (!paroquialRoles.includes(usuario.tipo)) {
+      const tipoUsuario = (usuario?.tipo || '').toString().toLowerCase();
+      const nivelAcesso = (usuario?.nivel_acesso || '').toString().toLowerCase();
+      if (nivelAcesso !== 'admin_paroquia' && !paroquialRoles.includes(tipoUsuario)) {
         setError('Acesso negado. Esta área é exclusiva para administradores paroquiais.');
         return;
       }
@@ -65,8 +73,20 @@ const AdminParoquiaLogin: React.FC = () => {
       navigate('/admin-paroquia/dashboard');
     } catch (err) {
       console.error('Erro ao fazer login:', err);
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'Erro ao fazer login. Verifique suas credenciais.');
+      const error = err as { response?: { status?: number; data?: { detail?: unknown } } };
+      const detail = error.response?.data?.detail;
+
+      if (error.response?.status === 428 && detail && typeof detail === 'object' && (detail as any).needs_password_change) {
+        navigate('/admin-paroquia/primeira-senha', {
+          state: {
+            login: identifier.includes('@') ? identifier.trim().toLowerCase() : identifier.replace(/\D/g, ''),
+            senhaAtual: password,
+          },
+        });
+        return;
+      }
+
+      setError(typeof detail === 'string' ? detail : 'Erro ao fazer login. Verifique suas credenciais.');
     } finally {
       setLoading(false);
     }
@@ -89,16 +109,15 @@ const AdminParoquiaLogin: React.FC = () => {
           )}
 
           <div style={styles.inputGroup}>
-            <label style={styles.label}>CPF</label>
+            <label style={styles.label}>Login ou Email</label>
             <input
               type="text"
-              value={cpf}
-              onChange={handleCPFChange}
-              placeholder="000.000.000-00"
+              value={identifier}
+              onChange={handleIdentifierChange}
+              placeholder="login ou email@dominio.com"
               style={styles.input}
               required
               autoFocus
-              maxLength={14}
             />
           </div>
 

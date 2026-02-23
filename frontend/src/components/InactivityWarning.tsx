@@ -26,6 +26,9 @@ export const InactivityWarning: React.FC = () => {
       <div style={styles.modal}>
         <div style={styles.icon}>⚠️</div>
         <h2 style={styles.title}>Sessão Expirando</h2>
+        <p style={styles.warningText}>
+          ⚠️ Aviso: você será desconectado em breve por inatividade
+        </p>
         <p style={styles.message}>
           Por segurança, você será desconectado automaticamente em:
         </p>
@@ -81,6 +84,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#ef4444',
     marginBottom: '20px',
     fontFamily: 'monospace',
+  },
+  warningText: {
+    fontSize: '14px',
+    color: '#b91c1c',
+    marginBottom: '10px',
+    fontWeight: 'bold',
   },
   hint: {
     fontSize: '14px',

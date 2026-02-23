@@ -32,7 +32,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('FirstAccessSetup', () => {
-  it('valida CPF com 11 dígitos', async () => {
+  it('valida DDD e telefone obrigatórios para 2FA', async () => {
     const user = userEvent.setup();
 
     render(
@@ -41,16 +41,15 @@ describe('FirstAccessSetup', () => {
       </MemoryRouter>
     );
 
-    await user.type(screen.getByPlaceholderText('Seu nome completo'), 'Admin Real');
-    await user.type(screen.getByPlaceholderText('000.000.000-00'), '123.456.789');
+    await user.type(screen.getByPlaceholderText('Seu nome'), 'Admin Inicial');
     await user.type(screen.getByPlaceholderText('seu@email.com'), 'admin@exemplo.com');
-    await user.type(screen.getByPlaceholderText('+55 (85) 99999-9999'), '+55 (85) 99999-9999');
+    await user.type(screen.getByPlaceholderText(/somente números/i), '11144477735');
+    await user.type(screen.getByLabelText(/telefone \(sms\/whatsapp\)/i), '999');
     await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres'), 'Senha@123');
     await user.type(screen.getByPlaceholderText('Digite a senha novamente'), 'Senha@123');
 
     await user.click(screen.getByRole('button', { name: /criar conta/i }));
 
-    expect(await screen.findByText(/cpf deve conter 11 dígitos/i)).toBeInTheDocument();
     expect(postMock).not.toHaveBeenCalled();
   });
 
@@ -62,8 +61,8 @@ describe('FirstAccessSetup', () => {
         access_token: 'token-123',
         usuario: {
           id: 'ADM-1',
-          nome: 'Admin Real',
-          login: '75568241368',
+          nome: 'Admin Site',
+          login: 'admin@exemplo.com',
           email: 'admin@exemplo.com',
           nivel_acesso: 'admin_site',
           paroquia_id: null,
@@ -77,19 +76,21 @@ describe('FirstAccessSetup', () => {
       </MemoryRouter>
     );
 
-    await user.type(screen.getByPlaceholderText('Seu nome completo'), 'Admin Real');
-    await user.type(screen.getByPlaceholderText('000.000.000-00'), '755.682.413-68');
+    await user.type(screen.getByPlaceholderText('Seu nome'), 'Admin Inicial');
     await user.type(screen.getByPlaceholderText('seu@email.com'), 'admin@exemplo.com');
-    await user.type(screen.getByPlaceholderText('+55 (85) 99999-9999'), '+55 (85) 99999-9999');
+    await user.type(screen.getByPlaceholderText(/somente números/i), '11144477735');
+    await user.selectOptions(screen.getByRole('combobox', { name: /ddd/i }), '85');
+    await user.type(screen.getByLabelText(/telefone \(sms\/whatsapp\)/i), '999999999');
     await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres'), 'Senha@123');
     await user.type(screen.getByPlaceholderText('Digite a senha novamente'), 'Senha@123');
 
     await user.click(screen.getByRole('button', { name: /criar conta/i }));
 
     expect(postMock).toHaveBeenCalledWith('/auth/bootstrap', {
-      nome: 'Admin Real',
-      login: '75568241368',
+      nome: 'Admin Inicial',
       email: 'admin@exemplo.com',
+      cpf: '11144477735',
+      telefone: '85999999999',
       senha: 'Senha@123',
     });
 

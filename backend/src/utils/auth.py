@@ -216,7 +216,13 @@ async def get_current_user(
     Raises:
         HTTPException: Se token inválido ou usuário não encontrado
     """
-    from src.models.models import UsuarioLegado
+    from src.models.models import (
+        UsuarioAdministrativo,
+        UsuarioComum,
+        UsuarioLegado,
+        AdminSiteUser,
+        UsuarioParoquia,
+    )
     
     # Extrair token
     token = credentials.credentials
@@ -240,14 +246,35 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Buscar usuário no banco
-    usuario = db.query(Usuario).filter(Usuario.id == user_id).first()
-    
+    # Validar existência do usuário no banco (novo modelo e legado)
+    tipo_token = (payload.get("tipo") or "").strip().lower()
+
+    usuario = None
+    if tipo_token == "usuario_administrativo":
+        usuario = db.query(UsuarioAdministrativo).filter(UsuarioAdministrativo.id == user_id).first()
+    elif tipo_token == "usuario_comum":
+        usuario = db.query(UsuarioComum).filter(UsuarioComum.id == user_id).first()
+    elif tipo_token == "admin_site":
+        usuario = db.query(AdminSiteUser).filter(AdminSiteUser.id == user_id).first()
+    elif tipo_token == "usuario_paroquia":
+        usuario = db.query(UsuarioParoquia).filter(UsuarioParoquia.id == user_id).first()
+
+    if usuario is None:
+        usuario = db.query(AdminSiteUser).filter(AdminSiteUser.id == user_id).first()
+    if usuario is None:
+        usuario = db.query(UsuarioParoquia).filter(UsuarioParoquia.id == user_id).first()
+    if usuario is None:
+        usuario = db.query(UsuarioAdministrativo).filter(UsuarioAdministrativo.id == user_id).first()
+    if usuario is None:
+        usuario = db.query(UsuarioComum).filter(UsuarioComum.id == user_id).first()
+    if usuario is None:
+        usuario = db.query(UsuarioLegado).filter(UsuarioLegado.id == user_id).first()
+
     if usuario is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuário não encontrado",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    return usuario
+
+    return payload

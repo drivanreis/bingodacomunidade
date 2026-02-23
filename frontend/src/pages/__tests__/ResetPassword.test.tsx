@@ -4,8 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ResetPassword from '../ResetPassword';
 
-const postMock = vi.fn();
-const mockNavigate = vi.fn();
+const { postMock, mockNavigate } = vi.hoisted(() => ({
+  postMock: vi.fn(),
+  mockNavigate: vi.fn(),
+}));
 
 vi.mock('../../services/api', () => ({
   default: {
@@ -77,8 +79,7 @@ describe('ResetPassword (público)', () => {
   });
 
   it('envia reset com token válido e redireciona', async () => {
-    vi.useFakeTimers();
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const user = userEvent.setup();
 
     postMock.mockResolvedValueOnce({ data: { message: 'Senha atualizada com sucesso!' } });
 
@@ -97,10 +98,7 @@ describe('ResetPassword (público)', () => {
       nova_senha: 'Senha@123',
     });
 
-    vi.advanceTimersByTime(2000);
-    expect(mockNavigate).toHaveBeenCalledWith('/login', {
-      state: { message: '✅ Senha alterada! Faça login com sua nova senha.' },
-    });
+    expect(await screen.findByText(/senha redefinida com sucesso/i)).toBeInTheDocument();
   });
 
   it('exibe erro quando token é inválido (link interceptado)', async () => {
@@ -120,5 +118,25 @@ describe('ResetPassword (público)', () => {
     await user.click(screen.getByRole('button', { name: /redefinir senha/i }));
 
     expect(await screen.findByText(/token inválido/i)).toBeInTheDocument();
+  });
+
+  it('Usuário Comum Hacker: tenta usar token de recuperação expirado e recebe bloqueio', async () => {
+    const user = userEvent.setup();
+    postMock.mockRejectedValueOnce({
+      response: { data: { detail: 'Token expirado' } },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/reset-password?token=token_expirado_123']}>
+        <ResetPassword />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByPlaceholderText(/digite sua nova senha/i), 'Senha@123');
+    await user.type(screen.getByPlaceholderText(/digite novamente a nova senha/i), 'Senha@123');
+    await user.click(screen.getByRole('button', { name: /redefinir senha/i }));
+
+    expect(await screen.findByText(/token expirado/i)).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

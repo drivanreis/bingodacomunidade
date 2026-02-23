@@ -71,28 +71,24 @@ NODE_ENV=development
 
 ## 🚀 Como Rodar
 
-### Com Docker (Recomendado)
-```powershell
+### Fluxo Oficial (Docker)
+```bash
 # Na raiz do projeto
-docker compose up
+docker compose up --build
 ```
 
 Acesse: http://localhost:5173
 
-### Sem Docker
-```powershell
-# Instalar dependências
-npm install
+### Testes (Direto no Contêiner)
+```bash
+# Frontend (Vitest)
+docker compose exec frontend npm run test -- --run
 
-# Iniciar servidor de desenvolvimento
-npm run dev
-
-# Build de produção
-npm run build
-
-# Preview do build
-npm run preview
+# Backend (Pytest)
+docker compose exec backend pytest -q
 ```
+
+As execuções devem ocorrer no contêiner, sem criação/ativação de ambiente virtual local.
 
 ---
 
