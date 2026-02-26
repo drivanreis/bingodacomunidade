@@ -251,33 +251,6 @@ const GameDetail: React.FC = () => {
     });
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      scheduled: '#2196F3',
-      active: '#4CAF50',
-      finished: '#9E9E9E',
-      cancelled: '#F44336',
-    };
-    return colors[status] || '#9E9E9E';
-  };
-
-  const getStatusText = (status: string) => {
-    const texts: Record<string, string> = {
-      scheduled: 'Agendado',
-      active: 'Ativo',
-      finished: 'Finalizado',
-      cancelled: 'Cancelado',
-    };
-    return texts[status] || status;
-  };
-
   const canPurchase = () => {
     if (!game) return false;
     if (!canAccessBuyerFeatures) return false;
@@ -439,6 +412,7 @@ const GameDetail: React.FC = () => {
         </button>
 
         <div style={{ ...styles.mainCard, ...(isMobile ? styles.mainCardMobile : {}) }}>
+          <h1 style={styles.gameTitleInline}>{game.title}</h1>
 
           {canManageGames && (
             <div style={styles.settingsPanel}>
@@ -592,22 +566,23 @@ const GameDetail: React.FC = () => {
                 </select>
               </div>
 
-              <button
-                type="button"
-                onClick={handleSimulateReschedule}
-                disabled={isSimulateRescheduleDisabled}
-                title={
-                  isSimulateRescheduleDisabled
-                    ? 'Escolha uma nova data/hora diferente da atual para simular o impacto.'
-                    : 'Simular impacto'
-                }
-                style={{
-                  ...styles.rescheduleSimulateButton,
-                  ...(isSimulateRescheduleDisabled ? styles.rescheduleSimulateButtonDisabled : {}),
-                }}
-              >
-                {rescheduling ? 'Processando...' : 'Simular impacto'}
-              </button>
+              <div style={styles.rescheduleActions}>
+                <button
+                  type="button"
+                  onClick={handleSimulateReschedule}
+                  disabled={isSimulateRescheduleDisabled}
+                  title={
+                    isSimulateRescheduleDisabled
+                      ? 'Escolha uma nova data/hora diferente da atual para simular o impacto.'
+                      : 'Simular impacto'
+                  }
+                  style={{
+                    ...styles.rescheduleSimulateButton,
+                    ...(isSimulateRescheduleDisabled ? styles.rescheduleSimulateButtonDisabled : {}),
+                  }}
+                >
+                  {rescheduling ? 'Processando...' : 'Simular impacto'}
+                </button>
 
               {reschedulePreview && (
                 <div style={styles.reschedulePreviewBox}>
@@ -627,22 +602,23 @@ const GameDetail: React.FC = () => {
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={handleApplyReschedule}
-                disabled={isApplyRescheduleDisabled}
-                title={
-                  isApplyRescheduleDisabled
-                    ? 'Escolha nova data/hora e simule o impacto com a configuração atual para habilitar a aplicação da remarcação.'
-                    : 'Aplicar remarcação'
-                }
-                style={{
-                  ...styles.rescheduleApplyButton,
-                  ...(isApplyRescheduleDisabled ? styles.rescheduleApplyButtonDisabled : {}),
-                }}
-              >
-                {rescheduling ? 'Aplicando...' : 'Aplicar remarcação'}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleApplyReschedule}
+                  disabled={isApplyRescheduleDisabled}
+                  title={
+                    isApplyRescheduleDisabled
+                      ? 'Escolha nova data/hora e simule o impacto com a configuração atual para habilitar a aplicação da remarcação.'
+                      : 'Aplicar remarcação'
+                  }
+                  style={{
+                    ...styles.rescheduleApplyButton,
+                    ...(isApplyRescheduleDisabled ? styles.rescheduleApplyButtonDisabled : {}),
+                  }}
+                >
+                  {rescheduling ? 'Aplicando...' : 'Aplicar remarcação'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -834,10 +810,77 @@ const styles = {
     borderRadius: '10px',
     border: '1px solid #e3e5e8',
   },
+  spinner: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    border: '3px solid #dbe3ef',
+    borderTop: '3px solid #4f46e5',
+    marginBottom: '10px',
+  },
+  content: {
+    width: '100%',
+    maxWidth: '1160px',
+    margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '16px',
+  },
+  backLink: {
+    width: 'fit-content',
+    border: '1px solid #cbd5e1',
+    background: '#fff',
+    color: '#334155',
+    borderRadius: '8px',
+    padding: '8px 12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  mainCard: {
+    background: 'white',
+    borderRadius: '12px',
+    padding: '24px',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '14px',
+  },
+  mainCardMobile: {
+    padding: '18px',
+  },
+  sectionTitle: {
+    margin: 0,
+    fontSize: '20px',
+    color: '#1f2937',
+  },
+  gameTitleInline: {
+    margin: 0,
+    fontSize: '24px',
+    color: '#111827',
+    lineHeight: 1.2,
+  },
+  purchasePanel: {
+    marginTop: '20px',
+    padding: '16px',
+    borderRadius: '10px',
+    border: '1px solid #d5dbe5',
+    background: '#f9fbff',
+  },
   modeButtons: {
     display: 'flex',
     gap: '10px',
     marginBottom: '12px',
+  },
+  purchaseButton: {
+    marginTop: '10px',
+    border: '1px solid #16a34a',
+    background: '#16a34a',
+    color: '#fff',
+    borderRadius: '8px',
+    padding: '10px 14px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    width: 'fit-content',
   },
   modeButtonsMobile: {
     flexDirection: 'column' as const,
@@ -1054,12 +1097,13 @@ const styles = {
   },
   rescheduleActions: {
     display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap' as const,
+    flexDirection: 'column' as const,
+    gap: '10px',
+    alignItems: 'flex-start',
   },
   rescheduleSimulateButton: {
-    marginTop: '2px',
-    marginBottom: '10px',
+    marginTop: 0,
+    marginBottom: 0,
     width: 'fit-content',
     border: '1px solid #cbd5e1',
     background: '#fff',
@@ -1077,7 +1121,7 @@ const styles = {
     cursor: 'not-allowed',
   },
   rescheduleApplyButton: {
-    marginTop: '10px',
+    marginTop: 0,
     width: 'fit-content',
     border: '1px solid #4f46e5',
     background: '#4f46e5',
@@ -1088,18 +1132,19 @@ const styles = {
     cursor: 'pointer',
   },
   rescheduleApplyButtonDisabled: {
-    background: '#cbd5e1',
-    border: '1px solid #cbd5e1',
+    background: '#e2e8f0',
+    border: '1px solid #e2e8f0',
     color: '#64748b',
-    opacity: 0.75,
+    opacity: 0.8,
     cursor: 'not-allowed',
   },
   reschedulePreviewBox: {
-    marginTop: '12px',
+    marginTop: 0,
     padding: '10px',
     borderRadius: '8px',
     background: '#eef2ff',
     border: '1px solid #c7d2fe',
+    alignSelf: 'stretch',
   },
   reschedulePreviewLine: {
     margin: 0,
