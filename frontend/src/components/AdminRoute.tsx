@@ -47,7 +47,7 @@ export const AdminRoute: React.FC<ProtectedRouteProps> = ({
       // Determinar para onde redirecionar baseado no tipo de usuário
       if (userRole === 'admin_site' || userRole === 'super_admin') {
         redirectPath = '/admin-site/dashboard';
-      } else if (['admin_paroquia', 'paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo'].includes(userRole)) {
+      } else if (['admin_paroquia', 'paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo', 'usuario_administrativo', 'usuario_administrador'].includes(userRole)) {
         redirectPath = '/admin-paroquia/dashboard';
       } else {
         redirectPath = '/dashboard';
@@ -86,7 +86,7 @@ export const SuperAdminRoute: React.FC<{ children: React.ReactElement }> = ({ ch
 export const ParishAdminRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   return (
     <AdminRoute 
-      allowedRoles={['admin_paroquia', 'paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo']}
+      allowedRoles={['admin_paroquia', 'paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo', 'usuario_administrativo', 'usuario_administrador']}
       redirectTo="/admin-paroquia/login"
     >
       {children}

@@ -9,6 +9,8 @@ interface ContactModuleProps {
   required?: boolean;
   disabled?: boolean;
   label?: string;
+  dddAriaLabel?: string;
+  phoneAriaLabel?: string;
 }
 
 export const sanitizePhoneLocal = (value: string): string => value.replace(/\D/g, '').slice(0, 10);
@@ -28,6 +30,8 @@ const ContactModule: React.FC<ContactModuleProps> = ({
   required = false,
   disabled = false,
   label = 'Telefone (SMS/WhatsApp)',
+  dddAriaLabel = 'DDD',
+  phoneAriaLabel = 'Telefone (SMS/WhatsApp)',
 }) => {
   return (
     <div className="mb-3">
@@ -36,7 +40,7 @@ const ContactModule: React.FC<ContactModuleProps> = ({
         <div className="col-md-4">
           <select
             className="form-select"
-            aria-label="DDD"
+            aria-label={dddAriaLabel}
             value={ddd}
             onChange={(e) => onDddChange(e.target.value)}
             disabled={disabled}
@@ -54,7 +58,7 @@ const ContactModule: React.FC<ContactModuleProps> = ({
           <input
             type="tel"
             className="form-control"
-            aria-label="Telefone (SMS/WhatsApp)"
+            aria-label={phoneAriaLabel}
             value={telefone}
             onChange={(e) => onTelefoneChange(sanitizePhoneLocal(e.target.value), e.target.value)}
             placeholder="Número"

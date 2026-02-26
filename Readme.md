@@ -49,7 +49,7 @@ O sistema divide automaticamente a arrecadação em **4 partes configuráveis**:
 - 💰 **Prêmio** (quanto vai para o vencedor)
 - ⛪ **Paróquia** (arrecadação para a igreja)
 - 💻 **Operação/TI** (manutenção do sistema)
-- 🚀 **Evolução** (melhorias futuras)
+- 🛡️ **Seguro Operacional** (reserva para custos inesperados, revisão de código e documentação)
 
 #### 4️⃣ **Fuso Horário Oficial (Fortaleza-CE)**
 Todos os registros usam o **fuso horário de Fortaleza** como única fonte de verdade. Isso elimina manipulações de horário e garante sincronização perfeita.
@@ -446,10 +446,10 @@ http://localhost:8000/docs
   "titulo": "Bingo da Festa Junina 2026",
   "descricao": "Bingo beneficente para reforma da capela",
   "valor_cartela": 10.00,
-  "rateio_premio": 40.0,
-  "rateio_paroquia": 35.0,
+   "rateio_premio": 50.0,
+   "rateio_paroquia": 30.0,
   "rateio_operacao": 15.0,
-  "rateio_evolucao": 10.0,
+   "rateio_evolucao": 5.0,
   "inicio_vendas": "2026-06-20T08:00:00",
   "fim_vendas": "2026-06-24T17:59:00",
   "horario_sorteio": "2026-06-24T19:00:00"
@@ -460,10 +460,10 @@ http://localhost:8000/docs
 
 - **titulo**: Nome do bingo (ex: "Bingo da Festa Junina")
 - **valor_cartela**: Preço de cada cartela em R$ (ex: 10.00)
-- **rateio_premio**: % que vai para o prêmio (ex: 40%)
-- **rateio_paroquia**: % que fica na paróquia (ex: 35%)
-- **rateio_operacao**: % para manutenção do sistema (ex: 15%)
-- **rateio_evolucao**: % para melhorias futuras (ex: 10%)
+- **rateio_premio**: % que vai para o prêmio (**mínimo 49%**)
+- **rateio_paroquia**: % que fica na paróquia (ex: 30%)
+- **rateio_operacao**: % para operação/manutenção do sistema (**mínimo 1/3 do rateio_paroquia**)
+- **rateio_evolucao**: % para **seguro operacional** (custos inesperados, revisão de código e documentação) (**mínimo 1%**)
 - ⚠️ **IMPORTANTE:** A soma dos rateios deve ser **100%**
 
 6. Clique em **"Execute"**

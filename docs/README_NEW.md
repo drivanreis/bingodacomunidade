@@ -141,7 +141,10 @@ bingodacomunidade/
 3. Preencha:
    - Título, descrição e data
    - Valor da cartela
-   - Rateio financeiro (deve somar 100%)
+  - Rateio financeiro (deve somar 100%)
+    - Prêmio: mínimo 49%
+    - Operação: mínimo 1/3 do percentual da Paróquia
+    - Seguro Operacional (campo técnico `evolution_percent`): mínimo 1%
    - Limite de cartelas (opcional)
 4. Publique o jogo
 5. Acompanhe as vendas e participantes

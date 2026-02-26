@@ -50,6 +50,7 @@
 |-----------|-----------|---------|
 | [DOCKER_QUICKSTART.md](DOCKER_QUICKSTART.md) | Guia rápido Docker (backend) | 🐳 DevOps |
 | [INTEGRACAO_FRONTEND_DOCKER.md](INTEGRACAO_FRONTEND_DOCKER.md) | Arquitetura completa 3 containers | 🎨 Full-Stack |
+| [BACKUP_JOGOS_CARTELAS.md](BACKUP_JOGOS_CARTELAS.md) | **Procedimento de lock, snapshot e backup no encerramento de jogos** | 🛡️ DevOps/Operação |
 | [backend/README_DOCKER.md](backend/README_DOCKER.md) | Detalhes do container backend | 🐍 Backend Dev |
 | [docker-compose.yml](docker-compose.yml) | Orquestração dos containers | ⚙️ Config |
 
@@ -61,6 +62,9 @@
 |-----------|-----------|---------|
 | [Dev. Guide.md](Dev.%20Guide.md) | Guia completo de desenvolvimento | 👨‍💻 Dev |
 | [COMO_USAR.md](COMO_USAR.md) | Como usar o sistema (usuário final) | 👤 Usuários |
+| [BINGO_REAL_PARA_DIGITAL.md](BINGO_REAL_PARA_DIGITAL.md) | **Fluxo oficial: bingo real adaptado ao digital (carrinho, fechamento e sorteio)** | 🎱 Produto/Operação |
+| [JOGO_E_CARTELA_GUIA_OFICIAL.md](JOGO_E_CARTELA_GUIA_OFICIAL.md) | **Guia oficial: quem cria jogo, quem cria cartela e regras de negócio** | 🎯 Produto/Operação/Dev |
+| [CARTELA_BINGO.md](CARTELA_BINGO.md) | **Referência consolidada para criação/compra de cartela** | 🎫 Produto/Backend/Frontend |
 | [DIRETRIZES_ESTILO_IDENTIDADE_VISUAL.md](DIRETRIZES_ESTILO_IDENTIDADE_VISUAL.md) | **Diretriz oficial de branding multi-tenant e mobile-first** | 🎨 Produto/UX |
 | [DIRETRIZES_COMUNICACAO_E_CONTATOS.md](DIRETRIZES_COMUNICACAO_E_CONTATOS.md) | **Regra oficial de comunicação: nome + e-mail + telefone (DDD)** | 📣 Produto/Operação |
 

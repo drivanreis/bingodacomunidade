@@ -54,7 +54,7 @@ const AdminParoquiaLogin: React.FC = () => {
       const { access_token, usuario } = response.data;
 
       // Verificar se é administrador paroquial
-      const paroquialRoles = ['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo'];
+      const paroquialRoles = ['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo', 'usuario_administrativo', 'usuario_administrador'];
       const tipoUsuario = (usuario?.tipo || '').toString().toLowerCase();
       const nivelAcesso = (usuario?.nivel_acesso || '').toString().toLowerCase();
       if (nivelAcesso !== 'admin_paroquia' && !paroquialRoles.includes(tipoUsuario)) {

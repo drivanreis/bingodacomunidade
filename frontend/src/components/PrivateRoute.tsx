@@ -8,6 +8,8 @@ interface PrivateRouteProps {
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  const persistedToken = localStorage.getItem('@BingoComunidade:token');
+  const hasAuthenticatedSession = isAuthenticated || !!persistedToken;
 
   if (loading) {
     return (
@@ -18,7 +20,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
     );
   }
 
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  return hasAuthenticatedSession ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
 const styles = {

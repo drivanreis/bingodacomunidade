@@ -111,6 +111,9 @@ api.interceptors.response.use(
         } else if (typeof detail === 'string') {
           errorMessage = detail;
         }
+      } else if (detail && typeof detail === 'object') {
+        const personaDetail = detail as { leigo?: string; medio?: string; message?: string };
+        errorMessage = personaDetail.leigo || personaDetail.medio || personaDetail.message || `Erro ${status}: Não foi possível processar sua solicitação.`;
       } else if (detail && typeof detail === 'string') {
         // Outros erros com mensagem clara do backend (400, 403, 404...)
         errorMessage = detail;

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import ContactModule, { buildBrazilContact, isBrazilContactValid } from '../components/form/ContactModule';
+import { buildBrazilContact, isBrazilContactValid } from '../components/form/ContactModule';
+import PhoneModule from '../components/form/PhoneModule';
+import WhatsAppModule from '../components/form/WhatsAppModule';
 import PasswordField from '../components/form/PasswordField';
 import AdminIdentityHeader from '../components/AdminIdentityHeader';
 
@@ -23,8 +25,10 @@ interface CreateAdminSiteForm {
   nome: string;
   email: string;
   cpf: string;
-  ddd: string;
-  telefone: string;
+  telefoneDdd: string;
+  telefoneNumero: string;
+  whatsappDdd: string;
+  whatsappNumero: string;
   senhaTemporaria: string;
   confirmarSenhaTemporaria: string;
 }
@@ -33,8 +37,10 @@ const INITIAL_FORM: CreateAdminSiteForm = {
   nome: '',
   email: '',
   cpf: '',
-  ddd: '',
-  telefone: '',
+  telefoneDdd: '',
+  telefoneNumero: '',
+  whatsappDdd: '',
+  whatsappNumero: '',
   senhaTemporaria: '',
   confirmarSenhaTemporaria: '',
 };
@@ -143,7 +149,7 @@ const AdminUsers: React.FC = () => {
       return;
     }
 
-    if (!formData.email || !isBrazilContactValid(formData.ddd, formData.telefone)) {
+    if (!formData.email || !isBrazilContactValid(formData.telefoneDdd, formData.telefoneNumero)) {
       alert('Preencha e-mail, DDD e telefone válido (9 ou 10 dígitos)');
       return;
     }
@@ -163,7 +169,10 @@ const AdminUsers: React.FC = () => {
       return;
     }
 
-    const contato = buildBrazilContact(formData.ddd, formData.telefone);
+    const telefone = buildBrazilContact(formData.telefoneDdd, formData.telefoneNumero);
+    const whatsapp = isBrazilContactValid(formData.whatsappDdd, formData.whatsappNumero)
+      ? buildBrazilContact(formData.whatsappDdd, formData.whatsappNumero)
+      : telefone;
 
     try {
       setSaving(true);
@@ -171,8 +180,8 @@ const AdminUsers: React.FC = () => {
         nome: formData.nome.trim(),
         email: formData.email.trim(),
         cpf: normalizeCpf(formData.cpf),
-        telefone: contato,
-        whatsapp: contato,
+        telefone,
+        whatsapp,
         senha: formData.senhaTemporaria,
       });
 
@@ -473,12 +482,19 @@ const AdminUsers: React.FC = () => {
                     />
                   </div>
 
-                  <ContactModule
-                    ddd={formData.ddd}
-                    telefone={formData.telefone}
-                    onDddChange={(value) => setFormData((prev) => ({ ...prev, ddd: value }))}
-                    onTelefoneChange={(value) => setFormData((prev) => ({ ...prev, telefone: value }))}
+                  <PhoneModule
+                    ddd={formData.telefoneDdd}
+                    telefone={formData.telefoneNumero}
+                    onDddChange={(value) => setFormData((prev) => ({ ...prev, telefoneDdd: value }))}
+                    onTelefoneChange={(value) => setFormData((prev) => ({ ...prev, telefoneNumero: value }))}
                     required
+                  />
+
+                  <WhatsAppModule
+                    ddd={formData.whatsappDdd}
+                    telefone={formData.whatsappNumero}
+                    onDddChange={(value) => setFormData((prev) => ({ ...prev, whatsappDdd: value }))}
+                    onTelefoneChange={(value) => setFormData((prev) => ({ ...prev, whatsappNumero: value }))}
                   />
 
                   <div className="row g-2">

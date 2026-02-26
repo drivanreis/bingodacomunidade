@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import FloatingCart from '../components/FloatingCart';
 
 const SendFeedback: React.FC = () => {
   const navigate = useNavigate();
@@ -77,6 +78,7 @@ const SendFeedback: React.FC = () => {
   };
 
   return (
+    <>
     <div className="container mt-4">
       <div className="row justify-content-center">
         <div className="col-md-8">
@@ -275,6 +277,8 @@ const SendFeedback: React.FC = () => {
         </div>
       </div>
     </div>
+    <FloatingCart />
+    </>
   );
 };
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import ContactModule from '../components/form/ContactModule';
+import FloatingCart from '../components/FloatingCart';
 import { getDddCpfMismatchWarning, isValidBrazilDdd } from '../utils/dddUf';
 
 const Profile: React.FC = () => {
@@ -540,6 +541,7 @@ const Profile: React.FC = () => {
         </>
         )}
       </div>
+      <FloatingCart />
     </div>
   );
 };

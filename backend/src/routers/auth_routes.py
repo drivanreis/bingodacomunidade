@@ -75,6 +75,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
+
+def normalize_fortaleza_datetime(value):
+    if not value:
+        return value
+    if value.tzinfo is None:
+        return FORTALEZA_TZ.localize(value)
+    return value.astimezone(FORTALEZA_TZ)
+
 # --- BLOQUEIO GLOBAL POR BOOTSTRAP EXPIRADO ---
 def check_bootstrap_block(db: Session):
     bootstrap = db.query(UsuarioAdministrativo).filter(
@@ -1029,7 +1037,8 @@ def login_admin_paroquia(request: AdminParoquiaLoginRequest, db: Session = Depen
         # Validar bloqueio por tentativas
         if admin.bloqueado_ate:
             agora = get_fortaleza_time()
-            if agora < admin.bloqueado_ate:
+            bloqueado_ate = normalize_fortaleza_datetime(admin.bloqueado_ate)
+            if bloqueado_ate and agora < bloqueado_ate:
                 logger.warning(f"❌ Login admin bloqueado: tentativas ({admin.id})")
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -1069,6 +1078,8 @@ def login_admin_paroquia(request: AdminParoquiaLoginRequest, db: Session = Depen
                 detail={
                     "message": "Troca obrigatória de senha temporária antes do acesso",
                     "needs_password_change": True,
+                    "senha_temporaria": True,
+                    "trocar_senha_proximo_login": True,
                     "nivel_acesso": "admin_paroquia",
                     "login_hint": admin.login,
                 }
@@ -1167,7 +1178,8 @@ def login_admin_site(request: AdminSiteLoginRequest, db: Session = Depends(get_d
         # Validar bloqueio por tentativas
         if admin.bloqueado_ate:
             agora = get_fortaleza_time()
-            if agora < admin.bloqueado_ate:
+            bloqueado_ate = normalize_fortaleza_datetime(admin.bloqueado_ate)
+            if bloqueado_ate and agora < bloqueado_ate:
                 logger.warning(f"❌ Login admin-site bloqueado: tentativas ({admin.id})")
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -1207,6 +1219,8 @@ def login_admin_site(request: AdminSiteLoginRequest, db: Session = Depends(get_d
                 detail={
                     "message": "Troca obrigatória de senha temporária antes do acesso",
                     "needs_password_change": True,
+                    "senha_temporaria": True,
+                    "trocar_senha_proximo_login": True,
                     "nivel_acesso": "admin_site",
                     "login_hint": admin.login,
                 }
@@ -1507,6 +1521,8 @@ def criar_admin_site(
             "cpf": novo_admin.cpf,
             "email_sent": False,
             "credential_delivery": "manual",
+            "senha_temporaria": True,
+            "trocar_senha_proximo_login": True,
             "ativo": bool(novo_admin.ativo),
         }
         
@@ -1569,6 +1585,8 @@ def listar_admins_site(
                     "criado_por_id": a.criado_por_id,
                     "criado_em": a.criado_em.isoformat() if a.criado_em else None,
                     "is_current": a.id == admin_atual.id,
+                    "senha_temporaria": bool(pending_map.get(a.id, False)),
+                    "trocar_senha_proximo_login": bool(pending_map.get(a.id, False)),
                     "can_resend_initial_password": bool(pending_map.get(a.id, False)),
                 }
                 for _, a in admins_any
@@ -1886,6 +1904,8 @@ def reenviar_senha_admin_site(
             "message": "Senha temporária reenviada com sucesso por e-mail",
             "admin_id": admin_alvo.id,
             "email_sent": True,
+            "senha_temporaria": True,
+            "trocar_senha_proximo_login": True,
         }
 
     except HTTPException:
@@ -2000,7 +2020,9 @@ def criar_admin_paroquia(
             "admin_id": novo_admin.id,
             "login": novo_admin.login,
             "paroquia_id": paroquia.id,
-            "paroquia_nome": paroquia.nome
+            "paroquia_nome": paroquia.nome,
+            "senha_temporaria": True,
+            "trocar_senha_proximo_login": True,
         }
         
     except HTTPException:
@@ -2110,7 +2132,9 @@ def admin_paroquia_criar_subordinado(
             "message": "Administrador paroquial subordinado criado com sucesso",
             "admin_id": novo_admin.id,
             "login": novo_admin.login,
-            "criado_por": admin_atual.login
+            "criado_por": admin_atual.login,
+            "senha_temporaria": True,
+            "trocar_senha_proximo_login": True,
         }
         
     except HTTPException:

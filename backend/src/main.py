@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 import traceback
 import logging
+import os
 from typing import Dict
 
 from src.db.base import get_db, verify_connection, init_db, SessionLocal
@@ -27,6 +28,7 @@ from src.utils.time_manager import get_fortaleza_time
 # Importar routers
 from src.routers.auth_routes import router as auth_router
 from src.routers.admin_routes import router as admin_router
+from src.routers.games_routes import router as games_router
 
 # ============================================================================
 # CONFIGURAÇÃO DE LOGGING
@@ -68,6 +70,26 @@ app = FastAPI(
 )
 
 
+def _build_allowed_origins() -> list[str]:
+    default_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
+    raw = os.getenv("CORS_ORIGINS", "")
+    if not raw.strip():
+        return default_origins
+
+    env_origins: list[str] = []
+    for item in raw.split(","):
+        cleaned = item.strip().strip('"').strip("'")
+        if cleaned:
+            env_origins.append(cleaned)
+
+    combined = default_origins + env_origins
+    return list(dict.fromkeys(combined))
+
+
 # ============================================================================
 # MIDDLEWARE CORS - LIBERADO PARA TESTES
 # ============================================================================
@@ -75,7 +97,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Libera todas as origens (apenas para desenvolvimento!)
+    allow_origins=_build_allowed_origins(),
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],  # Libera todos os métodos (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],  # Libera todos os headers
@@ -104,8 +127,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "detail": "Erro interno do servidor. O administrador foi notificado.",
             "type": "INTERNAL_ERROR",
-            # Mensagem técnica apenas incluída porque estamos em ambiente de testes/homologação
-            "debug_error": error_msg 
         }
     )
 
@@ -177,6 +198,7 @@ async def shutdown_event():
 # Incluir router de autenticação (novo sistema com UsuarioComum + UsuarioAdministrativo)
 app.include_router(auth_router)
 app.include_router(admin_router)
+app.include_router(games_router)
 
 
 # ============================================================================
@@ -219,7 +241,7 @@ async def health_check(db: Session = Depends(get_db)) -> Dict[str, str]:
         return {
             "status": "unhealthy",
             "database": "disconnected",
-            "error": str(e)
+            "error": "internal_error"
         }
 
 

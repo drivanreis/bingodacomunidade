@@ -140,7 +140,7 @@ Cada bingo define sua própria regra, por exemplo:
 | Prêmio | 25% |
 | Paróquia | 25% |
 | Operação / TI | 25% |
-| Direitos & Evolução | 25% |
+| Seguro Operacional | 25% |
 
 ---
 

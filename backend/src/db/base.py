@@ -9,7 +9,7 @@ Módulo responsável por:
 """
 
 from typing import Generator
-from sqlalchemy import create_engine, event, text
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool
@@ -158,6 +158,27 @@ def init_db() -> None:
     
     # Cria todas as tabelas
     Base.metadata.create_all(bind=engine)
+
+    # Compatibilidade com bancos legados sem migrations completas
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+
+    if 'sorteios' in table_names:
+        sorteios_cols = {col['name'] for col in inspector.get_columns('sorteios')}
+        if 'max_cards' not in sorteios_cols:
+            with engine.begin() as conn:
+                conn.execute(text('ALTER TABLE sorteios ADD COLUMN max_cards INTEGER'))
+            print("✓ Migração automática aplicada: coluna sorteios.max_cards")
+
+    if 'cartelas' in table_names:
+        cartelas_cols = {col['name'] for col in inspector.get_columns('cartelas')}
+        missing_card_cols = [f'n{i}' for i in range(1, 25) if f'n{i}' not in cartelas_cols]
+        if missing_card_cols:
+            with engine.begin() as conn:
+                for col in missing_card_cols:
+                    conn.execute(text(f'ALTER TABLE cartelas ADD COLUMN {col} CHAR(2)'))
+            print(f"✓ Migração automática aplicada: colunas cartelas ({', '.join(missing_card_cols)})")
+
     print("✓ Banco de dados inicializado com sucesso")
 
 

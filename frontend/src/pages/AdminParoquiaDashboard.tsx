@@ -6,10 +6,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { UF_OPTIONS } from '../utils/dddUf';
 import { getHumanRoleLabel } from '../utils/userRoles';
+
+interface DashboardLocationState {
+  gameCreated?: boolean;
+  createdGameTitle?: string;
+}
 
 interface User {
   id: string;
@@ -17,29 +21,63 @@ interface User {
   login?: string;
   email: string;
   tipo: string;
+  nivel_acesso?: string;
   paroquia_id: string;
 }
 
+const normalizeRole = (value: unknown): string => {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+};
+
 const AdminParoquiaDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState({
-    jogosAtivos: 0,
+    jogos: 0,
     jogosFinalizados: 0,
     totalVendas: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [allowedUfs, setAllowedUfs] = useState<string[]>([]);
-  const [ufConfigLoading, setUfConfigLoading] = useState(false);
-  const [ufConfigSaving, setUfConfigSaving] = useState(false);
-  const [ufConfigMessage, setUfConfigMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const normalizedTipo = normalizeRole(user?.tipo);
+  const normalizedNivelAcesso = normalizeRole(user?.nivel_acesso);
+  const canViewAdminSection = normalizedNivelAcesso === 'admin_paroquia' || [
+    'paroquia_admin',
+    'paroquia_caixa',
+    'paroquia_recepcao',
+    'paroquia_bingo',
+    'usuario_administrativo',
+    'usuario_administrador',
+  ].includes(normalizedTipo);
 
   useEffect(() => {
     loadUserData();
     loadStats();
-    loadSignupUfConfig();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const state = location.state as DashboardLocationState | null;
+    if (!state?.gameCreated) {
+      return;
+    }
+
+    const title = (state.createdGameTitle || '').trim();
+    const baseMessage = title
+      ? `✅ Jogo "${title}" criado com sucesso!`
+      : '✅ Jogo criado com sucesso!';
+
+    setSuccessMessage(`${baseMessage} Ele já está disponível em “Jogos”.`);
+    navigate(location.pathname, { replace: true });
+  }, [location.pathname, location.state, navigate]);
 
   const loadUserData = () => {
     const storedUser = localStorage.getItem('@BingoComunidade:user');
@@ -47,8 +85,10 @@ const AdminParoquiaDashboard: React.FC = () => {
       const userData = JSON.parse(storedUser);
       
       // VERIFICAÇÃO DE SEGURANÇA
-      const paroquialRoles = ['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo'];
-      if (!paroquialRoles.includes(userData.tipo)) {
+      const paroquialRoles = ['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo', 'usuario_administrativo', 'usuario_administrador'];
+      const tipoUsuario = (userData?.tipo || '').toString().toLowerCase();
+      const nivelAcesso = (userData?.nivel_acesso || '').toString().toLowerCase();
+      if (nivelAcesso !== 'admin_paroquia' && !paroquialRoles.includes(tipoUsuario)) {
         alert('❌ Acesso negado! Esta área é exclusiva para administradores paroquiais.');
         navigate('/');
         return;
@@ -62,73 +102,33 @@ const AdminParoquiaDashboard: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      // TODO: Implementar endpoints de estatísticas
+      const response = await api.get('/games');
+      const games = Array.isArray(response.data) ? response.data : [];
+
+      const normalizeStatus = (status: unknown) => String(status || '').trim().toLowerCase();
+      const isActiveStatus = (status: string) => status === 'active' || status === 'em_andamento';
+      const isScheduledStatus = (status: string) => status === 'scheduled' || status === 'agendado';
+      const isFinishedStatus = (status: string) => status === 'finished' || status === 'finalizado';
+
+      const jogos = games.filter((game: any) => {
+        const status = normalizeStatus(game?.status);
+        return isActiveStatus(status) || isScheduledStatus(status);
+      }).length;
+      const jogosFinalizados = games.filter((game: any) => isFinishedStatus(normalizeStatus(game?.status))).length;
+      const totalVendas = games.reduce((acc: number, game: any) => {
+        const value = Number(game?.total_arrecadado ?? 0);
+        return acc + (Number.isFinite(value) ? value : 0);
+      }, 0);
+
       setStats({
-        jogosAtivos: 0,
-        jogosFinalizados: 0,
-        totalVendas: 0,
+        jogos,
+        jogosFinalizados,
+        totalVendas,
       });
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadSignupUfConfig = async () => {
-    try {
-      setUfConfigLoading(true);
-      const response = await api.get('/configuracoes');
-      const config = response.data.find((item: { chave: string; valor: string }) => item.chave === 'signup_ufs_permitidas');
-
-      if (!config || !config.valor || config.valor === 'ALL') {
-        setAllowedUfs(UF_OPTIONS.map((item) => item.uf));
-        return;
-      }
-
-      const ufs = String(config.valor)
-        .split(',')
-        .map((value) => value.trim().toUpperCase())
-        .filter(Boolean);
-
-      setAllowedUfs(ufs);
-    } catch {
-      setAllowedUfs(UF_OPTIONS.map((item) => item.uf));
-    } finally {
-      setUfConfigLoading(false);
-    }
-  };
-
-  const toggleAllowedUf = (uf: string) => {
-    setAllowedUfs((current) => {
-      if (current.includes(uf)) {
-        return current.filter((item) => item !== uf);
-      }
-
-      return [...current, uf];
-    });
-  };
-
-  const saveSignupUfConfig = async () => {
-    if (allowedUfs.length === 0) {
-      setUfConfigMessage('Selecione pelo menos 1 estado permitido.');
-      return;
-    }
-
-    try {
-      setUfConfigSaving(true);
-      const allSelected = allowedUfs.length === UF_OPTIONS.length;
-      const valor = allSelected ? 'ALL' : [...allowedUfs].sort().join(',');
-
-      await api.put('/configuracoes/signup_ufs_permitidas', null, {
-        params: { valor },
-      });
-
-      setUfConfigMessage('Configuração de estados permitidos salva com sucesso.');
-    } catch {
-      setUfConfigMessage('Não foi possível salvar a configuração de estados permitidos.');
-    } finally {
-      setUfConfigSaving(false);
     }
   };
 
@@ -173,12 +173,18 @@ const AdminParoquiaDashboard: React.FC = () => {
       </div>
 
       {/* STATS CARDS */}
+      {successMessage && (
+        <div style={styles.successBanner}>
+          <span>{successMessage}</span>
+        </div>
+      )}
+
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
           <div style={styles.statIcon}>🎉</div>
           <div style={styles.statContent}>
-            <span style={styles.statValue}>{stats.jogosAtivos}</span>
-            <span style={styles.statLabel}>Jogos Ativos</span>
+            <span style={styles.statValue}>{stats.jogos}</span>
+            <span style={styles.statLabel}>Jogos</span>
           </div>
         </div>
 
@@ -203,37 +209,31 @@ const AdminParoquiaDashboard: React.FC = () => {
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>🎯 Ações Rápidas</h2>
         <div style={styles.actionsGrid}>
-          <button style={styles.actionCard} onClick={() => alert('Em desenvolvimento')}>
-            <div style={styles.actionIcon}>➕</div>
-            <h3 style={styles.actionTitle}>Criar Novo Jogo</h3>
-            <p style={styles.actionDesc}>Agendar um novo bingo</p>
-          </button>
-
-          <button style={styles.actionCard} onClick={() => alert('Em desenvolvimento')}>
+          <button style={styles.actionCard} onClick={() => navigate('/games')}>
             <div style={styles.actionIcon}>🎉</div>
-            <h3 style={styles.actionTitle}>Jogos Ativos</h3>
-            <p style={styles.actionDesc}>Ver e gerenciar jogos em andamento</p>
+            <h3 style={styles.actionTitle}>Jogos</h3>
+            <p style={styles.actionDesc}>Ver e gerenciar jogos em andamento e futuros</p>
           </button>
 
-          <button style={styles.actionCard} onClick={() => alert('Em desenvolvimento')}>
+          <button style={styles.actionCard} onClick={() => navigate('/games')}>
             <div style={styles.actionIcon}>💳</div>
             <h3 style={styles.actionTitle}>Controle de Caixa</h3>
             <p style={styles.actionDesc}>Gerenciar vendas e pagamentos</p>
           </button>
 
-          <button style={styles.actionCard} onClick={() => alert('Em desenvolvimento')}>
+          <button style={styles.actionCard} onClick={() => navigate('/games')}>
             <div style={styles.actionIcon}>📊</div>
             <h3 style={styles.actionTitle}>Relatórios</h3>
             <p style={styles.actionDesc}>Estatísticas da paróquia</p>
           </button>
 
-          <button style={styles.actionCard} onClick={() => alert('Em desenvolvimento')}>
+          <button style={styles.actionCard} onClick={() => navigate('/games')}>
             <div style={styles.actionIcon}>🎫</div>
             <h3 style={styles.actionTitle}>Cartelas</h3>
             <p style={styles.actionDesc}>Gerenciar cartelas vendidas</p>
           </button>
 
-          <button style={styles.actionCard} onClick={() => alert('Em desenvolvimento')}>
+          <button style={styles.actionCard} onClick={() => navigate('/games')}>
             <div style={styles.actionIcon}>👥</div>
             <h3 style={styles.actionTitle}>Participantes</h3>
             <p style={styles.actionDesc}>Lista de fiéis cadastrados</p>
@@ -242,66 +242,21 @@ const AdminParoquiaDashboard: React.FC = () => {
       </div>
 
       {/* ROLE-SPECIFIC ACTIONS */}
-      {user?.tipo === 'paroquia_admin' && (
+      {canViewAdminSection && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>🔧 Administração</h2>
           <div style={styles.actionsGrid}>
-            <button style={styles.actionCard} onClick={() => alert('Em desenvolvimento')}>
+            <button style={styles.actionCard} onClick={() => navigate('/admin-paroquia/configuracoes')}>
               <div style={styles.actionIcon}>⚙️</div>
               <h3 style={styles.actionTitle}>Configurações</h3>
               <p style={styles.actionDesc}>Configurar paróquia e rateios</p>
             </button>
 
-            <button style={styles.actionCard} onClick={() => alert('Em desenvolvimento')}>
+            <button style={styles.actionCard} onClick={() => navigate('/admin-paroquia/usuarios')}>
               <div style={styles.actionIcon}>👤</div>
               <h3 style={styles.actionTitle}>Usuários</h3>
               <p style={styles.actionDesc}>Gerenciar equipe paroquial</p>
             </button>
-          </div>
-
-          <div style={styles.ufConfigCard}>
-            <h3 style={styles.ufConfigTitle}>Cadastro Público por Estado</h3>
-            <p style={styles.ufConfigDescription}>
-              Marque os estados (UF) permitidos para cadastro de Usuário Comum nesta paróquia.
-            </p>
-
-            {ufConfigLoading ? (
-              <p style={styles.ufConfigHint}>Carregando configuração de UFs...</p>
-            ) : (
-              <>
-                <div style={styles.ufCheckboxGrid}>
-                  {UF_OPTIONS.map((item) => (
-                    <label key={item.uf} style={styles.ufCheckboxLabel}>
-                      <input
-                        type="checkbox"
-                        checked={allowedUfs.includes(item.uf)}
-                        onChange={() => toggleAllowedUf(item.uf)}
-                        disabled={ufConfigSaving}
-                      />
-                      <span>{item.label}</span>
-                    </label>
-                  ))}
-                </div>
-
-                <div style={styles.ufConfigActions}>
-                  <button
-                    onClick={saveSignupUfConfig}
-                    style={styles.ufSaveButton}
-                    disabled={ufConfigSaving}
-                  >
-                    {ufConfigSaving ? 'Salvando...' : 'Salvar Estados Permitidos'}
-                  </button>
-                </div>
-
-                <p style={styles.ufConfigHint}>
-                  Exemplo regional: para priorizar Nordeste interior, selecione CE, PB, RN e PI.
-                </p>
-
-                {ufConfigMessage && (
-                  <p style={styles.ufConfigMessage}>{ufConfigMessage}</p>
-                )}
-              </>
-            )}
           </div>
         </div>
       )}
@@ -320,121 +275,133 @@ const AdminParoquiaDashboard: React.FC = () => {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: '#f5f5f5',
-    padding: '0',
+    background: '#f5f6fa',
   } as React.CSSProperties,
   loadingContainer: {
-    minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column' as const,
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: '20px',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    color: '#334155',
+    gap: '10px',
   },
   spinner: {
-    fontSize: '48px',
-    animation: 'spin 2s linear infinite',
+    fontSize: '28px',
   },
   header: {
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     color: 'white',
-    padding: '30px 40px',
+    padding: '18px 28px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+    gap: '14px',
+    flexWrap: 'wrap' as const,
   } as React.CSSProperties,
   headerLeft: {
-    flex: 1,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '4px',
+  },
+  title: {
+    margin: 0,
+    fontSize: '36px',
+    lineHeight: 1.1,
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    margin: 0,
+    fontSize: '16px',
+    opacity: 0.95,
   },
   headerRight: {
     display: 'flex',
     alignItems: 'center',
-    gap: '20px',
+    gap: '12px',
   } as React.CSSProperties,
-  title: {
-    fontSize: '28px',
-    fontWeight: 'bold',
-    margin: '0 0 5px 0',
-  },
-  subtitle: {
-    fontSize: '14px',
-    opacity: 0.9,
-    margin: 0,
-  },
   userInfo: {
     display: 'flex',
     flexDirection: 'column' as const,
     alignItems: 'flex-end',
-    gap: '5px',
+    gap: '2px',
   },
   userName: {
-    fontSize: '16px',
     fontWeight: 'bold',
+    fontSize: '14px',
   },
   userRole: {
     fontSize: '12px',
-    opacity: 0.8,
+    opacity: 0.85,
   },
   logoutButton: {
-    padding: '10px 20px',
-    background: 'rgba(255,255,255,0.2)',
-    border: '2px solid white',
-    borderRadius: '8px',
+    border: '1px solid rgba(255,255,255,0.6)',
+    background: 'rgba(255,255,255,0.1)',
     color: 'white',
+    borderRadius: '8px',
+    padding: '8px 12px',
     cursor: 'pointer',
-    fontWeight: 'bold',
-    transition: 'all 0.3s',
+    fontWeight: 600,
   } as React.CSSProperties,
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '20px',
-    padding: '40px',
+    gap: '14px',
+    padding: '20px 28px',
   } as React.CSSProperties,
+  successBanner: {
+    background: '#edf9f0',
+    color: '#1d6f42',
+    border: '1px solid #c8ead4',
+    borderRadius: '10px',
+    padding: '12px 14px',
+    marginBottom: '20px',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
   statCard: {
     background: 'white',
     borderRadius: '12px',
-    padding: '25px',
+    padding: '16px',
     display: 'flex',
     alignItems: 'center',
-    gap: '20px',
+    gap: '14px',
     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
   } as React.CSSProperties,
   statIcon: {
-    fontSize: '48px',
+    fontSize: '36px',
   },
   statContent: {
     display: 'flex',
     flexDirection: 'column' as const,
   },
   statValue: {
-    fontSize: '32px',
+    fontSize: '24px',
     fontWeight: 'bold',
     color: '#667eea',
   },
   statLabel: {
-    fontSize: '14px',
+    fontSize: '12px',
     color: '#666',
   },
   section: {
-    padding: '0 40px 40px',
+    padding: '0 28px 20px',
   } as React.CSSProperties,
   sectionTitle: {
-    fontSize: '24px',
+    fontSize: '20px',
     color: '#333',
-    marginBottom: '20px',
+    marginBottom: '12px',
     fontWeight: 'bold',
   },
   actionsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '20px',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+    gap: '12px',
   } as React.CSSProperties,
   actionCard: {
     background: 'white',
     borderRadius: '12px',
-    padding: '25px',
+    padding: '16px',
     textAlign: 'left' as const,
     border: '2px solid #e0e0e0',
     cursor: 'pointer',
@@ -442,23 +409,23 @@ const styles = {
     boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
   } as React.CSSProperties,
   actionIcon: {
-    fontSize: '40px',
-    marginBottom: '15px',
+    fontSize: '30px',
+    marginBottom: '8px',
   },
   actionTitle: {
-    fontSize: '18px',
+    fontSize: '16px',
     color: '#667eea',
-    marginBottom: '10px',
+    marginBottom: '6px',
     fontWeight: 'bold',
   },
   actionDesc: {
-    fontSize: '14px',
+    fontSize: '13px',
     color: '#666',
     margin: 0,
   },
   infoNotice: {
-    margin: '0 40px 40px',
-    padding: '20px',
+    margin: '0 28px 16px',
+    padding: '14px',
     background: '#e3f2fd',
     border: '2px solid #2196f3',
     borderRadius: '8px',
@@ -469,63 +436,7 @@ const styles = {
     color: '#0d47a1',
   } as React.CSSProperties,
   infoIcon: {
-    fontSize: '24px',
-  },
-  ufConfigCard: {
-    marginTop: '20px',
-    background: 'white',
-    border: '2px solid #e0e0e0',
-    borderRadius: '12px',
-    padding: '20px',
-  } as React.CSSProperties,
-  ufConfigTitle: {
-    margin: '0 0 8px 0',
-    fontSize: '18px',
-    color: '#333',
-  },
-  ufConfigDescription: {
-    margin: '0 0 16px 0',
-    color: '#555',
-    fontSize: '14px',
-  },
-  ufCheckboxGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '10px',
-  } as React.CSSProperties,
-  ufCheckboxLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '14px',
-    color: '#333',
-  } as React.CSSProperties,
-  ufConfigActions: {
-    marginTop: '16px',
-    display: 'flex',
-    justifyContent: 'flex-start',
-  } as React.CSSProperties,
-  ufSaveButton: {
-    padding: '10px 16px',
-    border: 'none',
-    borderRadius: '8px',
-    background: '#667eea',
-    color: 'white',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  } as React.CSSProperties,
-  ufConfigHint: {
-    marginTop: '10px',
-    marginBottom: 0,
-    fontSize: '12px',
-    color: '#666',
-  },
-  ufConfigMessage: {
-    marginTop: '10px',
-    marginBottom: 0,
-    fontSize: '13px',
-    color: '#1f4f99',
-    fontWeight: 'bold',
+    fontSize: '20px',
   },
 };
 

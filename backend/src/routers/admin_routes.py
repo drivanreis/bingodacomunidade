@@ -183,7 +183,7 @@ def listar_paroquias(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao listar paróquias: {str(e)}"
+            detail="Erro ao listar paróquias"
         )
 
 
@@ -235,7 +235,7 @@ def criar_paroquia(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao criar paróquia: {str(e)}"
+            detail="Erro ao criar paróquia"
         )
 
 
@@ -296,7 +296,7 @@ def atualizar_paroquia(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao atualizar paróquia: {str(e)}"
+            detail="Erro ao atualizar paróquia"
         )
 
 
@@ -344,7 +344,7 @@ def excluir_paroquia(paroquia_id: str, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao excluir paróquia: {str(e)}"
+            detail="Erro ao excluir paróquia"
         )
 
 
@@ -399,7 +399,7 @@ def listar_usuarios(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao listar usuários: {str(e)}"
+            detail="Erro ao listar usuários"
         )
 
 
@@ -526,7 +526,7 @@ def criar_usuario(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao criar usuário: {str(e)}"
+            detail="Erro ao criar usuário"
         )
 
 
@@ -661,7 +661,7 @@ def atualizar_usuario(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao atualizar usuário: {str(e)}"
+            detail="Erro ao atualizar usuário"
         )
 
 
@@ -731,7 +731,7 @@ def atualizar_tipo_usuario(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao atualizar tipo de usuário: {str(e)}"
+            detail="Erro ao atualizar tipo de usuário"
         )
 
 
@@ -760,7 +760,7 @@ def excluir_usuario(usuario_id: str, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao excluir usuário: {str(e)}"
+            detail="Erro ao excluir usuário"
         )
 
 
@@ -790,7 +790,7 @@ def listar_jogos(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao listar jogos: {str(e)}"
+            detail="Erro ao listar jogos"
         )
 
 
@@ -819,7 +819,7 @@ def listar_configuracoes(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao listar configurações: {str(e)}"
+            detail="Erro ao listar configurações"
         )
 
 
@@ -869,6 +869,51 @@ def atualizar_configuracao(
                 "tipo": TipoConfiguracao.STRING,
                 "categoria": CategoriaConfiguracao.FORMULARIOS,
                 "descricao": "UFs permitidas para cadastro público (ALL ou lista CSV, ex: CE,PB,RN,PI)",
+            },
+            "default_rateio_premio": {
+                "tipo": TipoConfiguracao.NUMBER,
+                "categoria": CategoriaConfiguracao.FORMULARIOS,
+                "descricao": "Percentual padrão de prêmio para novos jogos",
+            },
+            "default_rateio_paroquia": {
+                "tipo": TipoConfiguracao.NUMBER,
+                "categoria": CategoriaConfiguracao.FORMULARIOS,
+                "descricao": "Percentual padrão da paróquia para novos jogos",
+            },
+            "default_rateio_operacao": {
+                "tipo": TipoConfiguracao.NUMBER,
+                "categoria": CategoriaConfiguracao.FORMULARIOS,
+                "descricao": "Percentual padrão de operação para novos jogos",
+            },
+            "default_rateio_evolucao": {
+                "tipo": TipoConfiguracao.NUMBER,
+                "categoria": CategoriaConfiguracao.FORMULARIOS,
+                "descricao": "Percentual padrão de seguro operacional para novos jogos",
+            },
+            "politica_remarcacao_modo": {
+                "tipo": TipoConfiguracao.STRING,
+                "categoria": CategoriaConfiguracao.FORMULARIOS,
+                "descricao": "Modo padrão de remarcação de sorteios (single, cascade, assistida)",
+            },
+            "politica_remarcacao_janela_dias": {
+                "tipo": TipoConfiguracao.NUMBER,
+                "categoria": CategoriaConfiguracao.FORMULARIOS,
+                "descricao": "Janela em dias para sugerir cascata automática/assistida",
+            },
+            "comunicacao_operacional_canal": {
+                "tipo": TipoConfiguracao.STRING,
+                "categoria": CategoriaConfiguracao.MENSAGENS,
+                "descricao": "Canal operacional preferencial (whatsapp, email, sms, ambos, todos ou CSV ex.: whatsapp,sms)",
+            },
+            "comunicacao_operacional_alerta_conflito": {
+                "tipo": TipoConfiguracao.BOOLEAN,
+                "categoria": CategoriaConfiguracao.MENSAGENS,
+                "descricao": "Ativa alerta operacional quando houver conflito de cronograma",
+            },
+            "comunicacao_operacional_resumo_diario": {
+                "tipo": TipoConfiguracao.BOOLEAN,
+                "categoria": CategoriaConfiguracao.MENSAGENS,
+                "descricao": "Ativa envio de resumo diário operacional",
             },
             "emailDevMode": {
                 "tipo": TipoConfiguracao.BOOLEAN,
@@ -987,7 +1032,7 @@ def atualizar_configuracao(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao atualizar configuração: {str(e)}"
+            detail="Erro ao atualizar configuração"
         )
 
 
@@ -1040,7 +1085,7 @@ def testar_envio_email_configurado(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao testar envio de e-mail: {str(e)}"
+            detail="Erro ao testar envio de e-mail"
         )
 
 
@@ -1123,7 +1168,7 @@ def criar_feedback(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao criar feedback: {str(e)}"
+            detail="Erro ao criar feedback"
         )
 
 
@@ -1176,7 +1221,7 @@ def listar_feedbacks(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao listar feedbacks: {str(e)}"
+            detail="Erro ao listar feedbacks"
         )
 
 
@@ -1218,7 +1263,7 @@ def responder_feedback(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao responder feedback: {str(e)}"
+            detail="Erro ao responder feedback"
         )
 
 
@@ -1261,5 +1306,5 @@ def atualizar_status_feedback(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao atualizar status: {str(e)}"
+            detail="Erro ao atualizar status"
         )

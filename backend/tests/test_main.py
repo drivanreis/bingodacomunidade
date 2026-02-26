@@ -62,7 +62,7 @@ async def test_global_exception_handler_returns_structured_500():
     payload = json.loads(response.body.decode("utf-8"))
     assert payload["detail"] == "Erro interno do servidor. O administrador foi notificado."
     assert payload["type"] == "INTERNAL_ERROR"
-    assert payload["debug_error"] == "falha controlada"
+    assert "debug_error" not in payload
 
 
 @pytest.mark.asyncio

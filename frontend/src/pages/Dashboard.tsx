@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import FloatingCart from '../components/FloatingCart';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -60,8 +61,8 @@ const Dashboard: React.FC = () => {
           <div style={styles.actionsGrid}>
             <button onClick={() => navigate('/games')} style={styles.actionCard}>
               <div style={styles.actionIcon}>🎉</div>
-              <h3 style={styles.actionTitle}>Ver Jogos</h3>
-              <p style={styles.actionDesc}>Explore e participe dos jogos</p>
+              <h3 style={styles.actionTitle}>Lotérica: Comprar Cartelas</h3>
+              <p style={styles.actionDesc}>Escolha um concurso e compre sua cartela</p>
             </button>
             
             {(user?.role === 'super_admin' || user?.role === 'parish_admin') && (
@@ -114,7 +115,7 @@ const Dashboard: React.FC = () => {
               <span style={styles.featureIcon}>🔄</span>
               <div>
                 <h3 style={styles.featureTitle}>Compra de Cartelas</h3>
-                <p style={styles.featureDesc}>Em desenvolvimento</p>
+                <p style={styles.featureDesc}>Área lotérica para o fiel comprar cartelas por concurso</p>
               </div>
             </div>
             <div style={styles.featureItem}>
@@ -160,6 +161,7 @@ const Dashboard: React.FC = () => {
       >
         💬
       </button>
+      <FloatingCart />
     </div>
   );
 };
@@ -312,7 +314,7 @@ const styles = {
   },
   feedbackButton: {
     position: 'fixed',
-    bottom: '30px',
+    bottom: '95px',
     right: '30px',
     width: '60px',
     height: '60px',

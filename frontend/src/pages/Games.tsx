@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
+import FloatingCart from '../components/FloatingCart';
 import api from '../services/api';
 
 interface Game {
@@ -16,12 +16,35 @@ interface Game {
   max_cards: number;
 }
 
+const normalizeRole = (role: unknown): string => {
+  return String(role || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+};
+
 const Games: React.FC = () => {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const persistedUserRaw = localStorage.getItem('@BingoComunidade:user');
+  const persistedUser = persistedUserRaw ? JSON.parse(persistedUserRaw) : null;
+  const resolvedRole = normalizeRole(persistedUser?.nivel_acesso || persistedUser?.tipo);
+  const canManageGames = [
+    'admin_paroquia',
+    'paroquia_admin',
+    'paroquia_caixa',
+    'paroquia_recepcao',
+    'paroquia_bingo',
+    'usuario_administrativo',
+    'usuario_administrador',
+    'admin_site',
+    'super_admin',
+  ].includes(resolvedRole);
 
   useEffect(() => {
     fetchGames();
@@ -100,14 +123,14 @@ const Games: React.FC = () => {
         
         <div style={styles.header}>
         <div>
-          <h1 style={styles.title}>🎉 Jogos de Bingo</h1>
+          <h1 style={styles.title}>🎉 Concursos Disponíveis</h1>
           <p style={styles.subtitle}>
-            {filteredGames.length} {filteredGames.length === 1 ? 'jogo' : 'jogos'}
+            {filteredGames.length} {filteredGames.length === 1 ? 'concurso' : 'concursos'} para compra de cartela
           </p>
         </div>
-        {(user?.role === 'super_admin' || user?.role === 'parish_admin') && (
-          <button onClick={() => navigate('/games/new')} style={styles.createButton}>
-            + Criar Novo Jogo
+        {canManageGames && (
+          <button style={styles.createButton} onClick={() => navigate('/games/new')}>
+            ➕ Criar Novo Jogo
           </button>
         )}
       </div>
@@ -157,14 +180,9 @@ const Games: React.FC = () => {
           <h3 style={styles.emptyTitle}>Nenhum jogo encontrado</h3>
           <p style={styles.emptyText}>
             {filter === 'all'
-              ? 'Ainda não há jogos cadastrados.'
-              : `Não há jogos com status "${getStatusText(filter)}".`}
+              ? 'Ainda não há concursos disponíveis para compra de cartela.'
+              : `Não há concursos com status "${getStatusText(filter)}".`}
           </p>
-          {(user?.role === 'super_admin' || user?.role === 'parish_admin') && filter === 'all' && (
-            <button onClick={() => navigate('/games/new')} style={styles.emptyButton}>
-              Criar Primeiro Jogo
-            </button>
-          )}
         </div>
       ) : (
         <div style={styles.grid}>
@@ -205,12 +223,13 @@ const Games: React.FC = () => {
                 </div>
               </div>
 
-              <button style={styles.viewButton}>Ver Detalhes →</button>
+              <button style={styles.viewButton}>{canManageGames ? 'Gerenciar Concurso →' : 'Ver Concurso / Comprar Cartela →'}</button>
             </div>
           ))}
         </div>
       )}
       </div>
+      {!canManageGames && <FloatingCart />}
     </>
   );
 };

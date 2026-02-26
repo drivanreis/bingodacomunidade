@@ -23,7 +23,7 @@ Este é um sistema **moldável e doável** para paróquias, oferecendo:
 1. **IDs Temporais Imutáveis** - Cada registro tem timestamp inviolável
 2. **Fuso Horário Oficial (Fortaleza-CE)** - Elimina manipulações
 3. **Transparência Total** - Qualquer fiel pode ver a cartela de outro
-4. **Rateio Configurável** - 4 destinos: Prêmio, Paróquia, Operação, Evolução
+4. **Rateio Configurável** - 4 destinos: Prêmio, Paróquia, Operação, Seguro Operacional
 5. **Prêmio Pulsante** - Cresce em tempo real conforme vendas
 
 ---
@@ -149,7 +149,7 @@ valor_cartela           FLOAT
 rateio_premio           FLOAT (%)
 rateio_paroquia         FLOAT (%)
 rateio_operacao         FLOAT (%)
-rateio_evolucao         FLOAT (%)
+rateio_evolucao         FLOAT (%) -- Seguro Operacional
 status                  ENUM('agendado', 'em_andamento', 'finalizado', 'cancelado')
 total_arrecadado        FLOAT
 total_premio            FLOAT
@@ -781,11 +781,14 @@ Após o login, o Administrador deve concluir o cadastro real do SUPER_ADMIN.
 ### Conceito "Rateio Dinâmico" - VALIDADO ✅
 
 **Do Briefing:**
-> 4 destinos: Prêmio, Paróquia, Operação, Evolução
+> 4 destinos: Prêmio, Paróquia, Operação, Seguro Operacional
 
 **Na Prática:**
 - ✅ Campos no modelo `Sorteio`
 - ✅ Validação: soma deve ser 100%
+- ✅ Regra de piso: prêmio mínimo 49%
+- ✅ Regra de piso: operação mínima de 1/3 da paróquia
+- ✅ Regra de piso: seguro operacional mínimo 1%
 - ✅ Configurável por bingo
 - ⏳ Cálculo automático (implementar quando criar sorteios)
 

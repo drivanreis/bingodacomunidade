@@ -10,7 +10,7 @@ Regras de Ouro:
 - Hash de integridade em entidades críticas
 """
 
-from sqlalchemy import Column, String, Float, DateTime, Boolean, Integer, ForeignKey, Text, Enum as SQLEnum, JSON
+from sqlalchemy import Column, String, Float, DateTime, Boolean, Integer, ForeignKey, Text, Enum as SQLEnum, JSON, CHAR, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from typing import Optional
@@ -79,9 +79,12 @@ class StatusSorteio(str, enum.Enum):
 
 class StatusCartela(str, enum.Enum):
     """Status da cartela."""
-    ATIVA = "ativa"               # Participando do sorteio
+    NO_CARRINHO = "no_carrinho"   # Cartela criada e pendente de pagamento
+    PAGA = "paga"                 # Cartela confirmada para participar do sorteio
+    CANCELADA = "cancelada"       # Carrinho invalidado/cancelado
     VENCEDORA = "vencedora"       # Venceu o sorteio
     PERDEDORA = "perdedora"       # Não venceu
+    ATIVA = "ativa"               # Legado
 
 
 class TipoConfiguracao(str, enum.Enum):
@@ -616,6 +619,7 @@ class Sorteio(Base):
     total_arrecadado = Column(Float, nullable=False, default=0.0)
     total_premio = Column(Float, nullable=False, default=0.0)
     total_cartelas_vendidas = Column(Integer, nullable=False, default=0)
+    max_cards = Column(Integer, nullable=True, comment="Limite máximo de cartelas vendidas (null = ilimitado)")
     
     # Datas e Horários
     inicio_vendas = Column(DateTime(timezone=True), nullable=False)
@@ -669,6 +673,13 @@ class Cartela(Base):
     - Associação com usuário e sorteio
     """
     __tablename__ = "cartelas"
+    __table_args__ = (
+        UniqueConstraint(
+            "sorteio_id", "n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9", "n10", "n11", "n12",
+            "n13", "n14", "n15", "n16", "n17", "n18", "n19", "n20", "n21", "n22", "n23", "n24",
+            name="uq_cartela_sorteio_n1_n24"
+        ),
+    )
     
     # Primary Key (ID Temporal)
     id = Column(String(50), primary_key=True, index=True)
@@ -678,11 +689,30 @@ class Cartela(Base):
     usuario_id = Column(String(50), ForeignKey("usuarios_comuns.id"), nullable=False, index=True)
     
     # Dados da Cartela
-    numeros = Column(
-        JSON, 
-        nullable=False,
-        comment="Matriz 5x5 de números do bingo. Formato: [[n1,n2,n3,n4,n5], [n6,n7,...], ...]"
-    )
+    n1 = Column(CHAR(2), nullable=False)
+    n2 = Column(CHAR(2), nullable=False)
+    n3 = Column(CHAR(2), nullable=False)
+    n4 = Column(CHAR(2), nullable=False)
+    n5 = Column(CHAR(2), nullable=False)
+    n6 = Column(CHAR(2), nullable=False)
+    n7 = Column(CHAR(2), nullable=False)
+    n8 = Column(CHAR(2), nullable=False)
+    n9 = Column(CHAR(2), nullable=False)
+    n10 = Column(CHAR(2), nullable=False)
+    n11 = Column(CHAR(2), nullable=False)
+    n12 = Column(CHAR(2), nullable=False)
+    n13 = Column(CHAR(2), nullable=False)
+    n14 = Column(CHAR(2), nullable=False)
+    n15 = Column(CHAR(2), nullable=False)
+    n16 = Column(CHAR(2), nullable=False)
+    n17 = Column(CHAR(2), nullable=False)
+    n18 = Column(CHAR(2), nullable=False)
+    n19 = Column(CHAR(2), nullable=False)
+    n20 = Column(CHAR(2), nullable=False)
+    n21 = Column(CHAR(2), nullable=False)
+    n22 = Column(CHAR(2), nullable=False)
+    n23 = Column(CHAR(2), nullable=False)
+    n24 = Column(CHAR(2), nullable=False)
     numeros_marcados = Column(
         JSON,
         nullable=False,
@@ -691,7 +721,7 @@ class Cartela(Base):
     )
     
     # Status
-    status = Column(SQLEnum(StatusCartela), nullable=False, default=StatusCartela.ATIVA, index=True)
+    status = Column(SQLEnum(StatusCartela), nullable=False, default=StatusCartela.NO_CARRINHO, index=True)
     
     # Prêmio (se vencedora)
     valor_premio = Column(Float, nullable=True)  # Valor recebido (pode ser dividido)

@@ -17,6 +17,8 @@ import AdminSiteDashboard from './pages/AdminSiteDashboard';
 import AdminParoquiaLogin from './pages/AdminParoquiaLogin';
 import AdminParoquiaDashboard from './pages/AdminParoquiaDashboard';
 import AdminInitialPasswordChange from './pages/AdminInitialPasswordChange';
+import AdminParoquiaConfiguracoes from './pages/AdminParoquiaConfiguracoes';
+import AdminParoquiaUsuarios from './pages/AdminParoquiaUsuarios';
 
 // Páginas de Gerenciamento Admin
 import ParishManagement from './pages/ParishManagement';
@@ -34,7 +36,7 @@ import NewGame from './pages/NewGame';
 import GameDetail from './pages/GameDetail';
 import Profile from './pages/Profile';
 import PrivateRoute from './components/PrivateRoute';
-import { SuperAdminRoute, ParishAdminRoute } from './components/AdminRoute';
+import { SuperAdminRoute, ParishAdminRoute, PublicUserRoute } from './components/AdminRoute';
 
 function App() {
   return (
@@ -124,6 +126,7 @@ function App() {
           />
           
           {/* Rotas Administrativas - PARÓQUIA */}
+          <Route path="/admin-paroquia" element={<Navigate to="/admin-paroquia/login" replace />} />
           <Route path="/admin-paroquia/login" element={<AdminParoquiaLogin />} />
           <Route path="/admin-paroquia/primeira-senha" element={<AdminInitialPasswordChange mode="admin-paroquia" />} />
           <Route
@@ -131,6 +134,30 @@ function App() {
             element={
               <ParishAdminRoute>
                 <AdminParoquiaDashboard />
+              </ParishAdminRoute>
+            }
+          />
+          <Route
+            path="/admin-paroquia/games/new"
+            element={
+              <ParishAdminRoute>
+                <NewGame />
+              </ParishAdminRoute>
+            }
+          />
+          <Route
+            path="/admin-paroquia/configuracoes"
+            element={
+              <ParishAdminRoute>
+                <AdminParoquiaConfiguracoes />
+              </ParishAdminRoute>
+            }
+          />
+          <Route
+            path="/admin-paroquia/usuarios"
+            element={
+              <ParishAdminRoute>
+                <AdminParoquiaUsuarios />
               </ParishAdminRoute>
             }
           />
@@ -163,9 +190,9 @@ function App() {
           <Route
             path="/games/new"
             element={
-              <PrivateRoute>
+              <ParishAdminRoute>
                 <NewGame />
-              </PrivateRoute>
+              </ParishAdminRoute>
             }
           />
           <Route
