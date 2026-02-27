@@ -1,0 +1,23 @@
+.apd-stat-card,
+.gm-card,
+.gd-mainCard,
+.ng-card,
+.db-card {
+  background: var(--color-white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.gd-mainCard,
+.ng-card,
+.db-card {
+  border-radius: var(--radius-md);
+}
+
+.apd-action-card,
+.db-actionCard,
+.gm-viewButton,
+.ng-submitButton,
+.ng-cancelButton {
+  border-radius: var(--radius-sm);
+}

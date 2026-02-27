@@ -138,6 +138,22 @@ function App() {
             }
           />
           <Route
+            path="/admin-paroquia/games"
+            element={
+              <ParishAdminRoute>
+                <Games />
+              </ParishAdminRoute>
+            }
+          />
+          <Route
+            path="/admin-paroquia/games/:id"
+            element={
+              <ParishAdminRoute>
+                <GameDetail />
+              </ParishAdminRoute>
+            }
+          />
+          <Route
             path="/admin-paroquia/games/new"
             element={
               <ParishAdminRoute>
@@ -187,14 +203,7 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route
-            path="/games/new"
-            element={
-              <ParishAdminRoute>
-                <NewGame />
-              </ParishAdminRoute>
-            }
-          />
+          <Route path="/games/new" element={<Navigate to="/" replace />} />
           <Route
             path="/games/:id"
             element={
@@ -219,4 +228,3 @@ function App() {
 }
 
 export default App;
-

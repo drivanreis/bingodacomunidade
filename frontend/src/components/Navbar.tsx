@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { resolveDashboardPath, resolveGamesPath } from '../utils/sessionScope';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -22,6 +23,9 @@ const Navbar: React.FC = () => {
 
   if (!user) return null;
 
+  const dashboardPath = resolveDashboardPath(user.role);
+  const gamesPath = resolveGamesPath(user.role);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -30,8 +34,8 @@ const Navbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
-    { path: '/dashboard', label: '🏠 Dashboard', roles: ['super_admin', 'parish_admin', 'faithful'] },
-    { path: '/games', label: '🎉 Jogos', roles: ['super_admin', 'parish_admin', 'faithful'] },
+    { path: dashboardPath, label: '🏠 Dashboard', roles: ['super_admin', 'parish_admin', 'faithful'] },
+    { path: gamesPath, label: '🎉 Jogos', roles: ['super_admin', 'parish_admin', 'faithful'] },
     { path: '/profile', label: '👤 Perfil', roles: ['super_admin', 'parish_admin', 'faithful'] },
   ];
 
@@ -40,7 +44,7 @@ const Navbar: React.FC = () => {
   return (
     <nav style={styles.navbar}>
       <div style={styles.container}>
-        <div style={styles.brand} onClick={() => navigate('/dashboard')}>
+        <div style={styles.brand} onClick={() => navigate(dashboardPath)}>
           🎉 Bingo da Comunidade
         </div>
 

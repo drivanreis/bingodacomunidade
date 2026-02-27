@@ -6,6 +6,7 @@ import { getAppConfigSync } from '../services/configService';
 import api from '../services/api';
 import ContactModule from '../components/form/ContactModule';
 import { getDddCpfMismatchWarning, isValidBrazilDdd } from '../utils/dddUf';
+import { setSessionScope } from '../utils/sessionScope';
 
 const FirstAccessSetup: React.FC = () => {
   const [nome, setNome] = useState('');
@@ -164,6 +165,7 @@ const FirstAccessSetup: React.FC = () => {
       };
       localStorage.setItem('@BingoComunidade:token', access_token);
       localStorage.setItem('@BingoComunidade:user', JSON.stringify(usuarioNormalizado));
+      setSessionScope('admin_site');
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       
       // Atualizar contexto (UsuarioAdministrativo tem nivel_acesso, não tipo)

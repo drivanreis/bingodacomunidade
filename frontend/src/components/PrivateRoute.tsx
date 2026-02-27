@@ -1,6 +1,7 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getSessionScope, resolveDashboardPath } from '../utils/sessionScope';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -8,7 +9,15 @@ interface PrivateRouteProps {
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
   const persistedToken = localStorage.getItem('@BingoComunidade:token');
+  const persistedUserRaw = localStorage.getItem('@BingoComunidade:user');
+  let persistedUser: any = null;
+  try {
+    persistedUser = persistedUserRaw ? JSON.parse(persistedUserRaw) : null;
+  } catch {
+    persistedUser = null;
+  }
   const hasAuthenticatedSession = isAuthenticated || !!persistedToken;
 
   if (loading) {
@@ -20,7 +29,20 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
     );
   }
 
-  return hasAuthenticatedSession ? <>{children}</> : <Navigate to="/login" replace />;
+  if (!hasAuthenticatedSession) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (location.pathname === '/dashboard') {
+    const role = persistedUser?.tipo || persistedUser?.nivel_acesso;
+    const sessionScope = getSessionScope();
+    const expectedDashboard = resolveDashboardPath(role, sessionScope);
+    if (expectedDashboard !== '/dashboard') {
+      return <Navigate to={expectedDashboard} replace />;
+    }
+  }
+
+  return <>{children}</>;
 };
 
 const styles = {

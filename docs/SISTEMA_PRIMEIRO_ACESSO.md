@@ -1,6 +1,12 @@
 # ✅ Sistema de Primeiro Acesso - Implementação Completa
 
 > ⚠️ Documento histórico (arquivado): o script `test_first_access.sh` foi removido. Fluxo atual: `./test.sh --coverage` para validação automatizada.
+>
+> ⚠️ FONTE DE VERDADE ATUAL (bootstrap):
+> - `GET /auth/bootstrap/status`
+> - `POST /auth/bootstrap/login`
+> - `POST /auth/bootstrap`
+> - Login seed padrão de instalação: `Admin / admin123`
 
 ## 📅 Data: 25 de Janeiro de 2026
 
@@ -38,23 +44,24 @@ CPF continua sendo requisito dos fluxos de Usuário Comum.
 
 ### Backend (FastAPI)
 
-#### 1. Novos Endpoints
+#### 1. Endpoints atuais de bootstrap
 
-**`GET /auth/first-access`** (Público)
+**`GET /auth/bootstrap/status`** (Público)
 ```python
-# Verifica se sistema precisa de configuração
-# Retorna: {"needs_setup": true/false, "message": "..."}
-# Lógica: COUNT(usuarios WHERE tipo=SUPER_ADMIN) == 0
+# Retorna se o bootstrap seed ainda está disponível
+# Exemplo: {"bootstrap_available": true/false}
 ```
 
-**`POST /auth/first-access-setup`** (Público - Proteção Dupla)
+**`POST /auth/bootstrap/login`** (Público)
 ```python
-# Cria primeiro Admin-Site
-# Validações:
-#   1. NÃO pode existir nenhum Admin-Site primário
-#   2. Senha forte obrigatória
-#   3. CPF único no sistema
-# Retorna: JWT token + dados do usuário (login automático)
+# Valida tentativa explícita de login seed (Admin/admin123)
+# Em sucesso retorna {"bootstrap": true, ...}
+```
+
+**`POST /auth/bootstrap`** (Público)
+```python
+# Cria o primeiro Admin-Site real
+# Inativa o seed bootstrap e retorna JWT do novo Admin-Site
 ```
 
 #### 2. Novos Schemas (schemas.py)
@@ -110,12 +117,10 @@ else:
 **Localização:** `frontend/src/components/FirstAccessChecker.tsx`
 
 **Funcionalidades:**
-- ✅ Executa na inicialização do App
-- ✅ Chama GET /auth/first-access
-- ✅ Se needs_setup=true → Redireciona para /first-access-setup
-- ✅ Se needs_setup=false → Não faz nada
-- ✅ Componente invisível (sem render)
-- ✅ Executa apenas uma vez
+- ⚠️ Atualmente está desativado (retorna `null`)
+- ✅ O fluxo de primeiro acesso é disparado pela tela `AdminSiteLogin`
+- ✅ Tentativa seed (`Admin`) usa `POST /auth/bootstrap/login`
+- ✅ Em sucesso, redireciona para `/first-access-setup`
 
 #### 3. Integração no App.tsx
 

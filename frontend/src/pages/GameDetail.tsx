@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import FloatingCart, { notifyCartRefresh } from '../components/FloatingCart';
+import { resolveDashboardPath, resolveGamesPath } from '../utils/sessionScope';
+import './GameDetail.css';
 
 interface Game {
   id: string;
@@ -382,8 +384,8 @@ const GameDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
+      <div className="gd-loadingContainer">
+        <div className="gd-spinner"></div>
         <p>Carregando concurso...</p>
       </div>
     );
@@ -391,10 +393,10 @@ const GameDetail: React.FC = () => {
 
   if (!game) {
     return (
-      <div style={styles.container}>
-        <div style={styles.errorCard}>
+      <div className="gd-container">
+        <div className="gd-errorCard">
           <h2>❌ Concurso não encontrado</h2>
-          <button onClick={() => navigate('/admin-paroquia/games')} style={styles.backButton}>
+          <button onClick={() => navigate(resolveGamesPath(resolvedRole))} className="gd-backButton">
             Voltar para Concursos
           </button>
         </div>
@@ -405,34 +407,34 @@ const GameDetail: React.FC = () => {
   return (
     <>
       <Navbar />
-      <div style={{ ...styles.container, ...(isMobile ? styles.containerMobile : {}) }}>
-        <div style={styles.content}>
-        <button onClick={() => navigate('/admin-paroquia/dashboard')} style={styles.backLink}>
+      <div className={`gd-container ${isMobile ? 'gd-containerMobile' : ''}`}>
+        <div className="gd-content">
+        <button onClick={() => navigate(resolveDashboardPath(resolvedRole))} className="gd-backLink">
           ← Voltar para Dashboard
         </button>
 
-        <div style={{ ...styles.mainCard, ...(isMobile ? styles.mainCardMobile : {}) }}>
-          <h1 style={styles.gameTitleInline}>{game.title}</h1>
+        <div className={`gd-mainCard ${isMobile ? 'gd-mainCardMobile' : ''}`}>
+          <h1 className="gd-gameTitleInline">{game.title}</h1>
 
           {canManageGames && (
-            <div style={styles.settingsPanel}>
-              <h3 style={styles.sectionTitle}>⚙️ Editar Concurso</h3>
+            <div className="gd-settingsPanel">
+              <h3 className="gd-sectionTitle">⚙️ Editar Concurso</h3>
 
-              <div style={styles.settingsGrid}>
-                <div style={styles.settingsField}>
-                  <label style={styles.rescheduleLabel}>🎉 Título do Jogo *</label>
+              <div className="gd-settingsGrid">
+                <div className="gd-settingsField">
+                  <label className="gd-rescheduleLabel">🎉 Título do Jogo *</label>
                   <input
                     type="text"
                     value={settingsForm.title}
                     onChange={(event) => setSettingsForm((current) => ({ ...current, title: event.target.value }))}
                     placeholder="Ex: Bingo Beneficente 2026"
                     required
-                    style={styles.rescheduleInput}
+                    className="gd-rescheduleInput"
                   />
                 </div>
 
-                <div style={styles.settingsField}>
-                  <label style={styles.rescheduleLabel}>💰 Preço da Cartela (R$) *</label>
+                <div className="gd-settingsField">
+                  <label className="gd-rescheduleLabel">💰 Preço da Cartela (R$) *</label>
                   <input
                     type="number"
                     min="0.01"
@@ -441,12 +443,12 @@ const GameDetail: React.FC = () => {
                     onChange={(event) => setSettingsForm((current) => ({ ...current, cardPrice: event.target.value }))}
                     placeholder="10.00"
                     required
-                    style={styles.rescheduleInput}
+                    className="gd-rescheduleInput"
                   />
                 </div>
 
-                <div style={styles.settingsField}>
-                  <label style={styles.rescheduleLabel}>🔢 Máximo de Cartelas (vazio = ilimitado)</label>
+                <div className="gd-settingsField">
+                  <label className="gd-rescheduleLabel">🔢 Máximo de Cartelas (vazio = ilimitado)</label>
                   <input
                     type="number"
                     min="1"
@@ -454,12 +456,12 @@ const GameDetail: React.FC = () => {
                     value={settingsForm.maxCards}
                     onChange={(event) => setSettingsForm((current) => ({ ...current, maxCards: event.target.value }))}
                     placeholder="Ex: 100"
-                    style={styles.rescheduleInput}
+                    className="gd-rescheduleInput"
                   />
                 </div>
 
-                <div style={styles.settingsField}>
-                  <label style={styles.rescheduleLabel}>🏆 Prêmio (%)</label>
+                <div className="gd-settingsField">
+                  <label className="gd-rescheduleLabel">🏆 Prêmio (%)</label>
                   <input
                     type="number"
                     min="49"
@@ -468,12 +470,12 @@ const GameDetail: React.FC = () => {
                     value={settingsForm.prizePercent}
                     onChange={(event) => setSettingsForm((current) => ({ ...current, prizePercent: event.target.value }))}
                     required
-                    style={styles.rescheduleInput}
+                    className="gd-rescheduleInput"
                   />
                 </div>
 
-                <div style={styles.settingsField}>
-                  <label style={styles.rescheduleLabel}>⛪ Paróquia (%)</label>
+                <div className="gd-settingsField">
+                  <label className="gd-rescheduleLabel">⛪ Paróquia (%)</label>
                   <input
                     type="number"
                     min="0"
@@ -482,12 +484,12 @@ const GameDetail: React.FC = () => {
                     value={settingsForm.parishPercent}
                     onChange={(event) => setSettingsForm((current) => ({ ...current, parishPercent: event.target.value }))}
                     required
-                    style={styles.rescheduleInput}
+                    className="gd-rescheduleInput"
                   />
                 </div>
 
-                <div style={styles.settingsField}>
-                  <label style={styles.rescheduleLabel}>⚙️ Operação (%)</label>
+                <div className="gd-settingsField">
+                  <label className="gd-rescheduleLabel">⚙️ Operação (%)</label>
                   <input
                     type="number"
                     min="0"
@@ -496,12 +498,12 @@ const GameDetail: React.FC = () => {
                     value={settingsForm.operationPercent}
                     onChange={(event) => setSettingsForm((current) => ({ ...current, operationPercent: event.target.value }))}
                     required
-                    style={styles.rescheduleInput}
+                    className="gd-rescheduleInput"
                   />
                 </div>
 
-                <div style={styles.settingsField}>
-                  <label style={styles.rescheduleLabel}>🛡️ Seguro Operacional (%)</label>
+                <div className="gd-settingsField">
+                  <label className="gd-rescheduleLabel">🛡️ Seguro Operacional (%)</label>
                   <input
                     type="number"
                     min="1"
@@ -510,10 +512,10 @@ const GameDetail: React.FC = () => {
                     value={settingsForm.evolutionPercent}
                     onChange={(event) => setSettingsForm((current) => ({ ...current, evolutionPercent: event.target.value }))}
                     required
-                    style={styles.rescheduleInput}
+                    className="gd-rescheduleInput"
                   />
                 </div>
-                <div style={{marginTop: '8px', fontSize: '13px', color: '#666'}}>
+                <div className="gd-settingsHint">
                   Prêmio ≥ 49%, Operação ≥ 1/3 da Paróquia, Seguro Operacional ≥ 1% e soma total = 100%.
                 </div>
               </div>
@@ -522,7 +524,7 @@ const GameDetail: React.FC = () => {
                 type="button"
                 onClick={handleSaveSettings}
                 disabled={savingSettings}
-                style={styles.rescheduleApplyButton}
+                className="gd-rescheduleApplyButton"
               >
                 {savingSettings ? 'Salvando...' : 'Salvar alterações'}
               </button>
@@ -530,14 +532,14 @@ const GameDetail: React.FC = () => {
           )}
 
           {canReschedule && (
-            <div style={styles.reschedulePanel}>
-              <h3 style={styles.sectionTitle}>🗓️ Remarcar Sorteio</h3>
-              <p style={styles.rescheduleDescription}>
+            <div className="gd-reschedulePanel">
+              <h3 className="gd-sectionTitle">🗓️ Remarcar Sorteio</h3>
+              <p className="gd-rescheduleDescription">
                 Escolha nova data/hora e decida se remarca apenas este jogo ou também os próximos impactados.
               </p>
 
-              <div style={styles.rescheduleInputRow}>
-                <label htmlFor="reschedule-date-input" style={styles.rescheduleLabel}>Nova data e hora do sorteio</label>
+              <div className="gd-rescheduleInputRow">
+                <label htmlFor="reschedule-date-input" className="gd-rescheduleLabel">Nova data e hora do sorteio</label>
                 <input
                   id="reschedule-date-input"
                   type="datetime-local"
@@ -546,12 +548,12 @@ const GameDetail: React.FC = () => {
                     setRescheduleDate(event.target.value);
                     setReschedulePreview(null);
                   }}
-                  style={styles.rescheduleInput}
+                  className="gd-rescheduleInput"
                 />
               </div>
 
-              <div style={styles.rescheduleInputRow}>
-                <label htmlFor="reschedule-mode-input" style={styles.rescheduleLabel}>Modo da remarcação</label>
+              <div className="gd-rescheduleInputRow">
+                <label htmlFor="reschedule-mode-input" className="gd-rescheduleLabel">Modo da remarcação</label>
                 <select
                   id="reschedule-mode-input"
                   value={rescheduleMode}
@@ -559,14 +561,14 @@ const GameDetail: React.FC = () => {
                     setRescheduleMode(event.target.value as 'single' | 'cascade');
                     setReschedulePreview(null);
                   }}
-                  style={styles.rescheduleInput}
+                  className="gd-rescheduleInput"
                 >
                   <option value="single">Apenas este jogo</option>
                   <option value="cascade">Este + próximos</option>
                 </select>
               </div>
 
-              <div style={styles.rescheduleActions}>
+              <div className="gd-rescheduleActions">
                 <button
                   type="button"
                   onClick={handleSimulateReschedule}
@@ -576,22 +578,19 @@ const GameDetail: React.FC = () => {
                       ? 'Escolha uma nova data/hora diferente da atual para simular o impacto.'
                       : 'Simular impacto'
                   }
-                  style={{
-                    ...styles.rescheduleSimulateButton,
-                    ...(isSimulateRescheduleDisabled ? styles.rescheduleSimulateButtonDisabled : {}),
-                  }}
+                  className={`gd-rescheduleSimulateButton ${isSimulateRescheduleDisabled ? 'gd-rescheduleSimulateButtonDisabled' : ''}`}
                 >
                   {rescheduling ? 'Processando...' : 'Simular impacto'}
                 </button>
 
               {reschedulePreview && (
-                <div style={styles.reschedulePreviewBox}>
-                  <p style={styles.reschedulePreviewLine}>
+                <div className="gd-reschedulePreviewBox">
+                  <p className="gd-reschedulePreviewLine">
                     Impacto: {reschedulePreview.affected_games.length} jogo(s), conflito(s): {reschedulePreview.conflict_count}
                   </p>
 
                   {reschedulePreview.conflicts.length > 0 && (
-                    <ul style={styles.rescheduleConflictList}>
+                    <ul className="gd-rescheduleConflictList">
                       {reschedulePreview.conflicts.map((conflict) => (
                         <li key={conflict.id}>
                           {conflict.title} — {formatDate(conflict.draw_date)}
@@ -611,10 +610,7 @@ const GameDetail: React.FC = () => {
                       ? 'Escolha nova data/hora e simule o impacto com a configuração atual para habilitar a aplicação da remarcação.'
                       : 'Aplicar remarcação'
                   }
-                  style={{
-                    ...styles.rescheduleApplyButton,
-                    ...(isApplyRescheduleDisabled ? styles.rescheduleApplyButtonDisabled : {}),
-                  }}
+                  className={`gd-rescheduleApplyButton ${isApplyRescheduleDisabled ? 'gd-rescheduleApplyButtonDisabled' : ''}`}
                 >
                   {rescheduling ? 'Aplicando...' : 'Aplicar remarcação'}
                 </button>
@@ -623,19 +619,19 @@ const GameDetail: React.FC = () => {
           )}
 
           {canPurchase() && (
-            <div style={styles.purchasePanel}>
-              <h3 style={styles.sectionTitle}>🎫 Comprar Cartela</h3>
-              <div style={{ ...styles.modeButtons, ...(isMobile ? styles.modeButtonsMobile : {}) }}>
+            <div className="gd-purchasePanel">
+              <h3 className="gd-sectionTitle">🎫 Comprar Cartela</h3>
+              <div className={`gd-modeButtons ${isMobile ? 'gd-modeButtonsMobile' : ''}`}>
                 <button
                   onClick={() => setPurchaseMode('aleatoria')}
-                  style={{ ...styles.modeButton, ...(purchaseMode === 'aleatoria' ? styles.modeButtonActive : {}) }}
+                  className={`gd-modeButton ${purchaseMode === 'aleatoria' ? 'gd-modeButtonActive' : ''}`}
                   type="button"
                 >
                   Aleatória
                 </button>
                 <button
                   onClick={() => setPurchaseMode('personalizada')}
-                  style={{ ...styles.modeButton, ...(purchaseMode === 'personalizada' ? styles.modeButtonActive : {}) }}
+                  className={`gd-modeButton ${purchaseMode === 'personalizada' ? 'gd-modeButtonActive' : ''}`}
                   type="button"
                 >
                   Personalizada
@@ -643,13 +639,13 @@ const GameDetail: React.FC = () => {
               </div>
 
               {purchaseMode === 'personalizada' && (
-                <div style={styles.customInputWrapper}>
-                  <div style={styles.customHeader}>
-                    <label style={styles.customLabel}>Selecione 24 números (01 a 75)</label>
-                    <span style={styles.customCounter}>{selectedNumbers.length}/24</span>
+                <div className="gd-customInputWrapper">
+                  <div className="gd-customHeader">
+                    <label className="gd-customLabel">Selecione 24 números (01 a 75)</label>
+                    <span className="gd-customCounter">{selectedNumbers.length}/24</span>
                   </div>
 
-                  <div style={{ ...styles.customToolbar, ...(isMobile ? styles.customToolbarMobile : {}) }}>
+                  <div className={`gd-customToolbar ${isMobile ? 'gd-customToolbarMobile' : ''}`}>
                     <input
                       type="tel"
                       inputMode="numeric"
@@ -657,12 +653,12 @@ const GameDetail: React.FC = () => {
                       value={numberSearch}
                       onChange={(e) => setNumberSearch(e.target.value)}
                       placeholder="Buscar número (ex: 07, 23, 75)"
-                      style={styles.searchInput}
+                      className="gd-searchInput"
                     />
                     <button
                       type="button"
                       onClick={() => setSelectedNumbers([])}
-                      style={styles.clearSelectionButton}
+                      className="gd-clearSelectionButton"
                       disabled={selectedNumbers.length === 0}
                     >
                       Limpar seleção
@@ -670,12 +666,12 @@ const GameDetail: React.FC = () => {
                   </div>
 
                   {selectedNumbers.length > 0 && (
-                    <div style={styles.selectedNumbersPanel}>
-                      <div style={styles.selectedNumbersHeader}>
+                    <div className="gd-selectedNumbersPanel">
+                      <div className="gd-selectedNumbersHeader">
                         <strong>Números selecionados</strong>
                         <span>{selectedNumbers.length}/24</span>
                       </div>
-                      <div style={styles.selectedNumbersList}>
+                      <div className="gd-selectedNumbersList">
                         {[...selectedNumbers]
                           .sort((a, b) => Number(a) - Number(b))
                           .map((numberToken) => (
@@ -683,7 +679,7 @@ const GameDetail: React.FC = () => {
                               key={numberToken}
                               type="button"
                               onClick={() => toggleCustomNumber(numberToken)}
-                              style={styles.selectedNumberChip}
+                              className="gd-selectedNumberChip"
                               title="Remover número"
                             >
                               {numberToken} ✕
@@ -693,7 +689,7 @@ const GameDetail: React.FC = () => {
                     </div>
                   )}
 
-                  <div style={{ ...styles.numberSelectorGrid, ...(isMobile ? styles.numberSelectorGridMobile : {}) }}>
+                  <div className={`gd-numberSelectorGrid ${isMobile ? 'gd-numberSelectorGridMobile' : ''}`}>
                     {filteredNumbersPool.map((numberToken) => {
                       const isSelected = selectedNumbers.includes(numberToken);
                       const isDisabled = !isSelected && selectedNumbers.length >= 24;
@@ -704,11 +700,7 @@ const GameDetail: React.FC = () => {
                           type="button"
                           onClick={() => toggleCustomNumber(numberToken)}
                           disabled={isDisabled}
-                          style={{
-                            ...styles.numberTokenButton,
-                            ...(isSelected ? styles.numberTokenButtonSelected : {}),
-                            ...(isDisabled ? styles.numberTokenButtonDisabled : {}),
-                          }}
+                          className={`gd-numberTokenButton ${isSelected ? 'gd-numberTokenButtonSelected' : ''} ${isDisabled ? 'gd-numberTokenButtonDisabled' : ''}`}
                         >
                           {numberToken}
                         </button>
@@ -717,14 +709,14 @@ const GameDetail: React.FC = () => {
                   </div>
 
                   {filteredNumbersPool.length === 0 && (
-                    <p style={styles.searchEmptyState}>Nenhum número encontrado para o filtro informado.</p>
+                    <p className="gd-searchEmptyState">Nenhum número encontrado para o filtro informado.</p>
                   )}
                 </div>
               )}
 
               <button
                 onClick={handlePurchaseCard}
-                style={styles.purchaseButton}
+                className="gd-purchaseButton"
                 disabled={purchasing}
               >
                 {purchasing ? 'Comprando...' : `🎫 Comprar Cartela ${purchaseMode === 'aleatoria' ? 'Aleatória' : 'Personalizada'}`}
@@ -733,43 +725,43 @@ const GameDetail: React.FC = () => {
           )}
 
           {!canPurchase() && game.status === 'scheduled' && game.max_cards && game.cards_sold >= game.max_cards && (
-            <div style={styles.warningBox}>
+            <div className="gd-warningBox">
               ⚠️ Todas as cartelas foram vendidas
             </div>
           )}
 
           {game.status === 'finished' && (
-            <div style={styles.infoBox}>
+            <div className="gd-infoBox">
               ✓ Este concurso foi finalizado
             </div>
           )}
 
           {game.status === 'cancelled' && (
-            <div style={styles.errorBox}>
+            <div className="gd-errorBox">
               ❌ Este concurso foi cancelado
             </div>
           )}
         </div>
 
-        <div style={{ ...styles.cardsSection, ...(isMobile ? styles.cardsSectionMobile : {}) }}>
-          <h2 style={styles.sectionTitle}>🎫 Cartelas Compradas ({cards.length})</h2>
+        <div className={`gd-cardsSection ${isMobile ? 'gd-cardsSectionMobile' : ''}`}>
+          <h2 className="gd-sectionTitle">🎫 Cartelas Compradas ({cards.length})</h2>
           {cards.length === 0 ? (
-            <div style={styles.emptyState}>
+            <div className="gd-emptyState">
               <p>Nenhuma cartela comprada ainda.</p>
             </div>
           ) : (
-            <div style={styles.cardsGrid}>
+            <div className="gd-cardsGrid">
               {cards.map((card) => (
-                <div key={card.id} style={styles.cardItem}>
-                  <div style={styles.cardHeader}>
+                <div key={card.id} className="gd-cardItem">
+                  <div className="gd-cardHeader">
                     <strong>{card.owner_name}</strong>
-                    <span style={styles.cardDate}>
+                    <span className="gd-cardDate">
                       {new Date(card.purchase_date).toLocaleDateString('pt-BR')}
                     </span>
                   </div>
-                  <div style={styles.cardNumbers}>
+                  <div className="gd-cardNumbers">
                     {card.numbers.map((num, idx) => (
-                      <span key={idx} style={styles.numberBall}>
+                      <span key={idx} className="gd-numberBall">
                         {num}
                       </span>
                     ))}
@@ -785,450 +777,6 @@ const GameDetail: React.FC = () => {
       {canAccessBuyerFeatures && <FloatingCart onPaymentSuccess={fetchGameData} />}
     </>
   );
-};
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-    padding: '40px 20px',
-  },
-  containerMobile: {
-    padding: '16px 12px 88px',
-  },
-  loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    // Removed styles related to the old cart implementation
-    marginTop: '20px',
-    marginBottom: '24px',
-    padding: '20px',
-    background: '#f8f9fa',
-    borderRadius: '10px',
-    border: '1px solid #e3e5e8',
-  },
-  spinner: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
-    border: '3px solid #dbe3ef',
-    borderTop: '3px solid #4f46e5',
-    marginBottom: '10px',
-  },
-  content: {
-    width: '100%',
-    maxWidth: '1160px',
-    margin: '0 auto',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '16px',
-  },
-  backLink: {
-    width: 'fit-content',
-    border: '1px solid #cbd5e1',
-    background: '#fff',
-    color: '#334155',
-    borderRadius: '8px',
-    padding: '8px 12px',
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  mainCard: {
-    background: 'white',
-    borderRadius: '12px',
-    padding: '24px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '14px',
-  },
-  mainCardMobile: {
-    padding: '18px',
-  },
-  sectionTitle: {
-    margin: 0,
-    fontSize: '20px',
-    color: '#1f2937',
-  },
-  gameTitleInline: {
-    margin: 0,
-    fontSize: '24px',
-    color: '#111827',
-    lineHeight: 1.2,
-  },
-  purchasePanel: {
-    marginTop: '20px',
-    padding: '16px',
-    borderRadius: '10px',
-    border: '1px solid #d5dbe5',
-    background: '#f9fbff',
-  },
-  modeButtons: {
-    display: 'flex',
-    gap: '10px',
-    marginBottom: '12px',
-  },
-  purchaseButton: {
-    marginTop: '10px',
-    border: '1px solid #16a34a',
-    background: '#16a34a',
-    color: '#fff',
-    borderRadius: '8px',
-    padding: '10px 14px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    width: 'fit-content',
-  },
-  modeButtonsMobile: {
-    flexDirection: 'column' as const,
-  },
-  modeButton: {
-    padding: '8px 12px',
-    borderRadius: '8px',
-    border: '1px solid #cbd2dc',
-    background: '#fff',
-    cursor: 'pointer',
-    fontWeight: 600,
-    color: '#334155',
-  },
-  modeButtonActive: {
-    background: '#667eea',
-    color: '#fff',
-    border: '1px solid #667eea',
-  },
-  customInputWrapper: {
-    marginBottom: '12px',
-  },
-  customHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '8px',
-  },
-  customLabel: {
-    display: 'block',
-    fontSize: '13px',
-    color: '#334155',
-  },
-  customCounter: {
-    fontSize: '12px',
-    color: '#475569',
-    fontWeight: 600,
-  },
-  customToolbar: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '8px',
-    alignItems: 'center',
-  },
-  customToolbarMobile: {
-    flexDirection: 'column' as const,
-    alignItems: 'stretch',
-  },
-  searchInput: {
-    flex: 1,
-    height: '34px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    padding: '0 10px',
-    fontSize: '13px',
-    color: '#334155',
-  },
-  clearSelectionButton: {
-    height: '34px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    background: '#fff',
-    color: '#334155',
-    fontSize: '12px',
-    fontWeight: 600,
-    padding: '0 10px',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap' as const,
-  },
-  selectedNumbersPanel: {
-    marginBottom: '10px',
-    padding: '10px',
-    borderRadius: '8px',
-    border: '1px solid #e2e8f0',
-    background: '#f8fafc',
-  },
-  selectedNumbersHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '8px',
-    fontSize: '12px',
-    color: '#334155',
-  },
-  selectedNumbersList: {
-    display: 'flex',
-    flexWrap: 'wrap' as const,
-    gap: '6px',
-  },
-  selectedNumberChip: {
-    border: '1px solid #cbd5e1',
-    background: '#fff',
-    color: '#334155',
-    borderRadius: '999px',
-    padding: '4px 8px',
-    fontSize: '12px',
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  numberSelectorGrid: {
-    width: '100%',
-    display: 'grid',
-    gridTemplateColumns: 'repeat(10, minmax(0, 1fr))',
-    gap: '6px',
-  },
-  numberSelectorGridMobile: {
-    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-  },
-  numberTokenButton: {
-    height: '32px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    background: '#fff',
-    color: '#334155',
-    fontSize: '12px',
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  numberTokenButtonSelected: {
-    background: '#667eea',
-    border: '1px solid #667eea',
-    color: '#fff',
-  },
-  numberTokenButtonDisabled: {
-    opacity: 0.45,
-    cursor: 'not-allowed',
-  },
-  searchEmptyState: {
-    marginTop: '8px',
-    marginBottom: 0,
-    fontSize: '12px',
-    color: '#64748b',
-  },
-  warningBox: {
-    padding: '15px',
-    background: '#fff3cd',
-    border: '2px solid #ffc107',
-    borderRadius: '8px',
-    color: '#856404',
-    textAlign: 'center' as const,
-    fontWeight: '500',
-  },
-  infoBox: {
-    padding: '15px',
-    background: '#d1ecf1',
-    border: '2px solid #0dcaf0',
-    borderRadius: '8px',
-    color: '#055160',
-    textAlign: 'center' as const,
-    fontWeight: '500',
-  },
-  errorBox: {
-    padding: '15px',
-    background: '#f8d7da',
-    border: '2px solid #f44336',
-    borderRadius: '8px',
-    color: '#721c24',
-    textAlign: 'center' as const,
-    fontWeight: '500',
-  },
-  settingsPanel: {
-    marginTop: '20px',
-    padding: '16px',
-    borderRadius: '10px',
-    border: '1px solid #d5dbe5',
-    background: '#f9fbff',
-  },
-  settingsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '10px',
-    marginBottom: '12px',
-  },
-  settingsField: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '6px',
-  },
-  reschedulePanel: {
-    marginTop: '20px',
-    padding: '16px',
-    borderRadius: '10px',
-    border: '1px solid #d5dbe5',
-    background: '#f9fbff',
-  },
-  rescheduleDescription: {
-    margin: '0 0 12px 0',
-    fontSize: '13px',
-    color: '#4b5563',
-  },
-  rescheduleInputRow: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '6px',
-    marginBottom: '12px',
-  },
-  rescheduleLabel: {
-    fontSize: '13px',
-    color: '#374151',
-    fontWeight: 600,
-  },
-  rescheduleInput: {
-    height: '38px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    padding: '0 10px',
-    color: '#334155',
-    fontSize: '14px',
-  },
-  rescheduleModes: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '12px',
-    flexWrap: 'wrap' as const,
-  },
-  rescheduleActions: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '10px',
-    alignItems: 'flex-start',
-  },
-  rescheduleSimulateButton: {
-    marginTop: 0,
-    marginBottom: 0,
-    width: 'fit-content',
-    border: '1px solid #cbd5e1',
-    background: '#fff',
-    color: '#334155',
-    borderRadius: '8px',
-    padding: '8px 12px',
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  rescheduleSimulateButtonDisabled: {
-    background: '#e2e8f0',
-    border: '1px solid #e2e8f0',
-    color: '#64748b',
-    opacity: 0.8,
-    cursor: 'not-allowed',
-  },
-  rescheduleApplyButton: {
-    marginTop: 0,
-    width: 'fit-content',
-    border: '1px solid #4f46e5',
-    background: '#4f46e5',
-    color: '#fff',
-    borderRadius: '8px',
-    padding: '8px 12px',
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  rescheduleApplyButtonDisabled: {
-    background: '#e2e8f0',
-    border: '1px solid #e2e8f0',
-    color: '#64748b',
-    opacity: 0.8,
-    cursor: 'not-allowed',
-  },
-  reschedulePreviewBox: {
-    marginTop: 0,
-    padding: '10px',
-    borderRadius: '8px',
-    background: '#eef2ff',
-    border: '1px solid #c7d2fe',
-    alignSelf: 'stretch',
-  },
-  reschedulePreviewLine: {
-    margin: 0,
-    fontSize: '13px',
-    color: '#3730a3',
-    fontWeight: 600,
-  },
-  rescheduleConflictList: {
-    margin: '8px 0 0 18px',
-    color: '#312e81',
-    fontSize: '13px',
-  },
-  cardsSection: {
-    background: 'white',
-    borderRadius: '12px',
-    padding: '40px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-  },
-  cardsSectionMobile: {
-    padding: '18px',
-  },
-  cardsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-    gap: '20px',
-    marginTop: '20px',
-  },
-  cardItem: {
-    padding: '20px',
-    background: '#f8f9fa',
-    borderRadius: '10px',
-    border: '2px solid #e0e0e0',
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '15px',
-    fontSize: '14px',
-  },
-  cardDate: {
-    color: '#666',
-    fontSize: '12px',
-  },
-  cardNumbers: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(5, 1fr)',
-    gap: '8px',
-  },
-  numberBall: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    aspectRatio: '1',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
-    borderRadius: '50%',
-    fontWeight: 'bold',
-    fontSize: '14px',
-  },
-  emptyState: {
-    textAlign: 'center' as const,
-    padding: '40px',
-    color: '#666',
-  },
-  errorCard: {
-    maxWidth: '500px',
-    margin: '100px auto',
-    background: 'white',
-    borderRadius: '12px',
-    padding: '40px',
-    textAlign: 'center' as const,
-  },
-  backButton: {
-    padding: '12px 32px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    color: 'white',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    marginTop: '20px',
-  },
 };
 
 export default GameDetail;

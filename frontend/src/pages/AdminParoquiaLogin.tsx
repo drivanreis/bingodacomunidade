@@ -5,9 +5,11 @@
  * Rota: /admin-paroquia/login
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { clearSessionScope, setSessionScope } from '../utils/sessionScope';
+import './AdminParoquiaLogin.css';
 
 const AdminParoquiaLogin: React.FC = () => {
   const [identifier, setIdentifier] = useState('');
@@ -16,6 +18,13 @@ const AdminParoquiaLogin: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    localStorage.removeItem('@BingoComunidade:token');
+    localStorage.removeItem('@BingoComunidade:user');
+    localStorage.removeItem('@BingoComunidade:bootstrap');
+    clearSessionScope();
+  }, []);
 
   const formatCPF = (value: string) => {
     const numbers = value.replace(/\D/g, '');
@@ -57,7 +66,8 @@ const AdminParoquiaLogin: React.FC = () => {
       const paroquialRoles = ['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo', 'usuario_administrativo', 'usuario_administrador'];
       const tipoUsuario = (usuario?.tipo || '').toString().toLowerCase();
       const nivelAcesso = (usuario?.nivel_acesso || '').toString().toLowerCase();
-      if (nivelAcesso !== 'admin_paroquia' && !paroquialRoles.includes(tipoUsuario)) {
+      const isAdminSiteProfile = nivelAcesso === 'admin_site' || tipoUsuario === 'admin_site';
+      if (isAdminSiteProfile || (nivelAcesso !== 'admin_paroquia' && !paroquialRoles.includes(tipoUsuario))) {
         setError('Acesso negado. Esta área é exclusiva para administradores paroquiais.');
         return;
       }
@@ -65,6 +75,7 @@ const AdminParoquiaLogin: React.FC = () => {
       // Salvar token e usuário
       localStorage.setItem('@BingoComunidade:token', access_token);
       localStorage.setItem('@BingoComunidade:user', JSON.stringify(usuario));
+      setSessionScope('admin_paroquia');
       
       // Configurar header de autorização
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
@@ -93,49 +104,49 @@ const AdminParoquiaLogin: React.FC = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.loginBox}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>⛪ Admin Paróquia</h1>
-          <p style={styles.subtitle}>Área Administrativa - Paróquia</p>
+    <div className="apl-container">
+      <div className="apl-loginBox">
+        <div className="apl-header">
+          <h1 className="apl-title">⛪ Admin Paróquia</h1>
+          <p className="apl-subtitle">Área Administrativa - Paróquia</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
+        <form onSubmit={handleSubmit} className="apl-form">
           {error && (
-            <div style={styles.errorBox}>
-              <span style={styles.errorIcon}>⚠️</span>
+            <div className="apl-errorBox">
+              <span className="apl-errorIcon">⚠️</span>
               {error}
             </div>
           )}
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Login ou Email</label>
+          <div className="apl-inputGroup">
+            <label className="apl-label">Login ou Email</label>
             <input
               type="text"
               value={identifier}
               onChange={handleIdentifierChange}
               placeholder="login ou email@dominio.com"
-              style={styles.input}
+              className="apl-input"
               required
               autoFocus
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Senha</label>
-            <div style={styles.passwordContainer}>
+          <div className="apl-inputGroup">
+            <label className="apl-label">Senha</label>
+            <div className="apl-passwordContainer">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                style={styles.input}
+                className="apl-input"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
+                className="apl-eyeButton"
               >
                 {showPassword ? '👁️' : '👁️‍🗨️'}
               </button>
@@ -144,29 +155,29 @@ const AdminParoquiaLogin: React.FC = () => {
 
           <button
             type="submit"
-            style={loading ? { ...styles.button, ...styles.buttonDisabled } : styles.button}
+            className={`apl-button ${loading ? 'apl-buttonDisabled' : ''}`}
             disabled={loading}
           >
             {loading ? '🔄 Autenticando...' : '🔐 Acessar Sistema'}
           </button>
         </form>
 
-        <div style={styles.footer}>
-          <p style={styles.footerText}>
+        <div className="apl-footer">
+          <p className="apl-footerText">
             🔒 Área restrita - Administradores Paroquiais
           </p>
           <button
             onClick={() => navigate('/')}
-            style={styles.backButton}
+            className="apl-backButton"
           >
             ← Voltar para Home
           </button>
         </div>
       </div>
 
-      <div style={styles.infoBox}>
-        <h3 style={styles.infoTitle}>⛪ Admin Paroquial</h3>
-        <ul style={styles.infoList}>
+      <div className="apl-infoBox">
+        <h3 className="apl-infoTitle">⛪ Admin Paroquial</h3>
+        <ul className="apl-infoList">
           <li>Gerenciamento de jogos da paróquia</li>
           <li>Controle de vendas e caixa</li>
           <li>Recepção e validação de cartelas</li>
@@ -176,144 +187,6 @@ const AdminParoquiaLogin: React.FC = () => {
       </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    padding: '20px',
-    gap: '40px',
-  } as React.CSSProperties,
-  loginBox: {
-    background: 'white',
-    borderRadius: '15px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-    padding: '40px',
-    width: '100%',
-    maxWidth: '450px',
-  } as React.CSSProperties,
-  header: {
-    textAlign: 'center' as const,
-    marginBottom: '30px',
-  },
-  title: {
-    fontSize: '32px',
-    color: '#667eea',
-    marginBottom: '10px',
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: '#666',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '20px',
-  },
-  errorBox: {
-    background: '#fee',
-    color: '#c00',
-    padding: '15px',
-    borderRadius: '8px',
-    border: '1px solid #fcc',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    fontSize: '14px',
-  } as React.CSSProperties,
-  errorIcon: {
-    fontSize: '20px',
-  },
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '8px',
-  },
-  label: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#333',
-  },
-  input: {
-    padding: '12px 15px',
-    fontSize: '16px',
-    border: '2px solid #ddd',
-    borderRadius: '8px',
-    outline: 'none',
-    transition: 'border 0.3s',
-  } as React.CSSProperties,
-  passwordContainer: {
-    position: 'relative' as const,
-  },
-  eyeButton: {
-    position: 'absolute' as const,
-    right: '10px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '20px',
-  },
-  button: {
-    padding: '15px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    color: 'white',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'transform 0.2s',
-    marginTop: '10px',
-  } as React.CSSProperties,
-  buttonDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
-  },
-  footer: {
-    marginTop: '30px',
-    textAlign: 'center' as const,
-  },
-  footerText: {
-    fontSize: '13px',
-    color: '#666',
-    marginBottom: '15px',
-  },
-  backButton: {
-    background: 'none',
-    border: 'none',
-    color: '#667eea',
-    cursor: 'pointer',
-    fontSize: '14px',
-    textDecoration: 'underline',
-  } as React.CSSProperties,
-  infoBox: {
-    background: 'rgba(255,255,255,0.95)',
-    borderRadius: '15px',
-    padding: '30px',
-    maxWidth: '300px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-  } as React.CSSProperties,
-  infoTitle: {
-    fontSize: '20px',
-    color: '#667eea',
-    marginBottom: '15px',
-    fontWeight: 'bold',
-  },
-  infoList: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-    fontSize: '14px',
-    color: '#555',
-    lineHeight: '2',
-  } as React.CSSProperties,
 };
 
 export default AdminParoquiaLogin;

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import api from '../services/api';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import { limparItensExpirados } from '../utils/carrinhoManager';
+import { clearSessionScope, resolveScopeFromRole, setSessionScope } from '../utils/sessionScope';
 
 const AUTH_SESSION_MARKER = '@BingoComunidade:session-active';
 
@@ -33,6 +34,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const clearPersistedAuth = () => {
       localStorage.removeItem('@BingoComunidade:token');
       localStorage.removeItem('@BingoComunidade:user');
+      clearSessionScope();
       delete api.defaults.headers.common['Authorization'];
     };
 
@@ -128,6 +130,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Converter dados do backend (português) para o formato do contexto (inglês)
       const usuarioData = JSON.parse(effectiveStoredUser);
       const role = usuarioData.tipo || usuarioData.nivel_acesso;
+      setSessionScope(resolveScopeFromRole(role));
       setUser({
         id: usuarioData.id,
         name: usuarioData.nome || '',
@@ -178,6 +181,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       localStorage.setItem('@BingoComunidade:token', access_token);
       localStorage.setItem('@BingoComunidade:user', JSON.stringify(usuario));
+      setSessionScope('public');
       sessionStorage.setItem(AUTH_SESSION_MARKER, '1');
       
       // Configurar token para próximas requisições

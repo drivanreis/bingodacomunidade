@@ -1,0 +1,164 @@
+.apl-container,
+.asl-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  gap: 40px;
+}
+
+.apl-loginBox,
+.asl-loginBox {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 40px;
+  width: 100%;
+  max-width: 450px;
+}
+
+.apl-header,
+.asl-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.apl-subtitle,
+.asl-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.apl-form,
+.asl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.apl-errorBox,
+.asl-errorBox {
+  background: #fee;
+  color: #c00;
+  padding: 15px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #fcc;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.apl-errorIcon,
+.asl-errorIcon {
+  font-size: 20px;
+}
+
+.apl-inputGroup,
+.asl-inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.apl-label,
+.asl-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+.apl-input,
+.asl-input {
+  padding: 12px 15px;
+  font-size: 16px;
+  border: 2px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border 0.3s;
+}
+
+.apl-passwordContainer,
+.asl-passwordContainer {
+  position: relative;
+}
+
+.apl-eyeButton,
+.asl-eyeButton {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.apl-button,
+.asl-button {
+  padding: 15px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.2s;
+  margin-top: 10px;
+}
+
+.apl-buttonDisabled,
+.asl-buttonDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.apl-footer,
+.asl-footer {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.apl-footerText,
+.asl-footerText {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 15px;
+}
+
+.apl-backButton,
+.asl-backButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: underline;
+}
+
+.apl-infoBox,
+.asl-infoBox {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  max-width: 300px;
+  box-shadow: var(--shadow-md);
+}
+
+.apl-infoTitle,
+.asl-infoTitle {
+  font-size: 20px;
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+.apl-infoList,
+.asl-infoList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 2;
+}

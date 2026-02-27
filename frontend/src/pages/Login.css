@@ -1,0 +1,149 @@
+.lg-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-brand);
+  padding: 20px;
+}
+
+.lg-card {
+  background: var(--color-white);
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  padding: 40px;
+  max-width: 450px;
+  width: 100%;
+}
+
+.lg-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.lg-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--color-text-strong);
+  margin: 0 0 10px 0;
+}
+
+.lg-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.lg-form {
+  margin-bottom: 30px;
+}
+
+.lg-inputGroup {
+  margin-bottom: 20px;
+}
+
+.lg-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-strong);
+}
+
+.lg-input {
+  width: 100%;
+  padding: 12px 16px;
+  padding-right: 45px;
+  font-size: 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.lg-passwordContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lg-eyeButton {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lg-button {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background: var(--gradient-brand);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 10px;
+}
+
+.lg-buttonDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lg-links {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+  gap: 10px;
+}
+
+.lg-linkButton {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 5px;
+}
+
+.lg-error {
+  background-color: #ffcdd2;
+  color: #d32f2f;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.lg-errorSpaced {
+  margin-bottom: 20px;
+}
+
+.lg-success {
+  background: #efe;
+  color: #3c3;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 16px;
+  border: 1px solid #cfc;
+  font-weight: bold;
+}
+
+.lg-footer {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}

@@ -1,0 +1,39 @@
+.asl-container {
+  background: var(--gradient-brand-dark);
+}
+
+.asl-title,
+.asl-backButton,
+.asl-infoTitle {
+  color: var(--color-brand-dark);
+}
+
+.asl-title {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.asl-button {
+  background: var(--gradient-brand-dark);
+}
+
+.asl-credentialsBox {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.asl-credentialsTitle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.asl-credentialsHint {
+  font-size: 12px;
+  color: #888;
+}

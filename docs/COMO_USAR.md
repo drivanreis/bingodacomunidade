@@ -171,6 +171,17 @@ Para gestão de usuários (site/paróquia), adote sempre duas etapas de trabalho
 
 > Regra de negócio: depois que o usuário foi criado, CPF e ID não podem ser alterados.
 
+---
+
+## 🧭 REGRA OFICIAL - NAVEGAÇÃO POR CONTEXTO
+
+- Se o usuário está no painel da paróquia, a navegação deve ficar em `/admin-paroquia/*`.
+- Exemplo correto:
+  - Dashboard paroquial: `/admin-paroquia/dashboard`
+  - Lista de jogos paroquial: `/admin-paroquia/games`
+  - Detalhe de jogo paroquial: `/admin-paroquia/games/:id`
+- As rotas `/games` e `/games/:id` são da área pública autenticada (usuário comum/fiel).
+
 ### **Ver logs em tempo real**
 ```powershell
 docker-compose logs -f backend

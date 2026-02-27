@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import { resolveDashboardPath } from '../utils/sessionScope';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -81,11 +82,11 @@ export default function Home() {
               ⚠️ Sistema em manutenção para público até configuração do primeiro Admin-Paróquia.
             </div>
           ) : isAuthenticated ? (
-            <button 
-              onClick={() => navigate('/dashboard')} 
-              style={styles.primaryButton}
-            >
-              🏠 Acessar Minha Conta
+              <button 
+                onClick={() => navigate(resolveDashboardPath(user?.role))} 
+                style={styles.primaryButton}
+              >
+                🏠 Acessar Minha Conta
             </button>
           ) : (
             <>

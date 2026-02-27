@@ -43,6 +43,17 @@ Este documento lista **todas as rotas disponíveis** atualmente e aponta **quais
 | Rota | Componente | Regra de Acesso | Testes existentes | Versão |
 | --- | --- | --- | --- | --- |
 | `/admin-paroquia/dashboard` | `AdminParoquiaDashboard` | `ParishAdminRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
+| `/admin-paroquia/games` | `Games` | `ParishAdminRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
+| `/admin-paroquia/games/:id` | `GameDetail` | `ParishAdminRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
+
+---
+
+## 🧭 Regra de Namespace (Obrigatória)
+
+- Contexto **Admin-Paróquia** deve permanecer em rotas `/admin-paroquia/*`.
+- Ao sair de `/admin-paroquia/dashboard` para jogos, usar `/admin-paroquia/games`.
+- Ao abrir detalhe de jogo no contexto paroquial, usar `/admin-paroquia/games/:id`.
+- A rota pública `/games` e `/games/:id` permanece para a área de usuário comum (fiel).
 
 ---
 
@@ -53,7 +64,6 @@ Este documento lista **todas as rotas disponíveis** atualmente e aponta **quais
 | `/dashboard` | `Dashboard` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
 | `/feedback` | `SendFeedback` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
 | `/games` | `Games` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
-| `/games/new` | `NewGame` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
 | `/games/:id` | `GameDetail` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
 | `/profile` | `Profile` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
 
@@ -86,4 +96,4 @@ Este documento lista **todas as rotas disponíveis** atualmente e aponta **quais
 
 ---
 
-**Última atualização:** 17/02/2026
+**Última atualização:** 27/02/2026

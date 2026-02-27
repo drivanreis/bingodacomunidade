@@ -1489,25 +1489,6 @@ def criar_admin_site(
         
         db.add(novo_admin)
 
-        # Espelho legado para compatibilidade durante transição
-        legado_admin = UsuarioAdministrativo(
-            id=novo_admin.id,
-            nome=novo_admin.nome,
-            login=novo_admin.login,
-            senha_hash=novo_admin.senha_hash,
-            email=novo_admin.email,
-            cpf=novo_admin.cpf,
-            telefone=novo_admin.telefone,
-            whatsapp=novo_admin.whatsapp,
-            nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
-            paroquia_id=None,
-            ativo=bool(novo_admin.ativo),
-            criado_por_id=admin_atual.id,
-            criado_em=novo_admin.criado_em,
-            atualizado_em=novo_admin.atualizado_em,
-        )
-        db.add(legado_admin)
-
         set_admin_site_password_pending(db, novo_admin.id, True)
         db.commit()
         db.refresh(novo_admin)
@@ -2270,23 +2251,6 @@ def bootstrap_setup(
             )
             db.add(primeiro_admin)
 
-            legado_primeiro_admin = UsuarioAdministrativo(
-                id=primeiro_admin.id,
-                nome=primeiro_admin.nome,
-                login=primeiro_admin.login,
-                senha_hash=primeiro_admin.senha_hash,
-                email=primeiro_admin.email,
-                cpf=primeiro_admin.cpf,
-                telefone=primeiro_admin.telefone,
-                whatsapp=primeiro_admin.whatsapp,
-                nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
-                paroquia_id=None,
-                ativo=True,
-                criado_por_id=bootstrap_admin.id,
-                criado_em=primeiro_admin.criado_em,
-                atualizado_em=primeiro_admin.atualizado_em,
-            )
-            db.add(legado_primeiro_admin)
             db.commit()
             db.refresh(primeiro_admin)
         else:
@@ -2308,23 +2272,6 @@ def bootstrap_setup(
             )
             db.add(primeiro_admin)
 
-            legado_primeiro_admin = UsuarioAdministrativo(
-                id=primeiro_admin.id,
-                nome=primeiro_admin.nome,
-                login=primeiro_admin.login,
-                senha_hash=primeiro_admin.senha_hash,
-                email=primeiro_admin.email,
-                cpf=primeiro_admin.cpf,
-                telefone=primeiro_admin.telefone,
-                whatsapp=primeiro_admin.whatsapp,
-                nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
-                paroquia_id=None,
-                ativo=True,
-                criado_por_id=None,
-                criado_em=primeiro_admin.criado_em,
-                atualizado_em=primeiro_admin.atualizado_em,
-            )
-            db.add(legado_primeiro_admin)
             db.commit()
             db.refresh(primeiro_admin)
 

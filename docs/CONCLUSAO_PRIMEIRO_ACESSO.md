@@ -15,9 +15,10 @@
 - ✅ Credenciais removidas de DOCKER_QUICKSTART.md
 - ✅ Grep encontrou 20+ exposições, todas corrigidas
 
-### 2. Backend (2 Novos Endpoints)
-- ✅ `GET /auth/first-access` - Verifica se precisa setup
-- ✅ `POST /auth/first-access-setup` - Cria primeiro Admin-Site
+### 2. Backend (Fluxo atual de Bootstrap)
+- ✅ `GET /auth/bootstrap/status` - Informa se bootstrap seed está disponível
+- ✅ `POST /auth/bootstrap/login` - Valida tentativa seed (`Admin/admin123`)
+- ✅ `POST /auth/bootstrap` - Cria primeiro Admin-Site real
 - ✅ Proteção dupla: frontend + backend
 - ✅ Validação de senha forte obrigatória
 - ✅ SEED_ENABLED integrado no startup

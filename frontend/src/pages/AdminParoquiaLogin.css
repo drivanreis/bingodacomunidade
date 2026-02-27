@@ -1,0 +1,18 @@
+.apl-container {
+  background: var(--gradient-brand);
+}
+
+.apl-title,
+.apl-backButton,
+.apl-infoTitle {
+  color: var(--color-brand);
+}
+
+.apl-title {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.apl-button {
+  background: var(--gradient-brand);
+}

@@ -1,0 +1,245 @@
+.gm-container {
+  min-height: 100vh;
+  background: var(--gradient-page);
+  padding: 40px 20px;
+}
+
+.gm-backButton {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #667eea;
+  background: var(--color-white);
+  border: 2px solid #667eea;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gm-loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 20px;
+}
+
+.gm-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.gm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.gm-title {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--color-text-strong);
+  margin: 0;
+}
+
+.gm-subtitle {
+  font-size: 16px;
+  color: var(--color-text-muted);
+  margin: 5px 0 0 0;
+}
+
+.gm-createButton {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background: var(--gradient-brand);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.gm-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.gm-filterButton {
+  padding: 10px 20px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  background: var(--color-white);
+  border: 2px solid #e0e0e0;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gm-filterButtonActive {
+  color: white;
+  background: var(--gradient-brand);
+  border-color: transparent;
+}
+
+.gm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+}
+
+.gm-card {
+  background: var(--color-white);
+  border-radius: var(--radius-md);
+  padding: 25px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.gm-cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  gap: 10px;
+}
+
+.gm-cardTitle {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--color-text-strong);
+  margin: 0;
+  flex: 1;
+}
+
+.gm-statusBadge {
+  padding: 5px 12px;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.gm-statusBadgeScheduled {
+  background: #2196f3;
+}
+
+.gm-statusBadgeActive {
+  background: #4caf50;
+}
+
+.gm-statusBadgeFinished {
+  background: #9e9e9e;
+}
+
+.gm-statusBadgeCancelled {
+  background: #f44336;
+}
+
+.gm-statusBadgeDefault {
+  background: #9e9e9e;
+}
+
+.gm-cardDescription {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.gm-cardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.gm-infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gm-infoLabel {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.gm-infoValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-strong);
+}
+
+.gm-infoPrize {
+  font-size: 16px;
+  font-weight: bold;
+  color: #4CAF50;
+}
+
+.gm-viewButton {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #667eea;
+  background: transparent;
+  border: 2px solid #667eea;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gm-emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--color-white);
+  border-radius: var(--radius-md);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.gm-emptyIcon {
+  font-size: 64px;
+  margin: 0 0 20px 0;
+}
+
+.gm-emptyTitle {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--color-text-strong);
+  margin: 0 0 10px 0;
+}
+
+.gm-emptyText {
+  font-size: 16px;
+  color: var(--color-text-muted);
+  margin: 0 0 30px 0;
+}
+
+.gm-emptyButton {
+  padding: 14px 32px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background: var(--gradient-brand);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}

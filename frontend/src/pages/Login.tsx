@@ -3,27 +3,8 @@ import { flushSync } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAppConfigSync } from '../services/configService';
-
-const resolveDashboardByRole = (role?: string): string => {
-  const normalizedRole = (role || '').toLowerCase();
-
-  if (normalizedRole === 'admin_site' || normalizedRole === 'super_admin') {
-    return '/admin-site/dashboard';
-  }
-
-  if (
-    normalizedRole === 'admin_paroquia' ||
-    normalizedRole === 'parish_admin' ||
-    normalizedRole === 'paroquia_admin' ||
-    normalizedRole === 'paroquia_caixa' ||
-    normalizedRole === 'paroquia_recepcao' ||
-    normalizedRole === 'paroquia_bingo'
-  ) {
-    return '/admin-paroquia/dashboard';
-  }
-
-  return '/dashboard';
-};
+import { resolveDashboardPath } from '../utils/sessionScope';
+import './Login.css';
 
 const Login: React.FC = () => {
   const location = useLocation();
@@ -111,7 +92,7 @@ const Login: React.FC = () => {
     void (async () => {
       try {
         const authenticatedUser = await login(loginValue, password);
-        navigate(resolveDashboardByRole(authenticatedUser.role));
+        navigate(resolveDashboardPath(authenticatedUser.role));
       } catch (err: any) {
         // Capturamos a mensagem real do erro (que vem da API ou do interceptor)
         const mensagemErro = err.message || "Erro ao tentar fazer login. Verifique suas credenciais.";
@@ -125,53 +106,49 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>🎉 Bingo da Comunidade</h1>
-          <p style={styles.subtitle}>Sistema de Gestão Paroquial</p>
+    <div className="lg-container">
+      <div className="lg-card">
+        <div className="lg-header">
+          <h1 className="lg-title">🎉 Bingo da Comunidade</h1>
+          <p className="lg-subtitle">Sistema de Gestão Paroquial</p>
         </div>
 
         {success && (
-          <div style={styles.success}>
+          <div className="lg-success">
             {success}
           </div>
         )}
 
-        {error && (
-          <div style={{...styles.error, marginBottom: '20px'}}>
-            {error}
-          </div>
-        )}
+        {error && <div className="lg-error lg-errorSpaced">{error}</div>}
 
-        <form onSubmit={(e) => handleSubmit(e)} style={styles.form} noValidate>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>CPF ou Email</label>
+        <form onSubmit={(e) => handleSubmit(e)} className="lg-form" noValidate>
+          <div className="lg-inputGroup">
+            <label className="lg-label">CPF ou Email</label>
             <input
               type="text"
               value={cpf}
               onChange={handleCPFChange}
               placeholder="000.000.000-00"
-              style={styles.input}
+              className="lg-input"
               disabled={loading}
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Senha</label>
-            <div style={styles.passwordContainer}>
+          <div className="lg-inputGroup">
+            <label className="lg-label">Senha</label>
+            <div className="lg-passwordContainer">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                style={styles.input}
+                className="lg-input"
                 disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
+                className="lg-eyeButton"
                 disabled={loading}
               >
                 {showPassword ? '🙈' : '👁️'}
@@ -183,20 +160,17 @@ const Login: React.FC = () => {
           <button
             type="button"
             onClick={() => handleSubmit()}
-            style={{
-              ...styles.button,
-              ...(loading ? styles.buttonDisabled : {}),
-            }}
+            className={`lg-button ${loading ? 'lg-buttonDisabled' : ''}`}
             disabled={loading}
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
 
-          <div style={styles.links}>
+          <div className="lg-links">
             <button
               type="button"
               onClick={() => navigate('/forgot-password')}
-              style={styles.linkButton}
+              className="lg-linkButton"
               disabled={loading}
             >
               🔑 Esqueci minha senha
@@ -205,7 +179,7 @@ const Login: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/signup')}
-              style={styles.linkButton}
+              className="lg-linkButton"
               disabled={loading}
             >
               Criar conta →
@@ -213,141 +187,10 @@ const Login: React.FC = () => {
           </div>
         </form>
 
-        <div style={styles.footer} />
+        <div className="lg-footer" />
       </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    padding: '20px',
-  },
-  card: {
-    background: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-    padding: '40px',
-    maxWidth: '450px',
-    width: '100%',
-  },
-  header: {
-    textAlign: 'center' as const,
-    marginBottom: '30px',
-  },
-  title: {
-    fontSize: '28px',
-    fontWeight: 'bold',
-    color: '#333',
-    margin: '0 0 10px 0',
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: '#666',
-    margin: 0,
-  },
-  form: {
-    marginBottom: '30px',
-  },
-  inputGroup: {
-    marginBottom: '20px',
-  },
-  label: {
-    display: 'block',
-    marginBottom: '8px',
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#333',
-  },
-  input: {
-    width: '100%',
-    padding: '12px 16px',
-    paddingRight: '45px',
-    fontSize: '14px',
-    border: '2px solid #e0e0e0',
-    borderRadius: '8px',
-    outline: 'none',
-    transition: 'border-color 0.3s',
-    boxSizing: 'border-box' as const,
-  },
-  passwordContainer: {
-    position: 'relative' as const,
-    display: 'flex',
-    alignItems: 'center',
-  },
-  eyeButton: {
-    position: 'absolute' as const,
-    right: '10px',
-    background: 'none',
-    border: 'none',
-    fontSize: '20px',
-    cursor: 'pointer',
-    padding: '5px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  button: {
-    width: '100%',
-    padding: '14px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    color: 'white',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-    marginTop: '10px',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
-  },
-  links: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: '15px',
-    gap: '10px',
-  },
-  linkButton: {
-    background: 'none',
-    border: 'none',
-    color: '#667eea',
-    fontSize: '14px',
-    cursor: 'pointer',
-    textDecoration: 'underline',
-    padding: '5px',
-  },
-  error: {
-    backgroundColor: '#ffcdd2',
-    color: '#d32f2f',
-    padding: '10px',
-    borderRadius: '4px',
-    marginBottom: '15px',
-    textAlign: 'center' as const,
-    fontSize: '0.9rem',
-  },
-  success: {
-    background: '#efe',
-    color: '#3c3',
-    padding: '12px',
-    borderRadius: '8px',
-    fontSize: '14px',
-    marginBottom: '16px',
-    border: '1px solid #cfc',
-    fontWeight: 'bold' as const,
-  },
-  footer: {
-    marginTop: '20px',
-    paddingTop: '20px',
-    borderTop: '1px solid #e0e0e0',
-  },
 };
 
 export default Login;

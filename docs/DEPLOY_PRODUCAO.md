@@ -70,16 +70,16 @@ Você deve ver:
 
 ### Esta Tela Aparece Apenas UMA Vez
 
-✅ Sistema verifica: `SELECT COUNT(*) FROM usuario WHERE tipo = 'SUPER_ADMIN'`
+✅ Sistema verifica se existe Admin-Site real ativo (além do seed bootstrap)
 
 ✅ Se COUNT = 0 → Mostra tela de primeiro acesso  
 ✅ Se COUNT > 0 → Redireciona para login normal
 
 ### Proteções Implementadas
 
-1. **Verificação Dupla:**
-   - Frontend checa `GET /auth/first-access`
-   - Backend valida no `POST /auth/first-access-setup`
+1. **Verificação Dupla (fluxo atual):**
+   - Frontend de Admin-Site usa `GET /auth/bootstrap/status` e `POST /auth/bootstrap/login`
+   - Backend cria o primeiro Admin-Site somente via `POST /auth/bootstrap`
 
 2. **Impossível Criar Segundo Admin:**
    ```python

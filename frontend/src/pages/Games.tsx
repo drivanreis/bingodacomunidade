@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import FloatingCart from '../components/FloatingCart';
 import api from '../services/api';
+import { resolveDashboardPath, resolveGameDetailPath } from '../utils/sessionScope';
+import './Games.css';
 
 interface Game {
   id: string;
@@ -61,16 +63,6 @@ const Games: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      scheduled: '#2196F3',
-      active: '#4CAF50',
-      finished: '#9E9E9E',
-      cancelled: '#F44336',
-    };
-    return colors[status] || '#9E9E9E';
-  };
-
   const getStatusText = (status: string) => {
     const texts: Record<string, string> = {
       scheduled: 'Agendado',
@@ -79,6 +71,16 @@ const Games: React.FC = () => {
       cancelled: 'Cancelado',
     };
     return texts[status] || status;
+  };
+
+  const getStatusBadgeClass = (status: string) => {
+    const classes: Record<string, string> = {
+      scheduled: 'gm-statusBadgeScheduled',
+      active: 'gm-statusBadgeActive',
+      finished: 'gm-statusBadgeFinished',
+      cancelled: 'gm-statusBadgeCancelled',
+    };
+    return classes[status] || 'gm-statusBadgeDefault';
   };
 
   const filteredGames = games.filter((game) => {
@@ -106,8 +108,8 @@ const Games: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
+      <div className="gm-loadingContainer">
+        <div className="gm-spinner"></div>
         <p>Carregando jogos...</p>
       </div>
     );
@@ -116,114 +118,101 @@ const Games: React.FC = () => {
   return (
     <>
       <Navbar />
-      <div style={styles.container}>
-        <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
+      <div className="gm-container">
+        <button onClick={() => navigate(resolveDashboardPath(resolvedRole))} className="gm-backButton">
           ← Voltar para Dashboard
         </button>
         
-        <div style={styles.header}>
+        <div className="gm-header">
         <div>
-          <h1 style={styles.title}>🎉 Concursos Disponíveis</h1>
-          <p style={styles.subtitle}>
+          <h1 className="gm-title">🎉 Concursos Disponíveis</h1>
+          <p className="gm-subtitle">
             {filteredGames.length} {filteredGames.length === 1 ? 'concurso' : 'concursos'} para compra de cartela
           </p>
         </div>
         {canManageGames && (
-          <button style={styles.createButton} onClick={() => navigate('/games/new')}>
+          <button className="gm-createButton" onClick={() => navigate('/admin-paroquia/games/new')}>
             ➕ Criar Novo Jogo
           </button>
         )}
       </div>
 
-      <div style={styles.filters}>
+      <div className="gm-filters">
         <button
           onClick={() => setFilter('all')}
-          style={{
-            ...styles.filterButton,
-            ...(filter === 'all' ? styles.filterButtonActive : {}),
-          }}
+          className={`gm-filterButton ${filter === 'all' ? 'gm-filterButtonActive' : ''}`}
         >
           Todos ({games.length})
         </button>
         <button
           onClick={() => setFilter('scheduled')}
-          style={{
-            ...styles.filterButton,
-            ...(filter === 'scheduled' ? styles.filterButtonActive : {}),
-          }}
+          className={`gm-filterButton ${filter === 'scheduled' ? 'gm-filterButtonActive' : ''}`}
         >
           Agendados ({games.filter((g) => g.status === 'scheduled').length})
         </button>
         <button
           onClick={() => setFilter('active')}
-          style={{
-            ...styles.filterButton,
-            ...(filter === 'active' ? styles.filterButtonActive : {}),
-          }}
+          className={`gm-filterButton ${filter === 'active' ? 'gm-filterButtonActive' : ''}`}
         >
           Ativos ({games.filter((g) => g.status === 'active').length})
         </button>
         <button
           onClick={() => setFilter('finished')}
-          style={{
-            ...styles.filterButton,
-            ...(filter === 'finished' ? styles.filterButtonActive : {}),
-          }}
+          className={`gm-filterButton ${filter === 'finished' ? 'gm-filterButtonActive' : ''}`}
         >
           Finalizados ({games.filter((g) => g.status === 'finished').length})
         </button>
       </div>
 
       {filteredGames.length === 0 ? (
-        <div style={styles.emptyState}>
-          <p style={styles.emptyIcon}>🎲</p>
-          <h3 style={styles.emptyTitle}>Nenhum jogo encontrado</h3>
-          <p style={styles.emptyText}>
+        <div className="gm-emptyState">
+          <p className="gm-emptyIcon">🎲</p>
+          <h3 className="gm-emptyTitle">Nenhum jogo encontrado</h3>
+          <p className="gm-emptyText">
             {filter === 'all'
               ? 'Ainda não há concursos disponíveis para compra de cartela.'
               : `Não há concursos com status "${getStatusText(filter)}".`}
           </p>
         </div>
       ) : (
-        <div style={styles.grid}>
+        <div className="gm-grid">
           {filteredGames.map((game) => (
-            <div key={game.id} style={styles.card} onClick={() => navigate(`/games/${game.id}`)}>
-              <div style={styles.cardHeader}>
-                <h3 style={styles.cardTitle}>{game.title}</h3>
-                <span
-                  style={{
-                    ...styles.statusBadge,
-                    background: getStatusColor(game.status),
-                  }}
-                >
+            <div
+              key={game.id}
+              className="gm-card"
+              onClick={() => navigate(resolveGameDetailPath(resolvedRole, game.id))}
+            >
+              <div className="gm-cardHeader">
+                <h3 className="gm-cardTitle">{game.title}</h3>
+                <span className={`gm-statusBadge ${getStatusBadgeClass(game.status)}`}>
                   {getStatusText(game.status)}
                 </span>
               </div>
 
-              <p style={styles.cardDescription}>{game.description}</p>
+              <p className="gm-cardDescription">{game.description}</p>
 
-              <div style={styles.cardInfo}>
-                <div style={styles.infoRow}>
-                  <span style={styles.infoLabel}>📅 Data:</span>
-                  <span style={styles.infoValue}>{formatDate(game.scheduled_date)}</span>
+              <div className="gm-cardInfo">
+                <div className="gm-infoRow">
+                  <span className="gm-infoLabel">📅 Data:</span>
+                  <span className="gm-infoValue">{formatDate(game.scheduled_date)}</span>
                 </div>
-                <div style={styles.infoRow}>
-                  <span style={styles.infoLabel}>💰 Valor da Cartela:</span>
-                  <span style={styles.infoValue}>{formatCurrency(game.card_price)}</span>
+                <div className="gm-infoRow">
+                  <span className="gm-infoLabel">💰 Valor da Cartela:</span>
+                  <span className="gm-infoValue">{formatCurrency(game.card_price)}</span>
                 </div>
-                <div style={styles.infoRow}>
-                  <span style={styles.infoLabel}>🏆 Prêmio Total:</span>
-                  <span style={styles.infoPrize}>{formatCurrency(game.total_prize)}</span>
+                <div className="gm-infoRow">
+                  <span className="gm-infoLabel">🏆 Prêmio Total:</span>
+                  <span className="gm-infoPrize">{formatCurrency(game.total_prize)}</span>
                 </div>
-                <div style={styles.infoRow}>
-                  <span style={styles.infoLabel}>🎫 Cartelas Vendidas:</span>
-                  <span style={styles.infoValue}>
+                <div className="gm-infoRow">
+                  <span className="gm-infoLabel">🎫 Cartelas Vendidas:</span>
+                  <span className="gm-infoValue">
                     {game.cards_sold} / {game.max_cards || '∞'}
                   </span>
                 </div>
               </div>
 
-              <button style={styles.viewButton}>{canManageGames ? 'Gerenciar Concurso →' : 'Ver Concurso / Comprar Cartela →'}</button>
+              <button className="gm-viewButton">{canManageGames ? 'Gerenciar Concurso →' : 'Ver Concurso / Comprar Cartela →'}</button>
             </div>
           ))}
         </div>
@@ -232,207 +221,6 @@ const Games: React.FC = () => {
       {!canManageGames && <FloatingCart />}
     </>
   );
-};
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-    padding: '40px 20px',
-  },
-  backButton: {
-    padding: '10px 20px',
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#667eea',
-    background: 'white',
-    border: '2px solid #667eea',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    marginBottom: '20px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-  } as React.CSSProperties,
-  loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    gap: '20px',
-  },
-  spinner: {
-    width: '50px',
-    height: '50px',
-    border: '5px solid #f3f3f3',
-    borderTop: '5px solid #667eea',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '30px',
-    flexWrap: 'wrap' as const,
-    gap: '20px',
-  },
-  title: {
-    fontSize: '32px',
-    fontWeight: 'bold',
-    color: '#333',
-    margin: 0,
-  },
-  subtitle: {
-    fontSize: '16px',
-    color: '#666',
-    margin: '5px 0 0 0',
-  },
-  createButton: {
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    color: 'white',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'transform 0.2s',
-  },
-  filters: {
-    display: 'flex',
-    gap: '10px',
-    marginBottom: '30px',
-    flexWrap: 'wrap' as const,
-  },
-  filterButton: {
-    padding: '10px 20px',
-    fontSize: '14px',
-    color: '#666',
-    background: 'white',
-    border: '2px solid #e0e0e0',
-    borderRadius: '20px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  filterButtonActive: {
-    color: 'white',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    borderColor: 'transparent',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-    gap: '25px',
-  },
-  card: {
-    background: 'white',
-    borderRadius: '12px',
-    padding: '25px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-    cursor: 'pointer',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '15px',
-    gap: '10px',
-  },
-  cardTitle: {
-    fontSize: '20px',
-    fontWeight: 'bold',
-    color: '#333',
-    margin: 0,
-    flex: 1,
-  },
-  statusBadge: {
-    padding: '5px 12px',
-    borderRadius: '12px',
-    color: 'white',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    whiteSpace: 'nowrap' as const,
-  },
-  cardDescription: {
-    fontSize: '14px',
-    color: '#666',
-    marginBottom: '20px',
-    lineHeight: '1.5',
-  },
-  cardInfo: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '10px',
-    marginBottom: '20px',
-  },
-  infoRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  infoLabel: {
-    fontSize: '13px',
-    color: '#666',
-  },
-  infoValue: {
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#333',
-  },
-  infoPrize: {
-    fontSize: '16px',
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  viewButton: {
-    width: '100%',
-    padding: '12px',
-    fontSize: '14px',
-    fontWeight: 'bold',
-    color: '#667eea',
-    background: 'transparent',
-    border: '2px solid #667eea',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  emptyState: {
-    textAlign: 'center' as const,
-    padding: '60px 20px',
-    background: 'white',
-    borderRadius: '12px',
-    maxWidth: '500px',
-    margin: '0 auto',
-  },
-  emptyIcon: {
-    fontSize: '64px',
-    margin: '0 0 20px 0',
-  },
-  emptyTitle: {
-    fontSize: '24px',
-    fontWeight: 'bold',
-    color: '#333',
-    margin: '0 0 10px 0',
-  },
-  emptyText: {
-    fontSize: '16px',
-    color: '#666',
-    margin: '0 0 30px 0',
-  },
-  emptyButton: {
-    padding: '14px 32px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    color: 'white',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-  },
 };
 
 export default Games;

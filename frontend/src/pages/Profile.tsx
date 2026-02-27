@@ -5,6 +5,7 @@ import api from '../services/api';
 import ContactModule from '../components/form/ContactModule';
 import FloatingCart from '../components/FloatingCart';
 import { getDddCpfMismatchWarning, isValidBrazilDdd } from '../utils/dddUf';
+import { resolveDashboardPath } from '../utils/sessionScope';
 
 const Profile: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -334,7 +335,7 @@ const Profile: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(resolveDashboardPath(user?.role))}
               style={styles.backButton}
             >
               ← Voltar para Dashboard

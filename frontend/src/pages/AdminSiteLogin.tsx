@@ -8,6 +8,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { clearSessionScope, setSessionScope } from '../utils/sessionScope';
+import './AdminSiteLogin.css';
 
 const AdminSiteLogin: React.FC = () => {
   useEffect(() => {
@@ -15,6 +17,7 @@ const AdminSiteLogin: React.FC = () => {
     localStorage.removeItem('@BingoComunidade:token');
     localStorage.removeItem('@BingoComunidade:user');
     localStorage.removeItem('@BingoComunidade:bootstrap');
+    clearSessionScope();
   }, []);
 
   const [username, setUsername] = useState('');
@@ -134,6 +137,7 @@ const AdminSiteLogin: React.FC = () => {
       // Salvar token e usuário
       localStorage.setItem('@BingoComunidade:token', access_token);
       localStorage.setItem('@BingoComunidade:user', JSON.stringify(usuario));
+      setSessionScope('admin_site');
       
       // Configurar header de autorização
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
@@ -175,49 +179,49 @@ const AdminSiteLogin: React.FC = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.loginBox}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>👑 Admin Site</h1>
-          <p style={styles.subtitle}>Área Exclusiva - Super Administrador</p>
+    <div className="asl-container">
+      <div className="asl-loginBox">
+        <div className="asl-header">
+          <h1 className="asl-title">👑 Admin Site</h1>
+          <p className="asl-subtitle">Área Exclusiva - Super Administrador</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
+        <form onSubmit={handleSubmit} className="asl-form">
           {error && (
-            <div style={styles.errorBox}>
-              <span style={styles.errorIcon}>⚠️</span>
+            <div className="asl-errorBox">
+              <span className="asl-errorIcon">⚠️</span>
               {error}
             </div>
           )}
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Login ou Email</label>
+          <div className="asl-inputGroup">
+            <label className="asl-label">Login ou Email</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="login ou email@dominio.com"
-              style={styles.input}
+              className="asl-input"
               required
               autoFocus
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Senha</label>
-            <div style={styles.passwordContainer}>
+          <div className="asl-inputGroup">
+            <label className="asl-label">Senha</label>
+            <div className="asl-passwordContainer">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                style={styles.input}
+                className="asl-input"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
+                className="asl-eyeButton"
               >
                 {showPassword ? '👁️' : '👁️‍🗨️'}
               </button>
@@ -226,39 +230,39 @@ const AdminSiteLogin: React.FC = () => {
 
           <button
             type="submit"
-            style={loading ? { ...styles.button, ...styles.buttonDisabled } : styles.button}
+            className={`asl-button ${loading ? 'asl-buttonDisabled' : ''}`}
             disabled={loading}
           >
             {loading ? '🔄 Autenticando...' : '🔐 Acessar Sistema'}
           </button>
         </form>
 
-        <div style={styles.footer}>
+        <div className="asl-footer">
           {bootstrapAvailable && (
-            <div style={styles.credentialsBox}>
-              <p style={styles.credentialsTitle}>Para o primeiro acesso, utilize:</p>
+            <div className="asl-credentialsBox">
+              <p className="asl-credentialsTitle">Para o primeiro acesso, utilize:</p>
               <p><strong>Usuário:</strong> Admin</p>
               <p><strong>Senha:</strong> admin123</p>
-              <p style={styles.credentialsHint}>
+              <p className="asl-credentialsHint">
                 Após o login, complete o cadastro real do Administrador do site em até 30 dias.
               </p>
             </div>
           )}
-          <p style={styles.footerText}>
+          <p className="asl-footerText">
             🔒 Área restrita - Apenas Super Administradores
           </p>
           <button
             onClick={() => navigate('/')}
-            style={styles.backButton}
+            className="asl-backButton"
           >
             ← Voltar para Home
           </button>
         </div>
       </div>
 
-      <div style={styles.infoBox}>
-        <h3 style={styles.infoTitle}>⚡ Super Admin</h3>
-        <ul style={styles.infoList}>
+      <div className="asl-infoBox">
+        <h3 className="asl-infoTitle">⚡ Super Admin</h3>
+        <ul className="asl-infoList">
           <li>Gerenciamento completo do sistema</li>
           <li>Controle de paróquias</li>
           <li>Gestão de usuários administrativos</li>
@@ -268,162 +272,6 @@ const AdminSiteLogin: React.FC = () => {
       </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)',
-    padding: '20px',
-    gap: '40px',
-  } as React.CSSProperties,
-  loginBox: {
-    background: 'white',
-    borderRadius: '15px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-    padding: '40px',
-    width: '100%',
-    maxWidth: '450px',
-  } as React.CSSProperties,
-  header: {
-    textAlign: 'center' as const,
-    marginBottom: '30px',
-  },
-  title: {
-    fontSize: '32px',
-    color: '#1e3c72',
-    marginBottom: '10px',
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: '#666',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '20px',
-  },
-  errorBox: {
-    background: '#fee',
-    color: '#c00',
-    padding: '15px',
-    borderRadius: '8px',
-    border: '1px solid #fcc',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    fontSize: '14px',
-  } as React.CSSProperties,
-  errorIcon: {
-    fontSize: '20px',
-  },
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '8px',
-  },
-  label: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#333',
-  },
-  input: {
-    padding: '12px 15px',
-    fontSize: '16px',
-    border: '2px solid #ddd',
-    borderRadius: '8px',
-    outline: 'none',
-    transition: 'border 0.3s',
-  } as React.CSSProperties,
-  passwordContainer: {
-    position: 'relative' as const,
-  },
-  eyeButton: {
-    position: 'absolute' as const,
-    right: '10px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '20px',
-  },
-  button: {
-    padding: '15px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    color: 'white',
-    background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'transform 0.2s',
-    marginTop: '10px',
-  } as React.CSSProperties,
-  buttonDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
-  },
-  footer: {
-    marginTop: '30px',
-    textAlign: 'center' as const,
-  },
-  credentialsBox: {
-    background: '#f5f5f5',
-    padding: '12px',
-    borderRadius: '6px',
-    fontSize: '12px',
-    lineHeight: '1.6',
-    marginBottom: '16px',
-  },
-  credentialsTitle: {
-    fontSize: '12px',
-    color: '#666',
-    marginBottom: '10px',
-    textAlign: 'center' as const,
-  },
-  credentialsHint: {
-    fontSize: '12px',
-    color: '#888',
-  },
-  footerText: {
-    fontSize: '13px',
-    color: '#666',
-    marginBottom: '15px',
-  },
-  backButton: {
-    background: 'none',
-    border: 'none',
-    color: '#1e3c72',
-    cursor: 'pointer',
-    fontSize: '14px',
-    textDecoration: 'underline',
-  } as React.CSSProperties,
-  infoBox: {
-    background: 'rgba(255,255,255,0.95)',
-    borderRadius: '15px',
-    padding: '30px',
-    maxWidth: '300px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-  } as React.CSSProperties,
-  infoTitle: {
-    fontSize: '20px',
-    color: '#1e3c72',
-    marginBottom: '15px',
-    fontWeight: 'bold',
-  },
-  infoList: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-    fontSize: '14px',
-    color: '#555',
-    lineHeight: '2',
-  } as React.CSSProperties,
 };
 
 export default AdminSiteLogin;
