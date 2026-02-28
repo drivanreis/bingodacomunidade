@@ -186,7 +186,7 @@ class Paroquia(Base):
     usuarios = relationship("UsuarioLegado", back_populates="paroquia")
     usuarios_comuns = relationship("UsuarioComum", back_populates="paroquia")
     usuarios_paroquia = relationship("UsuarioParoquia", back_populates="paroquia")
-    admins_site = relationship("AdminSiteUser", back_populates="paroquia_referencia")
+    usuarios_admin_site = relationship("AdminSiteUser", back_populates="paroquia_referencia")
     sorteios = relationship("Sorteio", back_populates="paroquia")
     
     def __repr__(self):
@@ -231,7 +231,7 @@ class RoleParoquia(Base):
 
 class AdminSiteUser(Base):
     """Administrador do site (sem campo role)."""
-    __tablename__ = "admins_site"
+    __tablename__ = "usuarios_admin_site"
 
     id = Column(String(50), primary_key=True, index=True)
     nome = Column(String(200), nullable=False, index=True)
@@ -268,7 +268,7 @@ class AdminSiteUser(Base):
     )
     ultimo_acesso = Column(DateTime(timezone=True), nullable=True)
 
-    paroquia_referencia = relationship("Paroquia", back_populates="admins_site")
+    paroquia_referencia = relationship("Paroquia", back_populates="usuarios_admin_site")
 
 
 # ============================================================================
@@ -440,6 +440,7 @@ class UsuarioAdministrativo(Base):
     - Registra quem criou (criado_por_id)
     """
     __tablename__ = "usuarios_administrativos"
+    __table_args__ = {"info": {"managed": False}}
     
     # Primary Key (ID Temporal)
     id = Column(String(50), primary_key=True, index=True)
@@ -513,6 +514,7 @@ class UsuarioLegado(Base):
     Use UsuarioComum ou UsuarioAdministrativo em seu lugar.
     """
     __tablename__ = "usuarios_legado"
+    __table_args__ = {"info": {"managed": False}}
     
     # Primary Key (ID Temporal)
     id = Column(String(50), primary_key=True, index=True)
@@ -824,7 +826,7 @@ class Feedback(Base):
     id = Column(String(50), primary_key=True, index=True)
     
     # Associação com usuário
-    usuario_id = Column(String(50), ForeignKey("usuarios_legado.id"), nullable=False, index=True)
+    usuario_id = Column(String(50), ForeignKey("usuarios_comuns.id"), nullable=False, index=True)
     
     # Tipo e conteúdo
     tipo = Column(SQLEnum(TipoFeedback), nullable=False, index=True)
@@ -839,7 +841,7 @@ class Feedback(Base):
     
     # Resposta administrativa
     resposta = Column(Text, nullable=True)
-    respondido_por_id = Column(String(50), ForeignKey("usuarios_legado.id"), nullable=True)
+    respondido_por_id = Column(String(50), ForeignKey("usuarios_comuns.id"), nullable=True)
     respondido_em = Column(DateTime(timezone=True), nullable=True)
     
     # ========================================================================
@@ -895,8 +897,8 @@ class Feedback(Base):
     )
     
     # Relacionamentos
-    usuario = relationship("UsuarioLegado", foreign_keys=[usuario_id])
-    respondido_por = relationship("UsuarioLegado", foreign_keys=[respondido_por_id])
+    usuario = relationship("UsuarioComum", foreign_keys=[usuario_id])
+    respondido_por = relationship("UsuarioComum", foreign_keys=[respondido_por_id])
     
     def __repr__(self):
         return f"<Feedback(id={self.id}, tipo={self.tipo}, usuario_id={self.usuario_id})>"

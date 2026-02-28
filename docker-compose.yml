@@ -53,6 +53,7 @@ services:
     volumes:
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests
+      - ./data:/app/data
     
     restart: unless-stopped
     

@@ -2,24 +2,34 @@ import pytest
 from httpx import AsyncClient
 
 from src.models.models import UsuarioComum
-from src.models.models import UsuarioAdministrativo, NivelAcessoAdmin
+from src.models.models import UsuarioParoquia, RoleParoquia, RoleParoquiaCodigo
 from src.utils.auth import hash_password
 from src.utils.time_manager import get_fortaleza_time
 
 
 def liberar_acesso_publico(db_session):
-    admin_paroquia = UsuarioAdministrativo(
+    role_admin = RoleParoquia(
+        id="ROL-PUBLIC-1",
+        codigo=RoleParoquiaCodigo.ADMIN.value,
+        nome="Administrador Paroquial",
+        descricao="Role admin para liberar acesso público nos testes",
+        ativo=True,
+        criado_em=get_fortaleza_time(),
+        atualizado_em=get_fortaleza_time(),
+    )
+    admin_paroquia = UsuarioParoquia(
         id="ADM-PAROQ-1",
         nome="Admin Paroquia",
         login="admin_paroquia",
         senha_hash=hash_password("Senha@123"),
         email="admin.paroquia@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_PAROQUIA,
+        paroquia_id="PAR-PUBLIC-1",
+        role_id=role_admin.id,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    db_session.add(admin_paroquia)
+    db_session.add_all([role_admin, admin_paroquia])
     db_session.commit()
 
 
@@ -170,19 +180,28 @@ async def test_public_status_reports_maintenance_without_admin_paroquia(test_app
 
 @pytest.mark.asyncio
 async def test_public_status_reports_maintenance_false_with_active_admin_paroquia(test_app, db_session):
-    admin_paroquia = UsuarioAdministrativo(
+    role_admin = RoleParoquia(
+        id="ROL-PUBLIC-READY",
+        codigo=RoleParoquiaCodigo.ADMIN.value,
+        nome="Administrador Paroquial",
+        descricao="Role admin para liberar manutenção",
+        ativo=True,
+        criado_em=get_fortaleza_time(),
+        atualizado_em=get_fortaleza_time(),
+    )
+    admin_paroquia = UsuarioParoquia(
         id="ADM-PUBLIC-READY",
         nome="Admin Paroquia",
         login="admin_paroquia_real",
         senha_hash=hash_password("Senha@123"),
         email="paroquia@exemplo.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_PAROQUIA,
         paroquia_id="PAR-1",
+        role_id=role_admin.id,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    db_session.add(admin_paroquia)
+    db_session.add_all([role_admin, admin_paroquia])
     db_session.commit()
 
     async with AsyncClient(app=test_app, base_url="http://test") as client:

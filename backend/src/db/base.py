@@ -156,8 +156,12 @@ def init_db() -> None:
     # Import de todos os modelos para garantir que estejam registrados
     from src.models import models  # noqa: F401
     
-    # Cria todas as tabelas
-    Base.metadata.create_all(bind=engine)
+    # Cria apenas tabelas gerenciadas (legados com managed=False ficam fora)
+    managed_tables = [
+        table for table in Base.metadata.sorted_tables
+        if table.info.get("managed", True)
+    ]
+    Base.metadata.create_all(bind=engine, tables=managed_tables)
 
     # Compatibilidade com bancos legados sem migrations completas
     inspector = inspect(engine)

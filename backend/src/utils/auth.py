@@ -217,9 +217,7 @@ async def get_current_user(
         HTTPException: Se token inválido ou usuário não encontrado
     """
     from src.models.models import (
-        UsuarioAdministrativo,
         UsuarioComum,
-        UsuarioLegado,
         AdminSiteUser,
         UsuarioParoquia,
     )
@@ -250,9 +248,7 @@ async def get_current_user(
     tipo_token = (payload.get("tipo") or "").strip().lower()
 
     usuario = None
-    if tipo_token == "usuario_administrativo":
-        usuario = db.query(UsuarioAdministrativo).filter(UsuarioAdministrativo.id == user_id).first()
-    elif tipo_token == "usuario_comum":
+    if tipo_token == "usuario_comum":
         usuario = db.query(UsuarioComum).filter(UsuarioComum.id == user_id).first()
     elif tipo_token == "admin_site":
         usuario = db.query(AdminSiteUser).filter(AdminSiteUser.id == user_id).first()
@@ -264,11 +260,7 @@ async def get_current_user(
     if usuario is None:
         usuario = db.query(UsuarioParoquia).filter(UsuarioParoquia.id == user_id).first()
     if usuario is None:
-        usuario = db.query(UsuarioAdministrativo).filter(UsuarioAdministrativo.id == user_id).first()
-    if usuario is None:
         usuario = db.query(UsuarioComum).filter(UsuarioComum.id == user_id).first()
-    if usuario is None:
-        usuario = db.query(UsuarioLegado).filter(UsuarioLegado.id == user_id).first()
 
     if usuario is None:
         raise HTTPException(

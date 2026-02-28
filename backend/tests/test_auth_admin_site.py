@@ -2,11 +2,10 @@ import pytest
 from httpx import AsyncClient
 
 from src.models.models import (
-    UsuarioAdministrativo,
+    AdminSiteUser,
     UsuarioParoquia,
     Paroquia,
     RoleParoquia,
-    NivelAcessoAdmin,
     Configuracao,
     TipoConfiguracao,
     CategoriaConfiguracao,
@@ -18,13 +17,12 @@ from src.routers import auth_routes
 
 @pytest.mark.asyncio
 async def test_admin_site_login_by_login(test_app, db_session):
-    admin = UsuarioAdministrativo(
+    admin = AdminSiteUser(
         id="ADM-1",
         nome="Admin Real",
         login="admin_real",
         senha_hash=hash_password("Senha@123"),
         email="admin@exemplo.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -46,13 +44,12 @@ async def test_admin_site_login_by_login(test_app, db_session):
 
 @pytest.mark.asyncio
 async def test_admin_site_login_by_email(test_app, db_session):
-    admin = UsuarioAdministrativo(
+    admin = AdminSiteUser(
         id="ADM-2",
         nome="Admin Email",
         login="admin_email",
         senha_hash=hash_password("Senha@123"),
         email="admin@email.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -73,13 +70,12 @@ async def test_admin_site_login_by_email(test_app, db_session):
 
 @pytest.mark.asyncio
 async def test_admin_site_login_wrong_password(test_app, db_session):
-    admin = UsuarioAdministrativo(
+    admin = AdminSiteUser(
         id="ADM-3",
         nome="Admin Errado",
         login="admin_errado",
         senha_hash=hash_password("Senha@123"),
         email="admin@errado.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -98,18 +94,28 @@ async def test_admin_site_login_wrong_password(test_app, db_session):
 
 @pytest.mark.asyncio
 async def test_admin_site_login_rejects_admin_paroquia(test_app, db_session):
-    admin = UsuarioAdministrativo(
+    role_admin_paroquia = RoleParoquia(
+        id="ROL-ADM-SITE-REJECT-1",
+        codigo="paroquia_admin",
+        nome="Administrador Paroquial",
+        descricao="Role admin paroquial para teste",
+        ativo=True,
+        criado_em=get_fortaleza_time(),
+        atualizado_em=get_fortaleza_time(),
+    )
+    admin = UsuarioParoquia(
         id="ADM-4",
         nome="Admin Paroquia",
         login="paroquia_admin",
         senha_hash=hash_password("Senha@123"),
         email="paroquia@admin.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_PAROQUIA,
+        paroquia_id="PAR-ADM-SITE-REJECT-1",
+        role_id=role_admin_paroquia.id,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    db_session.add(admin)
+    db_session.add_all([role_admin_paroquia, admin])
     db_session.commit()
 
     async with AsyncClient(app=test_app, base_url="http://test") as client:
@@ -118,7 +124,7 @@ async def test_admin_site_login_rejects_admin_paroquia(test_app, db_session):
             json={"login": "paroquia_admin", "senha": "Senha@123"},
         )
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -134,13 +140,12 @@ async def test_bootstrap_login_not_found(test_app):
 
 @pytest.mark.asyncio
 async def test_bootstrap_login_success(test_app, db_session):
-    bootstrap = UsuarioAdministrativo(
+    bootstrap = AdminSiteUser(
         id="ADM-BOOT",
         nome="Bootstrap",
         login="Admin",
         senha_hash=hash_password("admin123"),
         email=None,
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -161,13 +166,12 @@ async def test_bootstrap_login_success(test_app, db_session):
 
 @pytest.mark.asyncio
 async def test_persona_admin_site_inteligente_login_success(test_app, db_session):
-    admin = UsuarioAdministrativo(
+    admin = AdminSiteUser(
         id="ADM-PER-1",
         nome="Admin Inteligente",
         login="admin_inteligente",
         senha_hash=hash_password("Senha@123"),
         email="admin.inteligente@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -186,13 +190,12 @@ async def test_persona_admin_site_inteligente_login_success(test_app, db_session
 
 @pytest.mark.asyncio
 async def test_persona_admin_site_burro_wrong_password_returns_401(test_app, db_session):
-    admin = UsuarioAdministrativo(
+    admin = AdminSiteUser(
         id="ADM-PER-2",
         nome="Admin Burro",
         login="admin_burro",
         senha_hash=hash_password("Senha@123"),
         email="admin.burro@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -211,18 +214,28 @@ async def test_persona_admin_site_burro_wrong_password_returns_401(test_app, db_
 
 @pytest.mark.asyncio
 async def test_persona_admin_site_hacker_admin_paroquia_forbidden(test_app, db_session):
-    admin = UsuarioAdministrativo(
+    role_admin_paroquia = RoleParoquia(
+        id="ROL-ADM-SITE-REJECT-2",
+        codigo="paroquia_admin",
+        nome="Administrador Paroquial",
+        descricao="Role admin paroquial para teste",
+        ativo=True,
+        criado_em=get_fortaleza_time(),
+        atualizado_em=get_fortaleza_time(),
+    )
+    admin = UsuarioParoquia(
         id="ADM-PER-3",
         nome="Admin Paroquia",
         login="admin_paroquia_hacker",
         senha_hash=hash_password("Senha@123"),
         email="admin.paroquia.hacker@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_PAROQUIA,
+        paroquia_id="PAR-ADM-SITE-REJECT-2",
+        role_id=role_admin_paroquia.id,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    db_session.add(admin)
+    db_session.add_all([role_admin_paroquia, admin])
     db_session.commit()
 
     async with AsyncClient(app=test_app, base_url="http://test") as client:
@@ -231,29 +244,27 @@ async def test_persona_admin_site_hacker_admin_paroquia_forbidden(test_app, db_s
             json={"login": "admin_paroquia_hacker", "senha": "Senha@123"},
         )
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_admin_site_lista_admins_para_sucessao(test_app, db_session):
-    admin_atual = UsuarioAdministrativo(
+    admin_atual = AdminSiteUser(
         id="ADM-LST-1",
         nome="Admin Atual",
         login="admin_atual",
         senha_hash=hash_password("Senha@123"),
         email="atual@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    admin_reserva = UsuarioAdministrativo(
+    admin_reserva = AdminSiteUser(
         id="ADM-LST-2",
         nome="Admin Reserva",
         login="admin_reserva",
         senha_hash=hash_password("Senha@123"),
         email="reserva@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -282,24 +293,22 @@ async def test_admin_site_lista_admins_para_sucessao(test_app, db_session):
 
 @pytest.mark.asyncio
 async def test_admin_site_inativa_reserva_sem_perder_ultimo_ativo(test_app, db_session):
-    admin_atual = UsuarioAdministrativo(
+    admin_atual = AdminSiteUser(
         id="ADM-STS-1",
         nome="Admin Atual",
         login="admin_sts_atual",
         senha_hash=hash_password("Senha@123"),
         email="sts.atual@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    admin_reserva = UsuarioAdministrativo(
+    admin_reserva = AdminSiteUser(
         id="ADM-STS-2",
         nome="Admin Reserva",
         login="admin_sts_reserva",
         senha_hash=hash_password("Senha@123"),
         email="sts.reserva@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -326,13 +335,12 @@ async def test_admin_site_inativa_reserva_sem_perder_ultimo_ativo(test_app, db_s
 
 @pytest.mark.asyncio
 async def test_admin_site_cria_reserva_com_entrega_manual_de_senha_temporaria(test_app, db_session):
-    admin_atual = UsuarioAdministrativo(
+    admin_atual = AdminSiteUser(
         id="ADM-CRT-1",
         nome="Admin Criador",
         login="admin_criador",
         senha_hash=hash_password("Senha@123"),
         email="criador@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -365,11 +373,11 @@ async def test_admin_site_cria_reserva_com_entrega_manual_de_senha_temporaria(te
     assert payload["email_sent"] is False
     assert payload["credential_delivery"] == "manual"
 
-    admin_reserva = db_session.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.login == "reserva@example.com"
+    admin_reserva = db_session.query(AdminSiteUser).filter(
+        AdminSiteUser.login == "reserva@example.com"
     ).first()
     assert admin_reserva is not None
-    assert admin_reserva.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE
+    assert admin_reserva.login == "reserva@example.com"
     assert admin_reserva.ativo is True
 
     pending_cfg = db_session.query(Configuracao).filter(
@@ -381,13 +389,12 @@ async def test_admin_site_cria_reserva_com_entrega_manual_de_senha_temporaria(te
 
 @pytest.mark.asyncio
 async def test_admin_site_login_exige_troca_de_senha_temporaria_quando_pendente(test_app, db_session):
-    admin = UsuarioAdministrativo(
+    admin = AdminSiteUser(
         id="ADM-PEND-1",
         nome="Admin Pendente",
         login="admin_pendente",
         senha_hash=hash_password("Temp@123"),
         email="pendente@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -418,13 +425,12 @@ async def test_admin_site_login_exige_troca_de_senha_temporaria_quando_pendente(
 
 @pytest.mark.asyncio
 async def test_admin_site_troca_senha_inicial_libera_login(test_app, db_session):
-    admin = UsuarioAdministrativo(
+    admin = AdminSiteUser(
         id="ADM-PEND-2",
         nome="Admin Pendente 2",
         login="admin_pendente_2",
         senha_hash=hash_password("Temp@123"),
         email="pendente2@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -463,24 +469,22 @@ async def test_admin_site_troca_senha_inicial_libera_login(test_app, db_session)
 
 @pytest.mark.asyncio
 async def test_admin_site_reenvia_senha_temporaria_com_sucesso(test_app, db_session, monkeypatch):
-    admin_atual = UsuarioAdministrativo(
+    admin_atual = AdminSiteUser(
         id="ADM-RS-1",
         nome="Admin Atual",
         login="admin_reenvio",
         senha_hash=hash_password("Senha@123"),
         email="atual@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    admin_reserva = UsuarioAdministrativo(
+    admin_reserva = AdminSiteUser(
         id="ADM-RS-2",
         nome="Admin Reserva",
         login="admin_reserva_reenvio",
         senha_hash=hash_password("SenhaAntiga@123"),
         email="reserva.reenvio@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -536,8 +540,8 @@ async def test_admin_site_reenvia_senha_temporaria_com_sucesso(test_app, db_sess
     assert chamada["ok"] is True
     assert chamada["senha"]
 
-    admin_reserva_atualizado = db_session.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.id == "ADM-RS-2"
+    admin_reserva_atualizado = db_session.query(AdminSiteUser).filter(
+        AdminSiteUser.id == "ADM-RS-2"
     ).first()
     assert admin_reserva_atualizado is not None
     assert verify_password(chamada["senha"], admin_reserva_atualizado.senha_hash)
@@ -545,13 +549,12 @@ async def test_admin_site_reenvia_senha_temporaria_com_sucesso(test_app, db_sess
 
 @pytest.mark.asyncio
 async def test_admin_site_altera_propria_senha_com_sucesso(test_app, db_session):
-    admin_atual = UsuarioAdministrativo(
+    admin_atual = AdminSiteUser(
         id="ADM-PWD-1",
         nome="Admin Atual",
         login="admin_pwd_atual",
         senha_hash=hash_password("Atual@123"),
         email="admin.pwd.atual@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -574,8 +577,8 @@ async def test_admin_site_altera_propria_senha_com_sucesso(test_app, db_session)
 
     assert response.status_code == 200
 
-    admin_atualizado = db_session.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.id == "ADM-PWD-1"
+    admin_atualizado = db_session.query(AdminSiteUser).filter(
+        AdminSiteUser.id == "ADM-PWD-1"
     ).first()
     assert admin_atualizado is not None
     assert verify_password("Nova@1234", admin_atualizado.senha_hash)
@@ -583,24 +586,22 @@ async def test_admin_site_altera_propria_senha_com_sucesso(test_app, db_session)
 
 @pytest.mark.asyncio
 async def test_admin_site_define_senha_de_substituto_com_sucesso(test_app, db_session):
-    admin_atual = UsuarioAdministrativo(
+    admin_atual = AdminSiteUser(
         id="ADM-PWD-2",
         nome="Admin Atual",
         login="admin_pwd_def",
         senha_hash=hash_password("Atual@123"),
         email="admin.pwd.def@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    admin_substituto = UsuarioAdministrativo(
+    admin_substituto = AdminSiteUser(
         id="ADM-PWD-3",
         nome="Admin Substituto",
         login="admin_sub_pwd",
         senha_hash=hash_password("Antiga@123"),
         email="admin.sub.pwd@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=False,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -623,8 +624,8 @@ async def test_admin_site_define_senha_de_substituto_com_sucesso(test_app, db_se
 
     assert response.status_code == 200
 
-    admin_sub_atualizado = db_session.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.id == "ADM-PWD-3"
+    admin_sub_atualizado = db_session.query(AdminSiteUser).filter(
+        AdminSiteUser.id == "ADM-PWD-3"
     ).first()
     assert admin_sub_atualizado is not None
     assert verify_password("NovaSub@123", admin_sub_atualizado.senha_hash)
@@ -632,13 +633,12 @@ async def test_admin_site_define_senha_de_substituto_com_sucesso(test_app, db_se
 
 @pytest.mark.asyncio
 async def test_admin_site_cria_admin_paroquia_em_tabela_dedicada(test_app, db_session):
-    admin_site = UsuarioAdministrativo(
+    admin_site = AdminSiteUser(
         id="ADM-CP-1",
         nome="Admin Site Criador",
         login="admin_site_criador",
         senha_hash=hash_password("Senha@123"),
         email="admin.site.criador@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -701,18 +701,17 @@ async def test_admin_site_cria_admin_paroquia_em_tabela_dedicada(test_app, db_se
 
 @pytest.mark.asyncio
 async def test_admin_site_criar_reserva_rejeita_email_duplicado(test_app, db_session):
-    admin_atual = UsuarioAdministrativo(
+    admin_atual = AdminSiteUser(
         id="ADM-DUP-E-1",
         nome="Admin Atual",
         login="admin_dup_email",
         senha_hash=hash_password("Senha@123"),
         email="atual.dup.email@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    existente = UsuarioAdministrativo(
+    existente = AdminSiteUser(
         id="ADM-DUP-E-2",
         nome="Admin Existente",
         login="admin_existente_email",
@@ -720,7 +719,6 @@ async def test_admin_site_criar_reserva_rejeita_email_duplicado(test_app, db_ses
         email="duplicado@example.com",
         cpf="11144477735",
         telefone="85999991111",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -754,18 +752,17 @@ async def test_admin_site_criar_reserva_rejeita_email_duplicado(test_app, db_ses
 
 @pytest.mark.asyncio
 async def test_admin_site_criar_reserva_rejeita_telefone_duplicado(test_app, db_session):
-    admin_atual = UsuarioAdministrativo(
+    admin_atual = AdminSiteUser(
         id="ADM-DUP-T-1",
         nome="Admin Atual",
         login="admin_dup_tel",
         senha_hash=hash_password("Senha@123"),
         email="atual.dup.tel@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    existente = UsuarioAdministrativo(
+    existente = AdminSiteUser(
         id="ADM-DUP-T-2",
         nome="Admin Existente",
         login="admin_existente_tel",
@@ -773,7 +770,6 @@ async def test_admin_site_criar_reserva_rejeita_telefone_duplicado(test_app, db_
         email="existente.tel@example.com",
         cpf="11144477735",
         telefone="85999992222",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -807,18 +803,17 @@ async def test_admin_site_criar_reserva_rejeita_telefone_duplicado(test_app, db_
 
 @pytest.mark.asyncio
 async def test_admin_site_criar_reserva_rejeita_cpf_duplicado(test_app, db_session):
-    admin_atual = UsuarioAdministrativo(
+    admin_atual = AdminSiteUser(
         id="ADM-DUP-C-1",
         nome="Admin Atual",
         login="admin_dup_cpf",
         senha_hash=hash_password("Senha@123"),
         email="atual.dup.cpf@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    existente = UsuarioAdministrativo(
+    existente = AdminSiteUser(
         id="ADM-DUP-C-2",
         nome="Admin Existente",
         login="admin_existente_cpf",
@@ -826,7 +821,6 @@ async def test_admin_site_criar_reserva_rejeita_cpf_duplicado(test_app, db_sessi
         email="existente.cpf@example.com",
         cpf="11144477735",
         telefone="85999993333",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),

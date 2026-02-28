@@ -39,13 +39,11 @@ import hashlib
 
 from src.db.base import get_db
 from src.models.models import UsuarioComum
-from src.models.models import UsuarioAdministrativo
 from src.models.models import AdminSiteUser
 from src.models.models import UsuarioParoquia
 from src.models.models import RoleParoquia
 from src.models.models import RoleParoquiaCodigo
 from src.models.models import TentativaCadastroDispositivo
-from src.models.models import NivelAcessoAdmin
 from src.models.models import Paroquia
 from src.models.models import Configuracao
 from src.models.models import TipoConfiguracao
@@ -85,9 +83,9 @@ def normalize_fortaleza_datetime(value):
 
 # --- BLOQUEIO GLOBAL POR BOOTSTRAP EXPIRADO ---
 def check_bootstrap_block(db: Session):
-    bootstrap = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.login == "Admin",
-        UsuarioAdministrativo.ativo == True
+    bootstrap = db.query(AdminSiteUser).filter(
+        AdminSiteUser.login == "Admin",
+        AdminSiteUser.ativo == True
     ).first()
     if bootstrap:
         criado_em = bootstrap.criado_em
@@ -112,12 +110,7 @@ def is_public_maintenance_active(db: Session) -> bool:
             UsuarioParoquia.ativo == True
         ).first()
 
-    admin_paroquia_legado = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_PAROQUIA,
-        UsuarioAdministrativo.ativo == True
-    ).first()
-
-    return (admin_paroquia_novo is None) and (admin_paroquia_legado is None)
+    return admin_paroquia_novo is None
 
 
 def ensure_public_access_enabled(db: Session):
@@ -155,11 +148,7 @@ def find_admin_site_conflict(db: Session, *, email: str, telefone: str, cpf: str
     cpf_norm = normalize_cpf(cpf)
 
     novos = db.query(AdminSiteUser).all()
-    legados = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-    ).all()
-
-    for row in [*novos, *legados]:
+    for row in novos:
         row_email = (row.email or '').strip().lower()
         row_phone = normalize_phone(getattr(row, 'telefone', None))
         row_cpf = normalize_cpf(getattr(row, 'cpf', None))
@@ -221,13 +210,6 @@ def get_current_admin_site_actor(db: Session, user_id: str):
     admin_site = db.query(AdminSiteUser).filter(AdminSiteUser.id == user_id).first()
     if admin_site:
         return "new", admin_site
-
-    legacy = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.id == user_id,
-        UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-    ).first()
-    if legacy:
-        return "legacy", legacy
     return None, None
 
 
@@ -235,26 +217,12 @@ def get_admin_site_by_id_any(db: Session, admin_id: str):
     admin_new = db.query(AdminSiteUser).filter(AdminSiteUser.id == admin_id).first()
     if admin_new:
         return "new", admin_new
-
-    admin_legacy = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.id == admin_id,
-        UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-    ).first()
-    if admin_legacy:
-        return "legacy", admin_legacy
     return None, None
 
 
 def list_admin_site_any(db: Session):
     novos = db.query(AdminSiteUser).all()
-    legados = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-    ).all()
-
     por_id = {a.id: ("new", a) for a in novos}
-    for l in legados:
-        if l.id not in por_id:
-            por_id[l.id] = ("legacy", l)
 
     return sorted(
         por_id.values(),
@@ -265,13 +233,8 @@ def list_admin_site_any(db: Session):
 
 def count_admin_site_ativos_any(db: Session, excluding_id: str | None = None) -> int:
     ativos_novos = db.query(AdminSiteUser).filter(AdminSiteUser.ativo == True).all()
-    ativos_legados = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-        UsuarioAdministrativo.ativo == True,
-    ).all()
 
     ids = {a.id for a in ativos_novos}
-    ids.update({a.id for a in ativos_legados})
 
     if excluding_id:
         ids.discard(excluding_id)
@@ -285,14 +248,6 @@ def get_current_admin_paroquia_actor(db: Session, user_id: str):
     ).first()
     if usuario_paroquia:
         return "new", usuario_paroquia
-
-    legacy = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.id == user_id,
-        UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_PAROQUIA,
-        UsuarioAdministrativo.ativo == True,
-    ).first()
-    if legacy:
-        return "legacy", legacy
     return None, None
 
 
@@ -465,8 +420,8 @@ def bootstrap_login(request: AdminSiteLoginRequest, db: Session = Depends(get_db
     Permite acesso ao fluxo de primeiro acesso.
     """
     try:
-        bootstrap = db.query(UsuarioAdministrativo).filter(
-            UsuarioAdministrativo.login == "Admin"
+        bootstrap = db.query(AdminSiteUser).filter(
+            AdminSiteUser.login == "Admin"
         ).first()
 
         if not bootstrap:
@@ -530,9 +485,9 @@ def bootstrap_status(db: Session = Depends(get_db)):
     Retorna se o usuário bootstrap ainda está ativo.
     Usado pela UI para exibir/ocultar credenciais temporárias de primeiro acesso.
     """
-    bootstrap = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.login == "Admin",
-        UsuarioAdministrativo.ativo == True
+    bootstrap = db.query(AdminSiteUser).filter(
+        AdminSiteUser.login == "Admin",
+        AdminSiteUser.ativo == True
     ).first()
 
     if not bootstrap:
@@ -997,7 +952,6 @@ def login_admin_paroquia(request: AdminParoquiaLoginRequest, db: Session = Depen
         ).first()
 
         admin = None
-        source = None
 
         if role_admin:
             admin = db.query(UsuarioParoquia).filter(
@@ -1007,31 +961,12 @@ def login_admin_paroquia(request: AdminParoquiaLoginRequest, db: Session = Depen
                     UsuarioParoquia.email == request.login
                 )
             ).first()
-            if admin:
-                source = "new"
-
-        if not admin:
-            admin = db.query(UsuarioAdministrativo).filter(
-                or_(
-                    UsuarioAdministrativo.login == request.login,
-                    UsuarioAdministrativo.email == request.login
-                )
-            ).first()
-            if admin:
-                source = "legacy"
         
         if not admin:
             logger.warning(f"❌ Login admin: login não encontrado ({request.login})")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Login ou senha incorretos"
-            )
-        
-        if source == "legacy" and admin.nivel_acesso != NivelAcessoAdmin.ADMIN_PAROQUIA:
-            logger.warning(f"❌ Login admin: não é ADMIN_PAROQUIA ({admin.id})")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Esta rota é apenas para Administradores de Paroquia"
             )
         
         # Validar bloqueio por tentativas
@@ -1151,30 +1086,13 @@ def login_admin_site(request: AdminSiteLoginRequest, db: Session = Depends(get_d
                 AdminSiteUser.email == request.login
             )
         ).first()
-        source = "new" if admin else "legacy"
-
-        if not admin:
-            admin = db.query(UsuarioAdministrativo).filter(
-                or_(
-                    UsuarioAdministrativo.login == request.login,
-                    UsuarioAdministrativo.email == request.login
-                )
-            ).first()
-        
         if not admin:
             logger.warning(f"❌ Login admin-site: login não encontrado ({request.login})")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Login ou senha incorretos"
             )
-        
-        if source == "legacy" and admin.nivel_acesso != NivelAcessoAdmin.ADMIN_SITE:
-            logger.warning(f"❌ Login admin-site: não é ADMIN_SITE ({admin.id})")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Esta rota é exclusiva para Administradores do Site"
-            )
-        
+
         # Validar bloqueio por tentativas
         if admin.bloqueado_ate:
             agora = get_fortaleza_time()
@@ -1274,12 +1192,11 @@ def trocar_senha_inicial_admin_site(
     db: Session = Depends(get_db)
 ):
     try:
-        admin = db.query(UsuarioAdministrativo).filter(
+        admin = db.query(AdminSiteUser).filter(
             or_(
-                UsuarioAdministrativo.login == request.login,
-                UsuarioAdministrativo.email == request.login,
+                AdminSiteUser.login == request.login,
+                AdminSiteUser.email == request.login,
             ),
-            UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
         ).first()
 
         if not admin:
@@ -1335,13 +1252,19 @@ def trocar_senha_inicial_admin_paroquia(
     db: Session = Depends(get_db)
 ):
     try:
-        admin = db.query(UsuarioAdministrativo).filter(
-            or_(
-                UsuarioAdministrativo.login == request.login,
-                UsuarioAdministrativo.email == request.login,
-            ),
-            UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_PAROQUIA,
+        role_admin = db.query(RoleParoquia).filter(
+            RoleParoquia.codigo == RoleParoquiaCodigo.ADMIN.value,
+            RoleParoquia.ativo == True,
         ).first()
+        admin = None
+        if role_admin:
+            admin = db.query(UsuarioParoquia).filter(
+                UsuarioParoquia.role_id == role_admin.id,
+                or_(
+                    UsuarioParoquia.login == request.login,
+                    UsuarioParoquia.email == request.login,
+                ),
+            ).first()
 
         if not admin:
             raise HTTPException(
@@ -1436,12 +1359,6 @@ def criar_admin_site(
         login_existe = db.query(AdminSiteUser).filter(
             AdminSiteUser.login == identidade["login"]
         ).first()
-        if not login_existe:
-            login_existe = db.query(UsuarioAdministrativo).filter(
-                UsuarioAdministrativo.login == identidade["login"],
-                UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-            ).first()
-        
         if login_existe:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -1608,7 +1525,7 @@ def atualizar_status_admin_site(
                 detail="Apenas ADMIN_SITE pode alterar status de administradores do site"
             )
 
-        alvo_kind, admin_alvo = get_admin_site_by_id_any(db, admin_id)
+        _, admin_alvo = get_admin_site_by_id_any(db, admin_id)
 
         if not admin_alvo:
             raise HTTPException(
@@ -1633,19 +1550,6 @@ def atualizar_status_admin_site(
 
         admin_alvo.ativo = ativo
         admin_alvo.atualizado_em = get_fortaleza_time()
-        if alvo_kind == "new":
-            espelho = db.query(UsuarioAdministrativo).filter(
-                UsuarioAdministrativo.id == admin_alvo.id,
-                UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-            ).first()
-            if espelho:
-                espelho.ativo = ativo
-                espelho.atualizado_em = admin_alvo.atualizado_em
-        else:
-            espelho = db.query(AdminSiteUser).filter(AdminSiteUser.id == admin_alvo.id).first()
-            if espelho:
-                espelho.ativo = ativo
-                espelho.atualizado_em = admin_alvo.atualizado_em
         db.commit()
         db.refresh(admin_alvo)
 
@@ -1734,7 +1638,7 @@ def definir_senha_admin_site(
                 detail="Apenas ADMIN_SITE pode definir senha de administradores do site"
             )
 
-        alvo_kind, admin_alvo = get_admin_site_by_id_any(db, admin_id)
+        _, admin_alvo = get_admin_site_by_id_any(db, admin_id)
 
         if not admin_alvo:
             raise HTTPException(
@@ -1750,19 +1654,6 @@ def definir_senha_admin_site(
 
         admin_alvo.senha_hash = hash_password(request.nova_senha)
         admin_alvo.atualizado_em = get_fortaleza_time()
-        if alvo_kind == "new":
-            espelho = db.query(UsuarioAdministrativo).filter(
-                UsuarioAdministrativo.id == admin_alvo.id,
-                UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-            ).first()
-            if espelho:
-                espelho.senha_hash = admin_alvo.senha_hash
-                espelho.atualizado_em = admin_alvo.atualizado_em
-        else:
-            espelho = db.query(AdminSiteUser).filter(AdminSiteUser.id == admin_alvo.id).first()
-            if espelho:
-                espelho.senha_hash = admin_alvo.senha_hash
-                espelho.atualizado_em = admin_alvo.atualizado_em
         set_admin_site_password_pending(db, admin_alvo.id, True)
         db.commit()
 
@@ -1804,7 +1695,7 @@ def reenviar_senha_admin_site(
                 detail="Apenas ADMIN_SITE pode reenviar senha de administradores do site"
             )
 
-        alvo_kind, admin_alvo = get_admin_site_by_id_any(db, admin_id)
+        _, admin_alvo = get_admin_site_by_id_any(db, admin_id)
 
         if not admin_alvo:
             raise HTTPException(
@@ -1865,19 +1756,6 @@ def reenviar_senha_admin_site(
 
         admin_alvo.senha_hash = hash_password(senha_temporaria)
         admin_alvo.atualizado_em = get_fortaleza_time()
-        if alvo_kind == "new":
-            espelho = db.query(UsuarioAdministrativo).filter(
-                UsuarioAdministrativo.id == admin_alvo.id,
-                UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-            ).first()
-            if espelho:
-                espelho.senha_hash = admin_alvo.senha_hash
-                espelho.atualizado_em = admin_alvo.atualizado_em
-        else:
-            espelho = db.query(AdminSiteUser).filter(AdminSiteUser.id == admin_alvo.id).first()
-            if espelho:
-                espelho.senha_hash = admin_alvo.senha_hash
-                espelho.atualizado_em = admin_alvo.atualizado_em
         set_admin_site_password_pending(db, admin_alvo.id, True)
         db.commit()
 
@@ -2153,12 +2031,9 @@ def bootstrap_setup(
     Retorna JWT do novo administrador.
     """
     try:
-        admin_existe_new = db.query(AdminSiteUser).first()
-        admin_existe_legacy = db.query(UsuarioAdministrativo).filter(
-            UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-            UsuarioAdministrativo.login != "Admin"
+        admin_existe = db.query(AdminSiteUser).filter(
+            AdminSiteUser.login != "Admin"
         ).first()
-        admin_existe = admin_existe_new or admin_existe_legacy
 
         if admin_existe:
             logger.warning("❌ Bootstrap: ADMIN_SITE já existe no sistema")
@@ -2187,19 +2062,14 @@ def bootstrap_setup(
             )
 
         # Buscar Admin bootstrap
-        bootstrap_admin = db.query(UsuarioAdministrativo).filter(
-            UsuarioAdministrativo.login == "Admin"
+        bootstrap_admin = db.query(AdminSiteUser).filter(
+            AdminSiteUser.login == "Admin"
         ).first()
 
         # Validar login único (se mudar login)
         login_existe = db.query(AdminSiteUser).filter(
             AdminSiteUser.login == identidade["login"]
         ).first()
-        if not login_existe:
-            login_existe = db.query(UsuarioAdministrativo).filter(
-                UsuarioAdministrativo.login == identidade["login"],
-                UsuarioAdministrativo.nivel_acesso == NivelAcessoAdmin.ADMIN_SITE,
-            ).first()
         if login_existe:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

@@ -19,11 +19,8 @@ from passlib.context import CryptContext
 
 from src.models.models import (
     AdminSiteUser,
-    UsuarioAdministrativo,
-    NivelAcessoAdmin,
     RoleParoquia,
     RoleParoquiaCodigo,
-    UsuarioLegado,
     Paroquia,
     Configuracao,
     TipoConfiguracao,
@@ -57,9 +54,8 @@ def check_seed_needed(db: Session) -> bool:
     Returns:
         True se precisa criar seed, False se já existe ADMIN_SITE
     """
-    total_admins_legado = db.query(UsuarioAdministrativo).count()
     total_admins_site = db.query(AdminSiteUser).count()
-    return (total_admins_legado + total_admins_site) == 0
+    return total_admins_site == 0
 
 
 def ensure_roles_paroquia_defaults(db: Session) -> None:
@@ -93,9 +89,9 @@ def registrar_auditoria_sistema(db: Session) -> None:
     agora = get_fortaleza_time()
     registro = db.query(SistemaAuditoria).filter(SistemaAuditoria.id == "SYSTEM").first()
 
-    seed_ativo = db.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.login == "Admin",
-        UsuarioAdministrativo.ativo == True
+    seed_ativo = db.query(AdminSiteUser).filter(
+        AdminSiteUser.login == "Admin",
+        AdminSiteUser.ativo == True
     ).first() is not None
 
     if registro:
@@ -172,28 +168,19 @@ def seed_database(db: Session) -> bool:
         logger.info(f"✓ Paróquia padrão criada: {paroquia_default.nome}")
         
         # ====================================================================
-        # INATIVAR BOOTSTRAP LEGADO (SE EXISTIR)
-        # ====================================================================
-        db.query(UsuarioLegado).filter(
-            UsuarioLegado.is_bootstrap == True
-        ).update({
-            UsuarioLegado.ativo: False
-        }, synchronize_session=False)
-
-        # ====================================================================
         # CRIAR ADMIN SITE TEMPORÁRIO (BOOTSTRAP)
         # ====================================================================
-        bootstrap_admin = UsuarioAdministrativo(
+        bootstrap_admin = AdminSiteUser(
             id=generate_temporal_id_with_microseconds('ADM'),
             nome="Admin",
             login="Admin",
             senha_hash=hash_password("admin123"),
             email=None,
+            cpf=None,
             telefone=None,
             whatsapp=None,
-            nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
-            paroquia_id=None,
             criado_por_id=None,
+            paroquia_referencia_id=paroquia_default.id,
             ativo=True
         )
 

@@ -61,11 +61,12 @@ Este documento lista **todas as rotas disponíveis** atualmente e aponta **quais
 
 | Rota | Componente | Regra de Acesso | Testes existentes | Versão |
 | --- | --- | --- | --- | --- |
-| `/dashboard` | `Dashboard` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
-| `/feedback` | `SendFeedback` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
-| `/games` | `Games` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
-| `/games/:id` | `GameDetail` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
-| `/profile` | `Profile` | `PrivateRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
+| `/dashboard` | `Dashboard` | `PublicUserRoute` (somente fiel) | `frontend/src/__tests__/routes.test.tsx` | 1 |
+| `/feedback` | `SendFeedback` | `PublicUserRoute` (somente fiel) | `frontend/src/__tests__/routes.test.tsx` | 1 |
+| `/games` | `Games` | `PublicUserRoute` (somente fiel) | `frontend/src/__tests__/routes.test.tsx` | 1 |
+| `/games/:id` | `GameDetail` | `PublicUserRoute` (somente fiel) | `frontend/src/__tests__/routes.test.tsx` | 1 |
+| `/minhas-cartelas` | `MyCards` | `PublicUserRoute` (somente fiel) | `frontend/src/__tests__/routes.test.tsx` | 1 |
+| `/profile` | `Profile` | `PublicUserRoute` (somente fiel) | `frontend/src/__tests__/routes.test.tsx` | 1 |
 
 ---
 

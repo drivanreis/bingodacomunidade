@@ -20,6 +20,90 @@ from src.utils.time_manager import get_fortaleza_time
 from src.routers.auth_routes import normalize_admin_site_identity, normalize_phone, find_admin_site_conflict
 
 
+_CURRENT_DB_SESSION = None
+
+
+@pytest.fixture(autouse=True)
+def _legacy_admin_factory_session_bridge(db_session):
+    global _CURRENT_DB_SESSION
+    _CURRENT_DB_SESSION = db_session
+    try:
+        yield
+    finally:
+        _CURRENT_DB_SESSION = None
+
+
+def _ensure_admin_role(db_session):
+    role_admin = db_session.query(RoleParoquia).filter(
+        RoleParoquia.codigo == RoleParoquiaCodigo.ADMIN.value,
+        RoleParoquia.ativo == True,
+    ).first()
+    if role_admin:
+        return role_admin
+
+    role_admin = RoleParoquia(
+        id=f"ROL-AUTO-{int(get_fortaleza_time().timestamp() * 1000000)}",
+        codigo=RoleParoquiaCodigo.ADMIN.value,
+        nome="Administrador Paroquial",
+        descricao="Role admin criada automaticamente para compatibilidade de testes",
+        ativo=True,
+        criado_em=get_fortaleza_time(),
+        atualizado_em=get_fortaleza_time(),
+    )
+    db_session.add(role_admin)
+    db_session.flush()
+    return role_admin
+
+
+def UsuarioAdministrativo(**kwargs):  # compatibilidade para testes legados
+    nivel_acesso = kwargs.pop("nivel_acesso", None)
+    if nivel_acesso == NivelAcessoAdmin.ADMIN_SITE:
+        return AdminSiteUser(
+            id=kwargs.get("id"),
+            nome=kwargs.get("nome"),
+            login=kwargs.get("login"),
+            senha_hash=kwargs.get("senha_hash"),
+            email=kwargs.get("email"),
+            cpf=kwargs.get("cpf"),
+            telefone=kwargs.get("telefone"),
+            whatsapp=kwargs.get("whatsapp"),
+            criado_por_id=kwargs.get("criado_por_id"),
+            paroquia_referencia_id=kwargs.get("paroquia_id"),
+            tentativas_login=kwargs.get("tentativas_login", 0),
+            bloqueado_ate=kwargs.get("bloqueado_ate"),
+            ativo=kwargs.get("ativo", True),
+            criado_em=kwargs.get("criado_em"),
+            atualizado_em=kwargs.get("atualizado_em"),
+            ultimo_acesso=kwargs.get("ultimo_acesso"),
+        )
+
+    if nivel_acesso == NivelAcessoAdmin.ADMIN_PAROQUIA:
+        if _CURRENT_DB_SESSION is None:
+            raise RuntimeError("Sessão de teste indisponível para criar UsuarioParoquia de compatibilidade")
+        role_admin = _ensure_admin_role(_CURRENT_DB_SESSION)
+        return UsuarioParoquia(
+            id=kwargs.get("id"),
+            nome=kwargs.get("nome"),
+            login=kwargs.get("login"),
+            senha_hash=kwargs.get("senha_hash"),
+            email=kwargs.get("email"),
+            cpf=kwargs.get("cpf"),
+            telefone=kwargs.get("telefone"),
+            whatsapp=kwargs.get("whatsapp"),
+            paroquia_id=kwargs.get("paroquia_id") or "PAR-LEGACY",
+            role_id=kwargs.get("role_id") or role_admin.id,
+            criado_por_id=kwargs.get("criado_por_id"),
+            tentativas_login=kwargs.get("tentativas_login", 0),
+            bloqueado_ate=kwargs.get("bloqueado_ate"),
+            ativo=kwargs.get("ativo", True),
+            criado_em=kwargs.get("criado_em"),
+            atualizado_em=kwargs.get("atualizado_em"),
+            ultimo_acesso=kwargs.get("ultimo_acesso"),
+        )
+
+    raise ValueError(f"nivel_acesso incompatível no teste legado: {nivel_acesso}")
+
+
 @pytest.mark.asyncio
 async def test_admin_paroquia_login_by_login(test_app, db_session):
     admin = UsuarioAdministrativo(
@@ -99,7 +183,7 @@ async def test_admin_paroquia_login_rejects_admin_site(test_app, db_session):
             json={"login": "admin_site", "senha": "Senha@123"},
         )
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -177,7 +261,7 @@ async def test_persona_admin_paroquia_hacker_admin_site_forbidden(test_app, db_s
             json={"login": "admin_site_hacker", "senha": "Senha@123"},
         )
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -503,9 +587,9 @@ async def test_admin_paroquia_cria_subordinado_com_sucesso(test_app, db_session)
     )
     role_admin = RoleParoquia(
         id="ROL-P-CR-1",
-        codigo=RoleParoquiaCodigo.ADMIN.value,
-        nome="Administrador Paroquial",
-        descricao="Role admin paroquia",
+        codigo=RoleParoquiaCodigo.CAIXA.value,
+        nome="Operador Paroquial",
+        descricao="Role auxiliar para cenário de criação",
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -561,9 +645,9 @@ async def test_admin_paroquia_cria_subordinado_rejeita_paroquia_diferente(test_a
     )
     role_admin = RoleParoquia(
         id="ROL-P-CR-2",
-        codigo=RoleParoquiaCodigo.ADMIN.value,
-        nome="Administrador Paroquial",
-        descricao="Role admin paroquia",
+        codigo=RoleParoquiaCodigo.CAIXA.value,
+        nome="Operador Paroquial",
+        descricao="Role auxiliar para cenário de criação",
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -610,9 +694,9 @@ async def test_admin_paroquia_cria_subordinado_rejeita_login_duplicado(test_app,
     )
     role_admin = RoleParoquia(
         id="ROL-P-CR-3",
-        codigo=RoleParoquiaCodigo.ADMIN.value,
-        nome="Administrador Paroquial",
-        descricao="Role admin paroquia",
+        codigo=RoleParoquiaCodigo.CAIXA.value,
+        nome="Operador Paroquial",
+        descricao="Role auxiliar para cenário de criação",
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -670,6 +754,12 @@ async def test_admin_paroquia_cria_subordinado_rejeita_sem_role_admin(test_app, 
         atualizado_em=get_fortaleza_time(),
     )
     db_session.add(criador)
+    db_session.commit()
+    role_admin = db_session.query(RoleParoquia).filter(
+        RoleParoquia.codigo == RoleParoquiaCodigo.ADMIN.value
+    ).first()
+    assert role_admin is not None
+    role_admin.ativo = False
     db_session.commit()
 
     async def override_current_user():

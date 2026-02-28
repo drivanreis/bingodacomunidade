@@ -22,6 +22,14 @@ const Navbar: React.FC = () => {
   }, []);
 
   if (!user) return null;
+  const normalizedRole = String(user.role || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  const effectiveRole = ['fiel', 'usuario_comum'].includes(normalizedRole) ? 'faithful' : normalizedRole;
 
   const dashboardPath = resolveDashboardPath(user.role);
   const gamesPath = resolveGamesPath(user.role);
@@ -36,10 +44,11 @@ const Navbar: React.FC = () => {
   const navItems = [
     { path: dashboardPath, label: '🏠 Dashboard', roles: ['super_admin', 'parish_admin', 'faithful'] },
     { path: gamesPath, label: '🎉 Jogos', roles: ['super_admin', 'parish_admin', 'faithful'] },
+    { path: '/minhas-cartelas', label: '🎟️ Minhas Cartelas', roles: ['faithful'] },
     { path: '/profile', label: '👤 Perfil', roles: ['super_admin', 'parish_admin', 'faithful'] },
   ];
 
-  const filteredItems = navItems.filter((item) => item.roles.includes(user.role));
+  const filteredItems = navItems.filter((item) => item.roles.includes(effectiveRole));
 
   return (
     <nav style={styles.navbar}>

@@ -1,7 +1,6 @@
 from src.db.seed import check_seed_needed, seed_database, registrar_auditoria_sistema
 from src.models.models import (
-    UsuarioAdministrativo,
-    NivelAcessoAdmin,
+    AdminSiteUser,
     Paroquia,
     Configuracao,
     SistemaAuditoria,
@@ -15,13 +14,12 @@ def test_check_seed_needed_true_when_no_admins(db_session):
 
 
 def test_check_seed_needed_false_when_admin_exists(db_session):
-    admin = UsuarioAdministrativo(
+    admin = AdminSiteUser(
         id="ADM-SEED-1",
         nome="Admin",
         login="admin_existente",
         senha_hash=hash_password("Senha@123"),
         email="admin@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -37,7 +35,7 @@ def test_seed_database_creates_bootstrap_admin_paroquia_and_configs(db_session):
 
     assert created is True
 
-    admin = db_session.query(UsuarioAdministrativo).filter(UsuarioAdministrativo.login == "Admin").first()
+    admin = db_session.query(AdminSiteUser).filter(AdminSiteUser.login == "Admin").first()
     paroquia = db_session.query(Paroquia).first()
     configs_count = db_session.query(Configuracao).count()
 
@@ -60,13 +58,12 @@ def test_registrar_auditoria_sistema_create_and_update(db_session):
     first_count = audit.contagem_inicializacoes
 
     # Inserir seed ativo para refletir seed_ativo=True
-    admin = UsuarioAdministrativo(
+    admin = AdminSiteUser(
         id="ADM-SEED-AUD-1",
         nome="Admin",
         login="Admin",
         senha_hash=hash_password("admin123"),
         email=None,
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),

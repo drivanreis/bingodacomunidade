@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
-from src.models.models import UsuarioAdministrativo, NivelAcessoAdmin
+from src.models.models import AdminSiteUser
 from src.utils.auth import hash_password
 from src.utils.time_manager import get_fortaleza_time
 
@@ -27,13 +27,12 @@ async def test_bootstrap_setup_creates_first_admin(test_app, db_session):
 
 @pytest.mark.asyncio
 async def test_bootstrap_setup_updates_existing_bootstrap(test_app, db_session):
-    bootstrap = UsuarioAdministrativo(
+    bootstrap = AdminSiteUser(
         id="ADM-BOOT",
         nome="Bootstrap",
         login="Admin",
         senha_hash=hash_password("admin123"),
         email=None,
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -56,14 +55,14 @@ async def test_bootstrap_setup_updates_existing_bootstrap(test_app, db_session):
     data = response.json()
     assert data["usuario"]["login"] == "admin@exemplo.com"
 
-    bootstrap_after = db_session.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.login == "Admin"
+    bootstrap_after = db_session.query(AdminSiteUser).filter(
+        AdminSiteUser.login == "Admin"
     ).first()
     assert bootstrap_after is not None
     assert bootstrap_after.ativo is False
 
-    novo_lider = db_session.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.login == "admin@exemplo.com"
+    novo_lider = db_session.query(AdminSiteUser).filter(
+        AdminSiteUser.login == "admin@exemplo.com"
     ).first()
     assert novo_lider is not None
     assert novo_lider.ativo is True
@@ -71,13 +70,12 @@ async def test_bootstrap_setup_updates_existing_bootstrap(test_app, db_session):
 
 @pytest.mark.asyncio
 async def test_bootstrap_setup_conflict_when_admin_exists(test_app, db_session):
-    admin = UsuarioAdministrativo(
+    admin = AdminSiteUser(
         id="ADM-REAL",
         nome="Admin Real",
         login="admin_real",
         senha_hash=hash_password("Senha@123"),
         email="admin@exemplo.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -101,13 +99,12 @@ async def test_bootstrap_setup_conflict_when_admin_exists(test_app, db_session):
 
 @pytest.mark.asyncio
 async def test_bootstrap_login_returns_404_after_seed_inactivation(test_app, db_session):
-    bootstrap = UsuarioAdministrativo(
+    bootstrap = AdminSiteUser(
         id="ADM-BOOT-2",
         nome="Bootstrap",
         login="Admin",
         senha_hash=hash_password("admin123"),
         email=None,
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -137,13 +134,12 @@ async def test_bootstrap_login_returns_404_after_seed_inactivation(test_app, db_
 
 @pytest.mark.asyncio
 async def test_bootstrap_setup_keeps_seed_id_1_and_inactivates_it(test_app, db_session):
-    bootstrap = UsuarioAdministrativo(
+    bootstrap = AdminSiteUser(
         id="1",
         nome="Bootstrap",
         login="Admin",
         senha_hash=hash_password("admin123"),
         email=None,
-        nivel_acesso=NivelAcessoAdmin.ADMIN_SITE,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
@@ -164,8 +160,8 @@ async def test_bootstrap_setup_keeps_seed_id_1_and_inactivates_it(test_app, db_s
 
     assert response.status_code == 201
 
-    seed_after = db_session.query(UsuarioAdministrativo).filter(
-        UsuarioAdministrativo.id == "1"
+    seed_after = db_session.query(AdminSiteUser).filter(
+        AdminSiteUser.id == "1"
     ).first()
     assert seed_after is not None
     assert seed_after.login == "Admin"

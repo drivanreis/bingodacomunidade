@@ -35,7 +35,7 @@ import Games from './pages/Games';
 import NewGame from './pages/NewGame';
 import GameDetail from './pages/GameDetail';
 import Profile from './pages/Profile';
-import PrivateRoute from './components/PrivateRoute';
+import MyCards from './pages/MyCards';
 import { SuperAdminRoute, ParishAdminRoute, PublicUserRoute } from './components/AdminRoute';
 
 function App() {
@@ -182,42 +182,50 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <PrivateRoute>
+              <PublicUserRoute>
                 <Dashboard />
-              </PrivateRoute>
+              </PublicUserRoute>
             }
           />
           <Route
             path="/feedback"
             element={
-              <PrivateRoute>
+              <PublicUserRoute>
                 <SendFeedback />
-              </PrivateRoute>
+              </PublicUserRoute>
             }
           />
           <Route
             path="/games"
             element={
-              <PrivateRoute>
+              <PublicUserRoute>
                 <Games />
-              </PrivateRoute>
+              </PublicUserRoute>
             }
           />
           <Route path="/games/new" element={<Navigate to="/" replace />} />
           <Route
             path="/games/:id"
             element={
-              <PrivateRoute>
+              <PublicUserRoute>
                 <GameDetail />
-              </PrivateRoute>
+              </PublicUserRoute>
+            }
+          />
+          <Route
+            path="/minhas-cartelas"
+            element={
+              <PublicUserRoute>
+                <MyCards />
+              </PublicUserRoute>
             }
           />
           <Route
             path="/profile"
             element={
-              <PrivateRoute>
+              <PublicUserRoute>
                 <Profile />
-              </PrivateRoute>
+              </PublicUserRoute>
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />

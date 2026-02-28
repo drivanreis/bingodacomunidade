@@ -182,6 +182,26 @@ Para gestão de usuários (site/paróquia), adote sempre duas etapas de trabalho
   - Detalhe de jogo paroquial: `/admin-paroquia/games/:id`
 - As rotas `/games` e `/games/:id` são da área pública autenticada (usuário comum/fiel).
 
+### Área exclusiva do fiel (raiz autenticada)
+
+- Após login comum (`/login`), o fiel usa:
+  - `/dashboard`
+  - `/games`
+  - `/games/:id`
+  - `/minhas-cartelas` (área para ver/pagar cartelas)
+- Essas rotas **não** devem ser usadas por admin-site/admin-paróquia.
+
+### Troca de perfil sem confusão
+
+- Para sair de admin-paróquia e entrar como fiel:
+  1. clicar em **Sair**;
+  2. acessar `http://localhost:5173/login`;
+  3. autenticar como usuário comum.
+- Mesmo usando CPF/email iguais em contextos diferentes, cada login deve acontecer na rota correta do contexto:
+  - admin-site: `/admin-site/login`
+  - admin-paróquia: `/admin-paroquia/login`
+  - fiel: `/login`
+
 ### **Ver logs em tempo real**
 ```powershell
 docker-compose logs -f backend

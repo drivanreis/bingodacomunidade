@@ -8,12 +8,22 @@ import './Dashboard.css';
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const normalizedRole = String(user?.role || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  const isFaithful = ['faithful', 'fiel', 'usuario_comum'].includes(normalizedRole);
 
   const getRoleName = (role: string) => {
     const roles: Record<string, string> = {
       super_admin: 'Super Administrador',
       parish_admin: 'Administrador Paroquial',
       faithful: 'Fiel',
+      fiel: 'Fiel',
+      usuario_comum: 'Fiel',
     };
     return roles[role] || role;
   };
@@ -65,6 +75,14 @@ const Dashboard: React.FC = () => {
               <h3 className="db-actionTitle">Lotérica: Comprar Cartelas</h3>
               <p className="db-actionDesc">Escolha um concurso e compre sua cartela</p>
             </button>
+
+            {isFaithful && (
+              <button onClick={() => navigate('/minhas-cartelas')} className="db-actionCard">
+                <div className="db-actionIcon">🎟️</div>
+                <h3 className="db-actionTitle">Minha Área de Cartelas</h3>
+                <p className="db-actionDesc">Veja, pague e acompanhe seus bilhetes</p>
+              </button>
+            )}
             
             {(user?.role === 'super_admin' || user?.role === 'parish_admin') && (
               <button onClick={() => navigate('/admin-paroquia/games/new')} className="db-actionCard">

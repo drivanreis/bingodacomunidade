@@ -2,24 +2,34 @@ import pytest
 from datetime import timedelta
 from httpx import AsyncClient
 
-from src.models.models import UsuarioComum, UsuarioAdministrativo, NivelAcessoAdmin
+from src.models.models import UsuarioComum, UsuarioParoquia, RoleParoquia, RoleParoquiaCodigo
 from src.utils.auth import hash_password
 from src.utils.time_manager import get_fortaleza_time
 
 
 def liberar_acesso_publico(db_session):
-    admin_paroquia = UsuarioAdministrativo(
+    role_admin = RoleParoquia(
+        id="ROL-REC-1",
+        codigo=RoleParoquiaCodigo.ADMIN.value,
+        nome="Administrador Paroquial",
+        descricao="Role admin para liberar recuperação de senha",
+        ativo=True,
+        criado_em=get_fortaleza_time(),
+        atualizado_em=get_fortaleza_time(),
+    )
+    admin_paroquia = UsuarioParoquia(
         id="ADM-REC-1",
         nome="Admin Paroquia",
         login="admin_paroquia_recuperacao",
         senha_hash=hash_password("Senha@123"),
         email="admin.paroquia.recuperacao@example.com",
-        nivel_acesso=NivelAcessoAdmin.ADMIN_PAROQUIA,
+        paroquia_id="PAR-REC-1",
+        role_id=role_admin.id,
         ativo=True,
         criado_em=get_fortaleza_time(),
         atualizado_em=get_fortaleza_time(),
     )
-    db_session.add(admin_paroquia)
+    db_session.add_all([role_admin, admin_paroquia])
     db_session.commit()
 
 

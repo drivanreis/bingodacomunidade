@@ -69,6 +69,10 @@ docker builder prune -af 2>/dev/null || true
 echo "🗑️  Limpeza final do sistema..."
 docker system prune -af --volumes 2>/dev/null || true
 
+# 8. Remover banco SQLite local mapeado (se existir)
+echo "🗑️  Removendo banco SQLite local do projeto..."
+rm -f ./data/bingo.db ./data/bingo.db-shm ./data/bingo.db-wal 2>/dev/null || true
+
 echo ""
 echo -e "${GREEN}"
 echo "=================================================================="

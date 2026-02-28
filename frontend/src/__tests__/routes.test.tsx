@@ -68,6 +68,7 @@ describe('Rotas do app (smoke)', () => {
     { path: '/dashboard', to: '/login' },
     { path: '/feedback', to: '/login' },
     { path: '/games', to: '/login' },
+    { path: '/minhas-cartelas', to: '/login' },
     { path: '/games/new', to: '/' },
     { path: '/games/123', to: '/login' },
     { path: '/profile', to: '/login' },

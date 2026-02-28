@@ -100,7 +100,7 @@ export const ParishAdminRoute: React.FC<{ children: React.ReactElement }> = ({ c
 export const PublicUserRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   return (
     <AdminRoute 
-      allowedRoles={['fiel', 'faithful']}
+      allowedRoles={['fiel', 'faithful', 'usuario_comum']}
       redirectTo="/login"
     >
       {children}
