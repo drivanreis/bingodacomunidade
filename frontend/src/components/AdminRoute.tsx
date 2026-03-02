@@ -95,6 +95,21 @@ export const ParishAdminRoute: React.FC<{ children: React.ReactElement }> = ({ c
 };
 
 /**
+ * Proteção para Gerenciamento de Usuários da Paróquia
+ * Permite TANTO Admin-Site (para criar admins) QUANTO Admin-Paróquia (para gerenciar equipe)
+ */
+export const UserManagementRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  return (
+    <AdminRoute 
+      allowedRoles={['admin_site', 'super_admin', 'admin_paroquia', 'paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo', 'usuario_administrativo', 'usuario_administrador']}
+      redirectTo="/admin-paroquia/login"
+    >
+      {children}
+    </AdminRoute>
+  );
+};
+
+/**
  * Proteção para área pública (FIELs)
  */
 export const PublicUserRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {

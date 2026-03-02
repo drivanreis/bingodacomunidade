@@ -30,7 +30,7 @@ Este documento lista **todas as rotas disponíveis** atualmente e aponta **quais
 | `/admin-site/dashboard` | `AdminSiteDashboard` | `SuperAdminRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
 | `/admin-site/paroquias` | `ParishManagement` | `SuperAdminRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
 | `/admin-site/usuarios` | `UserManagement` | `SuperAdminRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
-| `/admin-site/admins` | `AdminUsers` | `SuperAdminRoute` | `frontend/src/__tests__/routes.test.tsx`, `frontend/src/pages/__tests__/AdminUsers.test.tsx` | 1 |
+| `/admin-site/users-admin` | `AdminUsers` | `SuperAdminRoute` | `frontend/src/__tests__/routes.test.tsx`, `frontend/src/pages/__tests__/AdminUsers.test.tsx` | 1 |
 | `/admin-site/relatorios` | `Reports` | `SuperAdminRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
 | `/admin-site/configuracoes` | `SystemSettings` | `SuperAdminRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |
 | `/admin-site/auditoria` | `AuditLog` | `SuperAdminRoute` | `frontend/src/__tests__/routes.test.tsx` | 0 |

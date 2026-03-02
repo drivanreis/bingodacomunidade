@@ -21,7 +21,7 @@ describe('Rotas do app (smoke)', () => {
 
   const publicRoutes = [
     '/',
-    '/first-access-setup',
+    '/admin-site/first-access-setup',
     '/login',
     '/signup',
     '/forgot-password',
@@ -54,7 +54,7 @@ describe('Rotas do app (smoke)', () => {
     { path: '/admin-site/dashboard', to: '/admin-site/login' },
     { path: '/admin-site/paroquias', to: '/admin-site/login' },
     { path: '/admin-site/usuarios', to: '/admin-site/login' },
-    { path: '/admin-site/admins', to: '/admin-site/login' },
+    { path: '/admin-site/users-admin', to: '/admin-site/login' },
     { path: '/admin-site/relatorios', to: '/admin-site/login' },
     { path: '/admin-site/configuracoes', to: '/admin-site/login' },
     { path: '/admin-site/auditoria', to: '/admin-site/login' },
@@ -64,7 +64,7 @@ describe('Rotas do app (smoke)', () => {
     { path: '/admin-paroquia/games/123', to: '/admin-paroquia/login' },
     { path: '/admin-paroquia/games/new', to: '/admin-paroquia/login' },
     { path: '/admin-paroquia/configuracoes', to: '/admin-paroquia/login' },
-    { path: '/admin-paroquia/usuarios', to: '/admin-paroquia/login' },
+    { path: '/admin-paroquia/user-paroquia', to: '/admin-paroquia/login' },
     { path: '/dashboard', to: '/login' },
     { path: '/feedback', to: '/login' },
     { path: '/games', to: '/login' },

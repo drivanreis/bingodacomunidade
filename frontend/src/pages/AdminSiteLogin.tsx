@@ -87,7 +87,7 @@ const AdminSiteLogin: React.FC = () => {
 
         if (bootstrapResponse.status >= 200 && bootstrapResponse.status < 300 && bootstrapResponse.data?.bootstrap) {
           localStorage.setItem('@BingoComunidade:bootstrap', 'true');
-          navigate('/first-access-setup');
+          navigate('/admin-site/first-access-setup');
           return;
         }
 
@@ -145,7 +145,7 @@ const AdminSiteLogin: React.FC = () => {
       // Se ainda é bootstrap, forçar primeiro acesso
       if (usuario?.login === 'Admin' && !usuario?.email) {
         setBootstrapAvailable(true);
-        navigate('/first-access-setup');
+        navigate('/admin-site/first-access-setup');
         return;
       }
 

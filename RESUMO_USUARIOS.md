@@ -144,7 +144,7 @@ Status:
 ### Usuários Administrativos
 ```
 Fluxo Admin-Site:
-1. Admin-Site acessa: /admin-site/admins
+1. Admin-Site acessa: /admin-site/users-admin
 2. Gerencia Usuários do Site (pares ADMIN_SITE)
 3. Cria usuário do site (reserva):
    ├─ Email (identidade)
@@ -357,7 +357,7 @@ UsuarioAdministrativo {
 | **Login Admin** | `/admin-site/login` | Autenticação com login + senha |
 | **Dashboard** | `/admin-site/dashboard` | Visão geral do sistema |
 | **Gerenciar Usuários da Paróquia** | `/admin-site/usuarios` | Criar e gerenciar equipe paroquial (Admin-Site/Admin-Paróquia) |
-| **Gerenciar Usuários do Site** | `/admin-site/admins` | Sucessão Admin-Site, reservas e gestão de status |
+| **Gerenciar Usuários do Site** | `/admin-site/users-admin` | Sucessão Admin-Site, reservas e gestão de status |
 | **Paróquias** | `/admin-site/paroquias` | CRUD de paróquias |
 | **Bingos** | `/admin-site/bingos` | Gerenciar bingos globalmente |
 | **Feedbacks** | `/admin-site/feedback` | Ver/responder feedbacks |
@@ -413,7 +413,7 @@ UsuarioAdministrativo {
 
 ### Gerenciamento de Admins (Novo!)
 ```
-✅ Página dedicada: /admin-site/admins
+✅ Página dedicada: /admin-site/users-admin
 ✅ Super Admin pode:
    ├─ Visualizar usuários do site (ADMIN_SITE) ativos e inativos
    ├─ Criar usuário do site reserva

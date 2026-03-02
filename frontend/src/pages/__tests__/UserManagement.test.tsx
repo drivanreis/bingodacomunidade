@@ -413,4 +413,198 @@ describe('UserManagement', () => {
     });
     expect(postMock).not.toHaveBeenCalled();
   });
+
+  describe('Context Conditional Logic - Admin-Site vs Admin-Paróquia', () => {
+    it('Admin-Site: inicializa com paroquia_admin apenas no dropdown', async () => {
+      const user = userEvent.setup();
+      mockLoadSuccess();
+      
+      // Simular context Admin-Site
+      localStorage.setItem('@BingoComunidade:session_scope', 'admin_site');
+
+      render(
+        <MemoryRouter>
+          <UserManagement />
+        </MemoryRouter>
+      );
+
+      await screen.findByText('Gerenciar Usuários da Paróquia');
+      await user.click(screen.getByRole('button', { name: /novo usuário/i }));
+
+      const modal = getModal(/novo usuário da paróquia/i);
+      const funcaoSelect = within(modal).getByLabelText(/função/i) as HTMLSelectElement;
+
+      // ✅ Deve ter apenas "Administrador"
+      const options = Array.from(funcaoSelect.options).map(opt => opt.value);
+      expect(options).toEqual(['paroquia_admin']);
+      expect(options).not.toContain('paroquia_caixa');
+      expect(options).not.toContain('paroquia_recepcao');
+      expect(options).not.toContain('paroquia_bingo');
+
+      localStorage.removeItem('@BingoComunidade:session_scope');
+    });
+
+    it('Admin-Paróquia: inicializa com todas as funções no dropdown', async () => {
+      const user = userEvent.setup();
+      mockLoadSuccess();
+      
+      // Simular context Admin-Paróquia
+      localStorage.setItem('@BingoComunidade:session_scope', 'admin_paroquia');
+
+      render(
+        <MemoryRouter>
+          <UserManagement />
+        </MemoryRouter>
+      );
+
+      await screen.findByText('Gerenciar Usuários da Paróquia');
+      await user.click(screen.getByRole('button', { name: /novo usuário/i }));
+
+      const modal = getModal(/novo usuário da paróquia/i);
+      const funcaoSelect = within(modal).getByLabelText(/função/i) as HTMLSelectElement;
+
+      // ✅ Deve ter todas as 4 funções
+      const options = Array.from(funcaoSelect.options).map(opt => opt.value);
+      expect(options).toContain('paroquia_admin');
+      expect(options).toContain('paroquia_caixa');
+      expect(options).toContain('paroquia_recepcao');
+      expect(options).toContain('paroquia_bingo');
+
+      localStorage.removeItem('@BingoComunidade:session_scope');
+    });
+
+    it('Admin-Site: tipo padrão é paroquia_admin', async () => {
+      const user = userEvent.setup();
+      mockLoadSuccess();
+      
+      localStorage.setItem('@BingoComunidade:session_scope', 'admin_site');
+
+      render(
+        <MemoryRouter>
+          <UserManagement />
+        </MemoryRouter>
+      );
+
+      await screen.findByText('Gerenciar Usuários da Paróquia');
+      await user.click(screen.getByRole('button', { name: /novo usuário/i }));
+
+      const modal = getModal(/novo usuário da paróquia/i);
+      const funcaoSelect = within(modal).getByLabelText(/função/i) as HTMLSelectElement;
+
+      // ✅ Valor selecionado por padrão deve ser paroquia_admin
+      expect(funcaoSelect.value).toBe('paroquia_admin');
+
+      localStorage.removeItem('@BingoComunidade:session_scope');
+    });
+
+    it('Admin-Paróquia: tipo padrão é paroquia_recepcao', async () => {
+      const user = userEvent.setup();
+      mockLoadSuccess();
+      
+      localStorage.setItem('@BingoComunidade:session_scope', 'admin_paroquia');
+
+      render(
+        <MemoryRouter>
+          <UserManagement />
+        </MemoryRouter>
+      );
+
+      await screen.findByText('Gerenciar Usuários da Paróquia');
+      await user.click(screen.getByRole('button', { name: /novo usuário/i }));
+
+      const modal = getModal(/novo usuário da paróquia/i);
+      const funcaoSelect = within(modal).getByLabelText(/função/i) as HTMLSelectElement;
+
+      // ✅ Valor selecionado por padrão deve ser paroquia_recepcao
+      expect(funcaoSelect.value).toBe('paroquia_recepcao');
+
+      localStorage.removeItem('@BingoComunidade:session_scope');
+    });
+
+    it('Admin-Site: rejeita tentativa de fraud ao enviar tipo inválido', async () => {
+      const user = userEvent.setup();
+      mockLoadSuccess();
+      
+      localStorage.setItem('@BingoComunidade:session_scope', 'admin_site');
+
+      render(
+        <MemoryRouter>
+          <UserManagement />
+        </MemoryRouter>
+      );
+
+      await screen.findByText('Gerenciar Usuários da Paróquia');
+      await user.click(screen.getByRole('button', { name: /novo usuário/i }));
+
+      const modal = getModal(/novo usuário da paróquia/i);
+      
+      // Simular tentativa de fraud via console (adicionar tipo não permitido)
+      // Preencher form normalmente
+      await user.type(getNomeInput(modal), 'Fraudador');
+      await user.type(within(modal).getByPlaceholderText('000.000.000-00'), '12345678909');
+      await user.type(within(modal).getByPlaceholderText('email@paroquia.com'), 'fraude@example.com');
+      await user.selectOptions(within(modal).getByLabelText('DDD'), '85');
+      await user.type(within(modal).getByLabelText(/telefone \(sms\/whatsapp\)/i), '999998888');
+      await user.type(getSenhaInput(modal), 'Senha@123');
+      await user.type(getConfirmarSenhaInput(modal), 'Senha@123');
+
+      // Tentar manipular via console: alterar valor do select
+      const funcaoSelect = within(modal).getByLabelText(/função/i) as HTMLSelectElement;
+      funcaoSelect.value = 'paroquia_caixa'; // ❌ Inválido para Admin-Site
+      fireEvent.change(funcaoSelect);
+
+      // ✅ Submit deve falhar com mensagem de erro
+      const form = modal.querySelector('form') as HTMLFormElement;
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Função inválida para cadastro nesta área');
+      });
+      expect(postMock).not.toHaveBeenCalled();
+
+      localStorage.removeItem('@BingoComunidade:session_scope');
+    });
+
+    it('Admin-Paróquia: permite criar qualquer tipo de usuário', async () => {
+      const user = userEvent.setup();
+      mockLoadSuccess();
+      postMock.mockResolvedValueOnce({ data: { id: 123 } });
+      
+      localStorage.setItem('@BingoComunidade:session_scope', 'admin_paroquia');
+
+      render(
+        <MemoryRouter>
+          <UserManagement />
+        </MemoryRouter>
+      );
+
+      await screen.findByText('Gerenciar Usuários da Paróquia');
+      
+      // Criar usuário do tipo "Caixa"
+      await user.click(screen.getByRole('button', { name: /novo usuário/i }));
+      const modal = getModal(/novo usuário da paróquia/i);
+      
+      await user.type(getNomeInput(modal), 'Operador Caixa');
+      await user.type(within(modal).getByPlaceholderText('000.000.000-00'), '12345678909');
+      await user.type(within(modal).getByPlaceholderText('email@paroquia.com'), 'caixa@example.com');
+      await user.selectOptions(within(modal).getByLabelText(/função/i), 'paroquia_caixa');
+      await user.selectOptions(within(modal).getByLabelText('DDD'), '85');
+      await user.type(within(modal).getByLabelText(/telefone \(sms\/whatsapp\)/i), '999998888');
+      await user.type(getSenhaInput(modal), 'Senha@123');
+      await user.type(getConfirmarSenhaInput(modal), 'Senha@123');
+
+      const form = modal.querySelector('form') as HTMLFormElement;
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(postMock).toHaveBeenCalledWith('/usuarios', expect.objectContaining({
+          nome: 'Operador Caixa',
+          tipo: 'paroquia_caixa',
+        }));
+      });
+      expect(window.alert).toHaveBeenCalledWith('Usuário criado com sucesso!');
+
+      localStorage.removeItem('@BingoComunidade:session_scope');
+    });
+  });
 });

@@ -247,13 +247,19 @@ const AdminParoquiaDashboard: React.FC = () => {
         <div className="apd-section">
           <h2 className="apd-section-title">🔧 Administração</h2>
           <div className="apd-actions-grid">
+            <button className="apd-action-card" onClick={() => navigate('/admin-paroquia/paroquia')}>
+              <div className="apd-action-icon">⚙️</div>
+              <h3 className="apd-action-title">Configurar Paróquia</h3>
+              <p className="apd-action-desc">Dados, contato e financeiro</p>
+            </button>
+
             <button className="apd-action-card" onClick={() => navigate('/admin-paroquia/configuracoes')}>
               <div className="apd-action-icon">⚙️</div>
               <h3 className="apd-action-title">Configurações</h3>
-              <p className="apd-action-desc">Configurar paróquia e rateios</p>
+              <p className="apd-action-desc">Rateios e políticas</p>
             </button>
 
-            <button className="apd-action-card" onClick={() => navigate('/admin-paroquia/usuarios')}>
+            <button className="apd-action-card" onClick={() => navigate('/admin-paroquia/user-paroquia')}>
               <div className="apd-action-icon">👤</div>
               <h3 className="apd-action-title">Usuários</h3>
               <p className="apd-action-desc">Gerenciar equipe paroquial</p>

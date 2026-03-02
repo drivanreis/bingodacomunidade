@@ -76,6 +76,11 @@
 |-----------|-----------|---------|
 | [SEGURANCA_NIVEL_BANCARIO.md](SEGURANCA_NIVEL_BANCARIO.md) | **🔒 Sistema de segurança completo** | 🏦 Crítico |
 | [SISTEMA_PRIMEIRO_ACESSO.md](SISTEMA_PRIMEIRO_ACESSO.md) | **🚀 Primeiro acesso seguro (NOVO!)** | 🔐 Crítico |
+| [GERENCIAMENTO_USUARIOS_PAROQUIA.md](GERENCIAMENTO_USUARIOS_PAROQUIA.md) | **👤 Gerenciamento unificado com contexto condicional (NOVO!)** | 🛡️ Segurança/Frontend |
+| [PADRAO_CSS_BOOTSTRAP.md](PADRAO_CSS_BOOTSTRAP.md) | **🎨 Padrão CSS Bootstrap 5 para componentes admin** | 🧑‍💻 Frontend Dev |
+| [REFATORACAO_CSS_ADMINUSERS.md](REFATORACAO_CSS_ADMINUSERS.md) | **✨ Refatoração AdminUsers.tsx - Antes vs Depois** | 📚 Frontend Dev |
+| [REFATORACAO_CSS_SUMARIO.md](REFATORACAO_CSS_SUMARIO.md) | **📊 Sumário executivo de refatoração** | 📊 Gestão |
+| [REFATORACAO_CSS_RELATORIO_FINAL.md](REFATORACAO_CSS_RELATORIO_FINAL.md) | **✅ Relatório final - Validação e impacto** | 📈 QA |
 | [DEPLOY_PRODUCAO.md](DEPLOY_PRODUCAO.md) | **📦 Deploy em produção (NOVO!)** | 🚀 DevOps |
 | [FASE2_AUTENTICACAO.md](FASE2_AUTENTICACAO.md) | Endpoints de autenticação | 🔒 Backend Dev |
 | [MIGRACAO_3_TABELAS_USUARIOS.md](MIGRACAO_3_TABELAS_USUARIOS.md) | Migração estrutural de usuários (Admin-Site, Paróquia, Comum) + antifraude por dispositivo | 🧩 Arquitetura/Security |

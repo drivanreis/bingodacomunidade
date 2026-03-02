@@ -21,7 +21,8 @@ import AdminParoquiaConfiguracoes from './pages/AdminParoquiaConfiguracoes';
 import AdminParoquiaUsuarios from './pages/AdminParoquiaUsuarios';
 
 // Páginas de Gerenciamento Admin
-import ParishManagement from './pages/ParishManagement';
+import ParoquiaManager from './pages/ParoquiaManager';
+import ParoquiasManager from './pages/ParoquiasManager';
 import UserManagement from './pages/UserManagement';
 import Reports from './pages/Reports';
 import SystemSettings from './pages/SystemSettings';
@@ -36,7 +37,7 @@ import NewGame from './pages/NewGame';
 import GameDetail from './pages/GameDetail';
 import Profile from './pages/Profile';
 import MyCards from './pages/MyCards';
-import { SuperAdminRoute, ParishAdminRoute, PublicUserRoute } from './components/AdminRoute';
+import { SuperAdminRoute, ParishAdminRoute, PublicUserRoute, UserManagementRoute } from './components/AdminRoute';
 
 function App() {
   return (
@@ -49,7 +50,7 @@ function App() {
           <Route path="/" element={<Home />} />
           
           {/* Rotas Públicas */}
-          <Route path="/first-access-setup" element={<FirstAccessSetup />} />
+          <Route path="/admin-site/first-access-setup" element={<FirstAccessSetup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -72,20 +73,12 @@ function App() {
             path="/admin-site/paroquias"
             element={
               <SuperAdminRoute>
-                <ParishManagement />
+                <ParoquiasManager />
               </SuperAdminRoute>
             }
           />
           <Route
-            path="/admin-site/usuarios"
-            element={
-              <SuperAdminRoute>
-                <UserManagement />
-              </SuperAdminRoute>
-            }
-          />
-          <Route
-            path="/admin-site/admins"
+            path="/admin-site/users-admin"
             element={
               <SuperAdminRoute>
                 <AdminUsers />
@@ -170,11 +163,27 @@ function App() {
             }
           />
           <Route
-            path="/admin-paroquia/usuarios"
+            path="/admin-paroquia/paroquia"
             element={
               <ParishAdminRoute>
-                <AdminParoquiaUsuarios />
+                <ParoquiaManager />
               </ParishAdminRoute>
+            }
+          />
+          <Route
+            path="/admin-paroquia/user-paroquia"
+            element={
+              <UserManagementRoute>
+                <UserManagement />
+              </UserManagementRoute>
+            }
+          />
+          <Route
+            path="/admin-site/usuarios"
+            element={
+              <SuperAdminRoute>
+                <UserManagement />
+              </SuperAdminRoute>
             }
           />
           

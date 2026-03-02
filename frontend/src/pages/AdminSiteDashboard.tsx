@@ -163,17 +163,17 @@ const AdminSiteDashboard: React.FC = () => {
         <div style={{ ...styles.actionsGrid, gridTemplateColumns: actionsColumns, gap: actionsGap }}>
           <button style={{ ...styles.actionCard, padding: cardPadding }} onClick={() => navigate('/admin-site/paroquias')}>
             <div style={{ ...styles.actionIcon, fontSize: ultraCompactHeight ? '20px' : '22px', marginBottom: ultraCompactHeight ? '6px' : '8px' }}>⛪</div>
-            <h3 style={{ ...styles.actionTitle, fontSize: ultraCompactHeight ? '13px' : '14px', marginBottom: ultraCompactHeight ? '4px' : '5px' }}>Configurar Paróquia</h3>
-            <p style={{ ...styles.actionDesc, fontSize: ultraCompactHeight ? '11px' : '12px' }}>Editar dados cadastrais da paróquia</p>
+            <h3 style={{ ...styles.actionTitle, fontSize: ultraCompactHeight ? '13px' : '14px', marginBottom: ultraCompactHeight ? '4px' : '5px' }}>Gerenciar Paróquias</h3>
+            <p style={{ ...styles.actionDesc, fontSize: ultraCompactHeight ? '11px' : '12px' }}>Administrar todas as paróquias</p>
           </button>
 
-          <button style={{ ...styles.actionCard, padding: cardPadding }} onClick={() => navigate('/admin-site/usuarios')}>
+          <button style={{ ...styles.actionCard, padding: cardPadding }} onClick={() => navigate('/admin-paroquia/user-paroquia')}>
             <div style={{ ...styles.actionIcon, fontSize: ultraCompactHeight ? '20px' : '22px', marginBottom: ultraCompactHeight ? '6px' : '8px' }}>👤</div>
             <h3 style={{ ...styles.actionTitle, fontSize: ultraCompactHeight ? '13px' : '14px', marginBottom: ultraCompactHeight ? '4px' : '5px' }}>Gerenciar Usuários da Paróquia</h3>
             <p style={{ ...styles.actionDesc, fontSize: ultraCompactHeight ? '11px' : '12px' }}>Administrar equipe da paróquia</p>
           </button>
 
-          <button style={{ ...styles.actionCard, padding: cardPadding }} onClick={() => navigate('/admin-site/admins')}>
+          <button style={{ ...styles.actionCard, padding: cardPadding }} onClick={() => navigate('/admin-site/users-admin')}>
             <div style={{ ...styles.actionIcon, fontSize: ultraCompactHeight ? '20px' : '22px', marginBottom: ultraCompactHeight ? '6px' : '8px' }}>👑</div>
             <h3 style={{ ...styles.actionTitle, fontSize: ultraCompactHeight ? '13px' : '14px', marginBottom: ultraCompactHeight ? '4px' : '5px' }}>Gerenciar Usuários do Site</h3>
             <p style={{ ...styles.actionDesc, fontSize: ultraCompactHeight ? '11px' : '12px' }}>Sucessão e gestão dos pares</p>

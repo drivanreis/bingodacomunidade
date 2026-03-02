@@ -2,7 +2,7 @@ import type React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { AdminRoute, SuperAdminRoute, ParishAdminRoute, PublicUserRoute } from '../AdminRoute';
+import { AdminRoute, SuperAdminRoute, ParishAdminRoute, PublicUserRoute, UserManagementRoute } from '../AdminRoute';
 
 const renderWithRoutes = (element: React.ReactElement, initialPath = '/protected') => {
   return render(
@@ -112,5 +112,60 @@ describe('AdminRoute', () => {
     );
 
     expect(screen.getByText('public-user-area')).toBeInTheDocument();
+  });
+
+  it('UserManagementRoute aceita admin_site', () => {
+    localStorage.setItem('@BingoComunidade:token', 'token');
+    localStorage.setItem('@BingoComunidade:user', JSON.stringify({ nivel_acesso: 'admin_site' }));
+
+    renderWithRoutes(
+      <UserManagementRoute>
+        <div>user-management-area</div>
+      </UserManagementRoute>
+    );
+
+    expect(screen.getByText('user-management-area')).toBeInTheDocument();
+  });
+
+  it('UserManagementRoute aceita admin_paroquia', () => {
+    localStorage.setItem('@BingoComunidade:token', 'token');
+    localStorage.setItem('@BingoComunidade:user', JSON.stringify({ nivel_acesso: 'admin_paroquia' }));
+
+    renderWithRoutes(
+      <UserManagementRoute>
+        <div>user-management-area</div>
+      </UserManagementRoute>
+    );
+
+    expect(screen.getByText('user-management-area')).toBeInTheDocument();
+  });
+
+  it('UserManagementRoute aceita paroquia_admin', () => {
+    localStorage.setItem('@BingoComunidade:token', 'token');
+    localStorage.setItem('@BingoComunidade:user', JSON.stringify({ tipo: 'paroquia_admin' }));
+
+    renderWithRoutes(
+      <UserManagementRoute>
+        <div>user-management-area</div>
+      </UserManagementRoute>
+    );
+
+    expect(screen.getByText('user-management-area')).toBeInTheDocument();
+  });
+
+  it('UserManagementRoute rejeita fiel (não autorizado)', () => {
+    localStorage.setItem('@BingoComunidade:token', 'token');
+    localStorage.setItem('@BingoComunidade:user', JSON.stringify({ tipo: 'fiel' }));
+
+    renderWithRoutes(
+      <UserManagementRoute>
+        <div>user-management-area</div>
+      </UserManagementRoute>,
+      '/protected'
+    );
+
+    // Deve redirecionar para dashboard (não autorizado)
+    expect(screen.getByText('dashboard')).toBeInTheDocument();
+    expect(screen.queryByText('user-management-area')).not.toBeInTheDocument();
   });
 });

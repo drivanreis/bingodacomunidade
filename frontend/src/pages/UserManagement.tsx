@@ -5,6 +5,7 @@ import TextField from '../components/form/TextField';
 import PasswordField from '../components/form/PasswordField';
 import ContactModule, { buildBrazilContact, isBrazilContactValid } from '../components/form/ContactModule';
 import { getHumanRoleLabel } from '../utils/userRoles';
+import { getSessionScope } from '../utils/sessionScope';
 
 interface Usuario {
   id: number;
@@ -27,13 +28,24 @@ interface Paroquia {
 }
 
 const UserManagement: React.FC = () => {
-  const ALLOWED_TYPES = ['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo'] as const;
-  const ROLE_OPTIONS: Array<{ value: typeof ALLOWED_TYPES[number]; label: string }> = [
-    { value: 'paroquia_admin', label: getHumanRoleLabel('paroquia_admin') },
-    { value: 'paroquia_caixa', label: getHumanRoleLabel('paroquia_caixa') },
-    { value: 'paroquia_recepcao', label: getHumanRoleLabel('paroquia_recepcao') },
-    { value: 'paroquia_bingo', label: getHumanRoleLabel('paroquia_bingo') },
-  ];
+  // Detectar contexto: Admin-Site ou Admin-Paróquia
+  const sessionScope = getSessionScope();
+  const isAdminSite = sessionScope === 'admin_site';
+  
+  // Admin-Site: só pode criar Admins de Paróquia
+  // Admin-Paróquia: pode criar qualquer tipo de usuário
+  const ALLOWED_TYPES = isAdminSite 
+    ? ['paroquia_admin'] as const
+    : ['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo'] as const;
+  
+  const ROLE_OPTIONS: Array<{ value: typeof ALLOWED_TYPES[number]; label: string }> = isAdminSite
+    ? [{ value: 'paroquia_admin', label: getHumanRoleLabel('paroquia_admin') }]
+    : [
+        { value: 'paroquia_admin', label: getHumanRoleLabel('paroquia_admin') },
+        { value: 'paroquia_caixa', label: getHumanRoleLabel('paroquia_caixa') },
+        { value: 'paroquia_recepcao', label: getHumanRoleLabel('paroquia_recepcao') },
+        { value: 'paroquia_bingo', label: getHumanRoleLabel('paroquia_bingo') },
+      ];
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [paroquias, setParoquias] = useState<Paroquia[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +66,7 @@ const UserManagement: React.FC = () => {
     senhaAtual: '',
     novaSenha: '',
     confirmarNovaSenha: '',
-    tipo: 'paroquia_recepcao',
+    tipo: isAdminSite ? 'paroquia_admin' : 'paroquia_recepcao',
     paroquia_id: '',
     ativo: true
   });

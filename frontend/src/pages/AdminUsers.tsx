@@ -300,14 +300,14 @@ const AdminUsers: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
+      <div className="container py-3" style={{ textAlign: 'center', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p>Carregando usuários do site...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '40px', maxWidth: '1100px', margin: '0 auto' }}>
+    <div className="container py-3" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <AdminIdentityHeader
         title="👑 Gerenciar Usuários do Site"
         subtitle="Sucessão de Admin-Site, renovação/troca/recuperação de senha e gestão dos pares do site."
@@ -315,15 +315,7 @@ const AdminUsers: React.FC = () => {
         rightContent={
           <button
             onClick={() => setShowModal(true)}
-            style={{
-              padding: '10px 16px',
-              border: 'none',
-              background: '#1e3c72',
-              color: 'white',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: 700,
-            }}
+            className="btn btn-primary fw-bold"
           >
             + Novo Usuário do Site (Reserva)
           </button>
@@ -331,106 +323,78 @@ const AdminUsers: React.FC = () => {
       />
 
       {error && (
-        <div style={{ background: '#f8d7da', color: '#842029', padding: '12px', borderRadius: '6px', marginBottom: '16px' }}>
+        <div className="alert alert-danger mb-4" role="alert">
           ⚠️ {error}
         </div>
       )}
 
-      <div style={{ background: 'white', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: '#f8f9fa' }}>
-              <th style={{ textAlign: 'left', padding: '12px' }}>Login</th>
-              <th style={{ textAlign: 'left', padding: '12px' }}>Email</th>
-              <th style={{ textAlign: 'left', padding: '12px' }}>Telefone</th>
-              <th style={{ textAlign: 'left', padding: '12px' }}>Status</th>
-              <th style={{ textAlign: 'left', padding: '12px' }}>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {admins.map((admin) => (
-              <tr key={admin.id} style={{ borderTop: '1px solid #ececec' }}>
-                <td style={{ padding: '12px' }}>
-                  <button
-                    type="button"
-                    onClick={() => openDetailsModal(admin)}
-                    style={{
-                      border: 'none',
-                      background: 'transparent',
-                      padding: 0,
-                      margin: 0,
-                      color: '#0d6efd',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      textDecoration: 'underline',
-                    }}
-                    aria-label={`abrir propriedades de ${admin.login}`}
-                  >
-                    {admin.login}
-                  </button>
-                  {admin.is_current && (
-                    <span style={{ marginLeft: '8px', fontSize: '12px', background: '#e7f1ff', color: '#084298', padding: '2px 6px', borderRadius: '12px' }}>
-                      você
-                    </span>
-                  )}
-                </td>
-                <td style={{ padding: '12px' }}>{admin.email}</td>
-                <td style={{ padding: '12px' }}>{admin.telefone || '-'}</td>
-                <td style={{ padding: '12px' }}>
-                  <span
-                    style={{
-                      fontSize: '12px',
-                      color: 'white',
-                      background: admin.ativo ? '#198754' : '#6c757d',
-                      borderRadius: '12px',
-                      padding: '4px 8px',
-                    }}
-                  >
-                    {admin.ativo ? 'Ativo' : 'Inativo'}
-                  </span>
-                </td>
-                <td style={{ padding: '12px' }}>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {admin.can_resend_initial_password && (
+      <div className="card mb-4 flex-grow-1">
+        <div className="card-body p-0" style={{ overflow: 'auto' }}>
+          <div className="table-responsive">
+            <table className="table table-hover mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th className="text-start">Login</th>
+                  <th className="text-start">Email</th>
+                  <th className="text-start">Telefone</th>
+                  <th className="text-start">Status</th>
+                  <th className="text-start">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {admins.map((admin) => (
+                  <tr key={admin.id}>
+                    <td className="text-start">
                       <button
-                        onClick={() => handleResendPassword(admin)}
-                        style={{
-                          padding: '6px 10px',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          background: '#0d6efd',
-                          color: 'white',
-                        }}
+                        type="button"
+                        onClick={() => openDetailsModal(admin)}
+                        className="btn btn-link p-0 text-decoration-underline fw-semibold"
+                        aria-label={`abrir propriedades de ${admin.login}`}
                       >
-                        Reenviar senha
+                        {admin.login}
                       </button>
-                    )}
-                    <button
-                      onClick={() => handleToggleStatus(admin)}
-                      disabled={admin.is_current}
-                      style={{
-                        padding: '6px 10px',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: admin.is_current ? 'not-allowed' : 'pointer',
-                        opacity: admin.is_current ? 0.55 : 1,
-                        background: admin.ativo ? '#dc3545' : '#198754',
-                        color: 'white',
-                      }}
-                    >
-                      {admin.ativo ? 'Inativar' : 'Ativar'}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      {admin.is_current && (
+                        <span className="badge bg-info ms-2" style={{ fontSize: '10px' }}>
+                          você
+                        </span>
+                      )}
+                    </td>
+                    <td className="text-start align-middle">{admin.email}</td>
+                    <td className="text-start align-middle">{admin.telefone || '-'}</td>
+                    <td className="text-start align-middle">
+                      <span className={`badge ${admin.ativo ? 'bg-success' : 'bg-secondary'}`}>
+                        {admin.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </td>
+                    <td className="text-start align-middle">
+                      <div className="d-flex gap-2 flex-wrap">
+                        {admin.can_resend_initial_password && (
+                          <button
+                            onClick={() => handleResendPassword(admin)}
+                            className="btn btn-sm btn-primary"
+                          >
+                            Reenviar senha
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleToggleStatus(admin)}
+                          disabled={admin.is_current}
+                          className={`btn btn-sm ${admin.ativo ? 'btn-danger' : 'btn-success'}`}
+                        >
+                          {admin.ativo ? 'Inativar' : 'Ativar'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {admins.length === 0 && (
-        <div style={{ textAlign: 'center', marginTop: '20px', color: '#666' }}>Nenhum usuário do site encontrado.</div>
+        <div className="text-center text-muted mt-4">Nenhum usuário do site encontrado.</div>
       )}
 
       {showModal && (
@@ -568,44 +532,44 @@ const AdminUsers: React.FC = () => {
                   <table className="table table-sm table-borderless mb-0">
                     <tbody>
                       <tr>
-                        <th style={{ width: '220px' }}>ID</th>
-                        <td>{selectedAdmin.id}</td>
+                        <th className="text-start" style={{ width: '220px' }}>ID</th>
+                        <td className="text-start">{selectedAdmin.id}</td>
                       </tr>
                       <tr>
-                        <th>Login</th>
-                        <td>{selectedAdmin.login}</td>
+                        <th className="text-start">Login</th>
+                        <td className="text-start">{selectedAdmin.login}</td>
                       </tr>
                       <tr>
-                        <th>E-mail</th>
-                        <td>{selectedAdmin.email || '-'}</td>
+                        <th className="text-start">E-mail</th>
+                        <td className="text-start">{selectedAdmin.email || '-'}</td>
                       </tr>
                       <tr>
-                        <th>CPF</th>
-                        <td>{selectedAdmin.cpf || '-'}</td>
+                        <th className="text-start">CPF</th>
+                        <td className="text-start">{selectedAdmin.cpf || '-'}</td>
                       </tr>
                       <tr>
-                        <th>Telefone</th>
-                        <td>{selectedAdmin.telefone || '-'}</td>
+                        <th className="text-start">Telefone</th>
+                        <td className="text-start">{selectedAdmin.telefone || '-'}</td>
                       </tr>
                       <tr>
-                        <th>WhatsApp</th>
-                        <td>{selectedAdmin.whatsapp || '-'}</td>
+                        <th className="text-start">WhatsApp</th>
+                        <td className="text-start">{selectedAdmin.whatsapp || '-'}</td>
                       </tr>
                       <tr>
-                        <th>Status</th>
-                        <td>{selectedAdmin.ativo ? 'Ativo' : 'Inativo'}</td>
+                        <th className="text-start">Status</th>
+                        <td className="text-start">{selectedAdmin.ativo ? 'Ativo' : 'Inativo'}</td>
                       </tr>
                       <tr>
-                        <th>Criado por</th>
-                        <td>{selectedAdmin.criado_por_id || '-'}</td>
+                        <th className="text-start">Criado por</th>
+                        <td className="text-start">{selectedAdmin.criado_por_id || '-'}</td>
                       </tr>
                       <tr>
-                        <th>Criado em</th>
-                        <td>{selectedAdmin.criado_em ? new Date(selectedAdmin.criado_em).toLocaleString('pt-BR') : '-'}</td>
+                        <th className="text-start">Criado em</th>
+                        <td className="text-start">{selectedAdmin.criado_em ? new Date(selectedAdmin.criado_em).toLocaleString('pt-BR') : '-'}</td>
                       </tr>
                       <tr>
-                        <th>Senha inicial pendente</th>
-                        <td>{selectedAdmin.can_resend_initial_password ? 'Sim' : 'Não'}</td>
+                        <th className="text-start">Senha inicial pendente</th>
+                        <td className="text-start">{selectedAdmin.can_resend_initial_password ? 'Sim' : 'Não'}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -711,8 +675,8 @@ const AdminUsers: React.FC = () => {
                   )}
                 </div>
               </div>
-              <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div className="modal-footer d-flex justify-content-between">
+                <div className="d-flex gap-2 flex-wrap">
                   {selectedAdmin.can_resend_initial_password && (
                     <button
                       type="button"
