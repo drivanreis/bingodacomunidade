@@ -68,7 +68,6 @@ def UsuarioAdministrativo(**kwargs):  # compatibilidade para testes legados
             telefone=kwargs.get("telefone"),
             whatsapp=kwargs.get("whatsapp"),
             criado_por_id=kwargs.get("criado_por_id"),
-            paroquia_referencia_id=kwargs.get("paroquia_id"),
             tentativas_login=kwargs.get("tentativas_login", 0),
             bloqueado_ate=kwargs.get("bloqueado_ate"),
             ativo=kwargs.get("ativo", True),

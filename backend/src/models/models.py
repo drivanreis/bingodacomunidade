@@ -190,6 +190,11 @@ class Paroquia(Base):
     # Status
     ativa = Column(Boolean, default=True, nullable=False)
 
+    # Relacionamento com Admin do Site
+    admin_site_user_id = Column(
+        String(50), ForeignKey("usuarios_admin_site.id"), nullable=True, index=True
+    )
+
     # Timestamps
     criado_em = Column(
         DateTime(timezone=True),
@@ -206,10 +211,10 @@ class Paroquia(Base):
     )
 
     # Relacionamentos
+    admin_site_user = relationship("AdminSiteUser", back_populates="paroquias_gerenciadas")
     usuarios = relationship("UsuarioLegado", back_populates="paroquia")
     usuarios_comuns = relationship("UsuarioComum", back_populates="paroquia")
     usuarios_paroquia = relationship("UsuarioParoquia", back_populates="paroquia")
-    usuarios_admin_site = relationship("AdminSiteUser", back_populates="paroquia_referencia")
     sorteios = relationship("Sorteio", back_populates="paroquia")
 
     def __repr__(self):
@@ -271,9 +276,6 @@ class AdminSiteUser(Base):
     whatsapp = Column(String(20), nullable=True)
 
     criado_por_id = Column(String(50), nullable=True)
-    paroquia_referencia_id = Column(
-        String(50), ForeignKey("paroquias.id"), nullable=True, index=True
-    )
 
     token_recuperacao = Column(String(100), nullable=True, index=True)
     token_expiracao = Column(DateTime(timezone=True), nullable=True)
@@ -297,7 +299,8 @@ class AdminSiteUser(Base):
     )
     ultimo_acesso = Column(DateTime(timezone=True), nullable=True)
 
-    paroquia_referencia = relationship("Paroquia", back_populates="usuarios_admin_site")
+    # Relacionamentos
+    paroquias_gerenciadas = relationship("Paroquia", back_populates="admin_site_user")
 
 
 # ============================================================================

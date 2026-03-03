@@ -36,12 +36,10 @@ def test_seed_database_creates_bootstrap_admin_paroquia_and_configs(db_session):
     assert created is True
 
     admin = db_session.query(AdminSiteUser).filter(AdminSiteUser.login == "Admin").first()
-    paroquia = db_session.query(Paroquia).first()
     configs_count = db_session.query(Configuracao).count()
 
     assert admin is not None
     assert admin.ativo is True
-    assert paroquia is not None
     assert configs_count > 0
 
     # segunda execução não deve recriar seed

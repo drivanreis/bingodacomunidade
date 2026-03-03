@@ -144,34 +144,12 @@ def seed_database(db: Session) -> bool:
             logger.info("✓ Sistema já possui ADMIN_SITE - Bootstrap não necessário")
             return False
 
-        logger.info("🔧 Criando paróquia padrão e usuário temporário de bootstrap...")
+        logger.info("🔧 Criando usuário admin do site para bootstrap...")
 
         # ====================================================================
-        # CRIAR PARÓQUIA PADRÃO
+        # CRIAR ADMIN SITE (BOOTSTRAP)
         # ====================================================================
-        # Necessária para permitir cadastro de FIELs desde o início
-
-        paroquia_default = Paroquia(
-            id=generate_temporal_id_with_microseconds("PAR"),
-            nome="Paróquia Padrão",
-            email="contato@paroquia.padrao.com.br",
-            telefone="8599999999",
-            endereco="A definir",
-            cidade="Fortaleza",
-            estado="CE",
-            cep="60000000",
-            chave_pix="contato@paroquia.padrao.com.br",
-            ativa=True,
-        )
-
-        db.add(paroquia_default)
-        db.flush()  # Garante que o ID está disponível
-
-        logger.info(f"✓ Paróquia padrão criada: {paroquia_default.nome}")
-
-        # ====================================================================
-        # CRIAR ADMIN SITE TEMPORÁRIO (BOOTSTRAP)
-        # ====================================================================
+        # Primeiro admin que gerenciará paroquias criadas depois
         bootstrap_admin = AdminSiteUser(
             id=generate_temporal_id_with_microseconds("ADM"),
             nome="Admin",
@@ -182,7 +160,6 @@ def seed_database(db: Session) -> bool:
             telefone=None,
             whatsapp=None,
             criado_por_id=None,
-            paroquia_referencia_id=paroquia_default.id,
             ativo=True,
         )
 
@@ -193,28 +170,19 @@ def seed_database(db: Session) -> bool:
         logger.info("🔐 SISTEMA DE BOOTSTRAP INICIALIZADO")
         logger.info("=" * 70)
         logger.info("")
-        logger.info("  ✓ Paróquia padrão criada")
-        logger.info("  ✓ Admin do Site temporário criado")
+        logger.info("  ✓ Admin do Site criado")
         logger.info("")
-        logger.info("  📌 Este é um usuário TEMPORÁRIO para configuração inicial")
+        logger.info("  📌 Este é o primeiro administrador da plataforma")
         logger.info("")
         logger.info("  🔑 Credenciais Bootstrap:")
         logger.info("     Username: Admin")
         logger.info("     Password: admin123")
         logger.info("")
-        logger.info("  ⚠️  IMPORTANTE:")
-        logger.info("     - Este usuário NÃO tem acesso ao sistema")
-        logger.info("     - Ao fazer login, você DEVE criar o primeiro SUPER_ADMIN")
-        logger.info("     - Após criar o SUPER_ADMIN, este usuário seed será INATIVADO")
-        logger.info("")
         logger.info("  🎯 Próximos Passos:")
         logger.info("     1. Acesse: /admin-site/login")
         logger.info("     2. Login: Admin / admin123")
-        logger.info("     3. Complete o formulário de primeiro acesso")
-        logger.info("     4. Seu SUPER_ADMIN será criado")
-        logger.info("     5. Usuário seed permanecerá no banco, porém inativo")
-        logger.info("")
-        logger.info("  🌐 Acesso público depende das regras de manutenção configuradas")
+        logger.info("     3. Crie sua primeira paróquia")
+        logger.info("     4. Gerenciadores poderão criar suas paroquias")
         logger.info("")
         logger.info("=" * 70)
 
