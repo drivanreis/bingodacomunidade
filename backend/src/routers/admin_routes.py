@@ -191,11 +191,12 @@ def listar_paroquias(db: Session = Depends(get_db)):
 def criar_paroquia(payload: CreateParoquiaRequest, db: Session = Depends(get_db)):
     """Cria uma nova paróquia"""
     try:
-        existe_paroquia = db.query(Paroquia).count() > 0
-        if existe_paroquia:
+        # Verificar email único
+        existe_email = db.query(Paroquia).filter(Paroquia.email == payload.email).first()
+        if existe_email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Já existe uma paróquia cadastrada. Neste sistema, a paróquia seed deve apenas ser editada.",  # noqa: E501
+                detail="Email já cadastrado para outra paróquia"
             )
 
         nova_paroquia = Paroquia(
@@ -209,6 +210,7 @@ def criar_paroquia(payload: CreateParoquiaRequest, db: Session = Depends(get_db)
             estado=payload.estado,
             cep=payload.cep,
             ativa=payload.ativa,
+            admin_site_user_id=None,  # Será preenchido depois por autenticação
         )
 
         db.add(nova_paroquia)
@@ -228,10 +230,13 @@ def criar_paroquia(payload: CreateParoquiaRequest, db: Session = Depends(get_db)
             "ativa": nova_paroquia.ativa,
             "criado_em": nova_paroquia.criado_em.isoformat(),
         }
-    except Exception:
+    except HTTPException:
+        raise
+    except Exception as e:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao criar paróquia"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao criar paróquia: {str(e)}"
         )
 
 
