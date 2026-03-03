@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
-import FloatingCart, { notifyCartRefresh } from '../components/FloatingCart';
+import FloatingCart from '../components/FloatingCart';
+import { notifyCartRefresh } from '../utils/cartRefresh';
 import { resolveDashboardPath, resolveGamesPath } from '../utils/sessionScope';
 import './GameDetail.css';
 
@@ -141,9 +142,26 @@ const GameDetail: React.FC = () => {
     ? numbersPool.filter((numberToken) => numberToken.includes(normalizedSearch))
     : numbersPool;
 
+  const isMobile = viewportWidth < 992;
+
+  const fetchGameData = useCallback(async () => {
+    try {
+      const [gameResponse, cardsResponse] = await Promise.all([
+        api.get(`/games/${id}`),
+        api.get(`/games/${id}/cards`),
+      ]);
+      setGame(gameResponse.data);
+      setCards(cardsResponse.data);
+    } catch (error) {
+      console.error('Erro ao buscar dados do concurso:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchGameData();
-  }, [id]);
+  }, [id, fetchGameData]);
 
   useEffect(() => {
     const handleResize = () => setViewportWidth(window.innerWidth);
@@ -174,23 +192,6 @@ const GameDetail: React.FC = () => {
       evolutionPercent: String(game.evolution_percent ?? ''),
     });
   }, [game]);
-
-  const isMobile = viewportWidth < 992;
-
-  const fetchGameData = async () => {
-    try {
-      const [gameResponse, cardsResponse] = await Promise.all([
-        api.get(`/games/${id}`),
-        api.get(`/games/${id}/cards`),
-      ]);
-      setGame(gameResponse.data);
-      setCards(cardsResponse.data);
-    } catch (error) {
-      console.error('Erro ao buscar dados do concurso:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggleCustomNumber = (numberToken: string) => {
     setSelectedNumbers((current) => {
@@ -235,6 +236,7 @@ const GameDetail: React.FC = () => {
         setSelectedNumbers([]);
       }
       alert('Cartela adicionada ao carrinho com sucesso! 🎉');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert(error?.message || error.response?.data?.detail || 'Erro ao comprar cartela');
     } finally {
@@ -287,6 +289,7 @@ const GameDetail: React.FC = () => {
         preview: true,
       });
       setReschedulePreview(response.data);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert(error?.message || error.response?.data?.detail || 'Erro ao simular remarcação');
     } finally {
@@ -326,6 +329,7 @@ const GameDetail: React.FC = () => {
       setReschedulePreview(response.data);
       await fetchGameData();
       alert('✅ Remarcação aplicada com sucesso.');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
       if (detail?.message) {
@@ -375,6 +379,7 @@ const GameDetail: React.FC = () => {
       await api.put(`/games/${id}`, payload);
       await fetchGameData();
       alert('✅ Dados do concurso atualizados com sucesso.');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert(error?.message || error.response?.data?.detail || 'Erro ao atualizar concurso');
     } finally {

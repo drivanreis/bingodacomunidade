@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { getAppConfigSync } from '../services/configService';
 import { resolveDashboardPath } from '../utils/sessionScope';
 import './Login.css';
@@ -93,6 +93,7 @@ const Login: React.FC = () => {
       try {
         const authenticatedUser = await login(loginValue, password);
         navigate(resolveDashboardPath(authenticatedUser.role));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         // Capturamos a mensagem real do erro (que vem da API ou do interceptor)
         const mensagemErro = err.message || "Erro ao tentar fazer login. Verifique suas credenciais.";

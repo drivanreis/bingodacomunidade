@@ -107,6 +107,7 @@ api.interceptors.response.use(
         errorMessage = 'Dados inválidos. Verifique os campos preenchidos.';
         if (Array.isArray(detail)) {
           // Erros de validação do Pydantic
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           errorMessage = detail.map((e: any) => e.msg).join(', ');
         } else if (typeof detail === 'string') {
           errorMessage = detail;

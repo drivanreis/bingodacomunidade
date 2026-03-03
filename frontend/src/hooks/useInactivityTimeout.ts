@@ -24,8 +24,8 @@ interface UseInactivityTimeoutProps {
 export const useInactivityTimeout = ({ onTimeout, onWarning, enabled = true }: UseInactivityTimeoutProps) => {
   const config = getAppConfigSync();
   
-  const timeoutIdRef = useRef<number | null>(null);
-  const warningIdRef = useRef<number | null>(null);
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+  const warningIdRef = useRef<NodeJS.Timeout | null>(null);
   const [showWarning, setShowWarning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
 
@@ -84,7 +84,6 @@ export const useInactivityTimeout = ({ onTimeout, onWarning, enabled = true }: U
   // Eventos que resetam o timer (indicam atividade)
   useEffect(() => {
     if (!enabled) {
-      clearTimers();
       return;
     }
 

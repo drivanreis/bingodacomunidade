@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     """Serviço de envio de emails"""
-    
+
     def __init__(self):
         # Configurações de email (variáveis de ambiente)
         self.smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
@@ -34,10 +34,10 @@ class EmailService:
         self.smtp_password = os.getenv("SMTP_PASSWORD", "")
         self.from_email = os.getenv("FROM_EMAIL", self.smtp_user)
         self.from_name = os.getenv("FROM_NAME", "Bingo da Comunidade")
-        
+
         # Frontend URL para links
         self.frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        
+
         # Modo de desenvolvimento (não envia email real)
         self.dev_mode = os.getenv("EMAIL_DEV_MODE", "true").lower() == "true"
 
@@ -139,7 +139,9 @@ class EmailService:
             configs = db.query(Configuracao).filter(Configuracao.chave.in_(keys)).all()
             config_map = {c.chave: c.valor for c in configs}
 
-            settings["dev_mode"] = self._to_bool(config_map.get("emailDevMode"), settings["dev_mode"])
+            settings["dev_mode"] = self._to_bool(
+                config_map.get("emailDevMode"), settings["dev_mode"]
+            )
             settings["smtp_host"] = config_map.get("smtpHost") or settings["smtp_host"]
             settings["smtp_port"] = self._to_int(config_map.get("smtpPort"), settings["smtp_port"])
             settings["smtp_security"] = self._normalize_smtp_security(
@@ -156,7 +158,7 @@ class EmailService:
             logger.error(f"❌ Erro ao carregar configurações de e-mail do banco: {str(e)}")
 
         return settings
-    
+
     async def send_email(
         self,
         to_email: str,
@@ -167,22 +169,23 @@ class EmailService:
     ) -> bool:
         """
         Envia um email
-        
+
         Args:
             to_email: Email do destinatário
             subject: Assunto do email
             html_content: Conteúdo HTML
             text_content: Conteúdo texto plano (fallback)
-        
+
         Returns:
             True se enviado com sucesso, False caso contrário
         """
-        
+
         runtime = self._load_runtime_settings(db)
 
         # Modo desenvolvimento: apenas loga
         if runtime["dev_mode"]:
-            logger.info(f"""
+            logger.info(
+                f"""
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║ 📧 EMAIL (MODO DESENVOLVIMENTO - NÃO ENVIADO)                              ║
 ╠════════════════════════════════════════════════════════════════════════════╣
@@ -193,9 +196,10 @@ class EmailService:
 ╠════════════════════════════════════════════════════════════════════════════╣
 {text_content or html_content}
 ╚════════════════════════════════════════════════════════════════════════════╝
-            """)
+            """
+            )
             return True
-        
+
         # Modo produção: envia email real
         try:
             # Validar configurações
@@ -211,9 +215,13 @@ class EmailService:
             effective_from_name = runtime["from_name"]
 
             is_gmail_smtp = (runtime["smtp_host"] or "").strip().lower() == "smtp.gmail.com"
-            if is_gmail_smtp and (runtime["smtp_user"] or "").strip().lower() != (runtime["from_email"] or "").strip().lower():
+            if (
+                is_gmail_smtp
+                and (runtime["smtp_user"] or "").strip().lower()
+                != (runtime["from_email"] or "").strip().lower()
+            ):
                 logger.warning(
-                    "⚠️ Gmail exige alinhamento entre SMTP_USER e FROM_EMAIL; ajustando remetente automaticamente para SMTP_USER"
+                    "⚠️ Gmail exige alinhamento entre SMTP_USER e FROM_EMAIL; ajustando remetente automaticamente para SMTP_USER"  # noqa: E501
                 )
                 effective_from_email = runtime["smtp_user"]
 
@@ -226,22 +234,22 @@ class EmailService:
                 effective_from_email,
                 to_email,
             )
-            
+
             # Criar mensagem
             message = MIMEMultipart("alternative")
             message["From"] = f"{effective_from_name} <{effective_from_email}>"
             message["To"] = to_email
             message["Subject"] = subject
-            
+
             # Adicionar conteúdo texto plano
             if text_content:
                 part1 = MIMEText(text_content, "plain", "utf-8")
                 message.attach(part1)
-            
+
             # Adicionar conteúdo HTML
             part2 = MIMEText(html_content, "html", "utf-8")
             message.attach(part2)
-            
+
             # Enviar via SMTP
             await aiosmtplib.send(
                 message,
@@ -253,14 +261,14 @@ class EmailService:
                 start_tls=start_tls,
                 timeout=30,
             )
-            
+
             logger.info(f"✅ Email enviado com sucesso para: {to_email}")
             return True
-            
+
         except Exception as e:
             logger.error(f"❌ Erro ao enviar email para {to_email}: {str(e)}")
             return False
-    
+
     async def send_password_reset_email(
         self,
         to_email: str,
@@ -270,19 +278,19 @@ class EmailService:
     ) -> bool:
         """
         Envia email de recuperação de senha
-        
+
         Args:
             to_email: Email do usuário
             user_name: Nome do usuário
             reset_token: Token de recuperação
-        
+
         Returns:
             True se enviado com sucesso
         """
-        
+
         runtime = self._load_runtime_settings(db)
         reset_link = f"{runtime['frontend_url']}/reset-password?token={reset_token}"
-        
+
         # Conteúdo HTML
         html_content = f"""
 <!DOCTYPE html>
@@ -337,24 +345,24 @@ class EmailService:
     <div class="container">
         <div class="content">
             <h1>🔐 Recuperação de Senha</h1>
-            
+
             <p>Olá, <strong>{user_name}</strong>!</p>
-            
-            <p>Recebemos uma solicitação para redefinir a senha da sua conta no <strong>Bingo da Comunidade</strong>.</p>
-            
+
+            <p>Recebemos uma solicitação para redefinir a senha da sua conta no <strong>Bingo da Comunidade</strong>.</p>  # noqa: E501
+
             <p>Clique no botão abaixo para criar uma nova senha:</p>
-            
+
             <p style="text-align: center;">
                 <a href="{reset_link}" class="button">
                     🔑 Redefinir Minha Senha
                 </a>
             </p>
-            
+
             <p>Ou copie e cole este link no seu navegador:</p>
-            <p style="word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px;">
+            <p style="word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px;">  # noqa: E501
                 {reset_link}
             </p>
-            
+
             <div class="warning">
                 <strong>⚠️ Importante:</strong>
                 <ul>
@@ -363,13 +371,13 @@ class EmailService:
                     <li>Sua senha atual permanece válida até que você a altere</li>
                 </ul>
             </div>
-            
+
             <p>Se tiver alguma dúvida, entre em contato com o suporte.</p>
-            
+
             <p>Atenciosamente,<br>
             <strong>Equipe Bingo da Comunidade</strong> 🎉</p>
         </div>
-        
+
         <div class="footer">
             <p>Este é um email automático, não responda.</p>
             <p>&copy; 2026 Bingo da Comunidade - Todos os direitos reservados</p>
@@ -378,7 +386,7 @@ class EmailService:
 </body>
 </html>
         """
-        
+
         # Conteúdo texto plano (fallback)
         text_content = f"""
 🔐 RECUPERAÇÃO DE SENHA - Bingo da Comunidade
@@ -398,7 +406,7 @@ Para redefinir sua senha, acesse o link abaixo:
 Atenciosamente,
 Equipe Bingo da Comunidade 🎉
         """
-        
+
         return await self.send_email(
             to_email=to_email,
             subject="🔐 Recuperação de Senha - Bingo da Comunidade",
@@ -406,7 +414,7 @@ Equipe Bingo da Comunidade 🎉
             text_content=text_content,
             db=db,
         )
-    
+
     async def send_email_verification(
         self,
         to_email: str,
@@ -416,19 +424,19 @@ Equipe Bingo da Comunidade 🎉
     ) -> bool:
         """
         Envia email de verificação de email
-        
+
         Args:
             to_email: Email do usuário
             user_name: Nome do usuário
             verification_token: Token de verificação
-        
+
         Returns:
             True se enviado com sucesso
         """
-        
+
         runtime = self._load_runtime_settings(db)
         verification_link = f"{runtime['frontend_url']}/verify-email?token={verification_token}"
-        
+
         # Conteúdo HTML
         html_content = f"""
 <!DOCTYPE html>
@@ -483,24 +491,24 @@ Equipe Bingo da Comunidade 🎉
     <div class="container">
         <div class="content">
             <h1>✅ Verifique seu Email</h1>
-            
+
             <p>Olá, <strong>{user_name}</strong>!</p>
-            
+
             <p>Bem-vindo ao <strong>Bingo da Comunidade</strong>! 🎉</p>
-            
+
             <p>Para ativar sua conta, clique no botão abaixo para verificar seu email:</p>
-            
+
             <p style="text-align: center;">
                 <a href="{verification_link}" class="button">
                     ✅ Verificar Meu Email
                 </a>
             </p>
-            
+
             <p>Ou copie e cole este link no seu navegador:</p>
-            <p style="word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px;">
+            <p style="word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px;">  # noqa: E501
                 {verification_link}
             </p>
-            
+
             <div class="warning">
                 <strong>⏰ Importante:</strong>
                 <ul>
@@ -509,20 +517,20 @@ Equipe Bingo da Comunidade 🎉
                     <li>Se você não se cadastrou, ignore este email</li>
                 </ul>
             </div>
-            
+
             <p>Após verificar seu email, você poderá:</p>
             <ul>
                 <li>✅ Fazer login na plataforma</li>
                 <li>✅ Participar dos bingos</li>
                 <li>✅ Gerenciar seu perfil</li>
             </ul>
-            
+
             <p>Qualquer dúvida, entre em contato com o suporte.</p>
-            
+
             <p>Atenciosamente,<br>
             <strong>Equipe Bingo da Comunidade</strong> 🎉</p>
         </div>
-        
+
         <div class="footer">
             <p>Este é um email automático, não responda.</p>
             <p>&copy; 2026 Bingo da Comunidade - Todos os direitos reservados</p>
@@ -531,7 +539,7 @@ Equipe Bingo da Comunidade 🎉
 </body>
 </html>
         """
-        
+
         # Conteúdo texto plano (fallback)
         text_content = f"""
 ✅ VERIFIQUE SEU EMAIL - Bingo da Comunidade
@@ -556,7 +564,7 @@ Após verificar seu email, você poderá:
 Atenciosamente,
 Equipe Bingo da Comunidade 🎉
         """
-        
+
         return await self.send_email(
             to_email=to_email,
             subject="✅ Verifique seu Email - Bingo da Comunidade",

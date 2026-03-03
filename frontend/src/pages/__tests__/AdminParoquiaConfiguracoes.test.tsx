@@ -127,7 +127,7 @@ describe('AdminParoquiaConfiguracoes', () => {
     expect(putMock).not.toHaveBeenCalledWith('/configuracoes/default_rateio_premio', expect.anything(), expect.anything());
   });
 
-  it('bloqueia salvar quando operação é menor que 1\/3 da paróquia', async () => {
+  it('bloqueia salvar quando operação é menor que 1/3 da paróquia', async () => {
     const user = userEvent.setup();
 
     render(

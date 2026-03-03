@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { getAppConfigSync } from '../services/configService';
 import api from '../services/api';
 import ContactModule from '../components/form/ContactModule';
@@ -523,9 +523,9 @@ const styles = {
     cursor: 'pointer',
     transition: 'background-color 0.3s',
     marginTop: '10px',
+  },
   buttonCompact: {
     padding: '12px',
-  },
   },
   footer: {
     marginTop: '30px',

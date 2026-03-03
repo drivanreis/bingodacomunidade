@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import FloatingCart, { notifyCartRefresh } from '../components/FloatingCart';
+import FloatingCart from '../components/FloatingCart';
+import { notifyCartRefresh } from '../utils/cartRefresh';
 import api from '../services/api';
 import './MyCards.css';
 
@@ -73,6 +74,7 @@ const MyCards: React.FC = () => {
         const bTime = new Date(b.purchase_date || 0).getTime();
         return bTime - aTime;
       }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert(error?.response?.data?.detail || 'Não foi possível carregar suas cartelas.');
       setCards([]);
@@ -99,6 +101,7 @@ const MyCards: React.FC = () => {
       notifyCartRefresh();
       await loadData();
       alert('Pagamento confirmado com sucesso.');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert(error?.message || error?.response?.data?.detail?.leigo || error?.response?.data?.detail || 'Erro ao pagar cartela.');
     } finally {

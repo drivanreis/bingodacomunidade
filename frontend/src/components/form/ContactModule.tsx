@@ -1,5 +1,6 @@
 import React from 'react';
-import { DDD_OPTIONS, isValidBrazilDdd } from '../../utils/dddUf';
+import { DDD_OPTIONS } from '../../utils/dddUf';
+import { sanitizePhoneLocal } from '../../utils/contactValidation';
 
 interface ContactModuleProps {
   ddd: string;
@@ -12,15 +13,6 @@ interface ContactModuleProps {
   dddAriaLabel?: string;
   phoneAriaLabel?: string;
 }
-
-export const sanitizePhoneLocal = (value: string): string => value.replace(/\D/g, '').slice(0, 10);
-
-export const buildBrazilContact = (ddd: string, telefone: string): string => `${ddd.replace(/\D/g, '').slice(0, 2)}${sanitizePhoneLocal(telefone)}`;
-
-export const isBrazilContactValid = (ddd: string, telefone: string): boolean => {
-  const telefoneLimpo = sanitizePhoneLocal(telefone);
-  return isValidBrazilDdd(ddd) && /^\d{9,10}$/.test(telefoneLimpo);
-};
 
 const ContactModule: React.FC<ContactModuleProps> = ({
   ddd,

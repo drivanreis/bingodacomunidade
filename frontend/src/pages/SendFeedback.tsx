@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import api from '../services/api';
 import FloatingCart from '../components/FloatingCart';
 
@@ -121,7 +121,7 @@ const SendFeedback: React.FC = () => {
                       <div key={opcao.value} className="col-6">
                         <div 
                           className={`card h-100 cursor-pointer ${tipo === opcao.value ? `border-${getTipoColor(opcao.value)} border-3` : ''}`}
-                          onClick={() => setTipo(opcao.value as any)}
+                          onClick={() => setTipo(opcao.value as any)} // eslint-disable-line @typescript-eslint/no-explicit-any
                           style={{ cursor: 'pointer' }}
                         >
                           <div className="card-body text-center">

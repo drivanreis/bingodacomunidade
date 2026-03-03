@@ -10,14 +10,7 @@ Nível 3: Operacionais (CAIXA, RECEPCAO, BINGO)
 Nível 4: FIEL (participante)
 """
 
-from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import Callable, List
-from functools import wraps
-
-from src.models.models import UsuarioLegado, TipoUsuario
-from src.utils.auth import get_current_user
-from src.db.base import get_db
+from src.models.models import TipoUsuario
 
 
 # ============================================================================
@@ -43,7 +36,7 @@ def get_permission_level(tipo: TipoUsuario) -> int:
 def has_higher_or_equal_permission(user_type: TipoUsuario, required_type: TipoUsuario) -> bool:
     """
     Verifica se o usuário tem permissão igual ou superior.
-    
+
     Exemplo:
     - SUPER_ADMIN tem permissão >= qualquer tipo (retorna True)
     - PAROQUIA_ADMIN tem permissão >= PAROQUIA_CAIXA (retorna True)

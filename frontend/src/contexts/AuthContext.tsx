@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useLayoutEffect } from 'react';
 import type { ReactNode } from 'react';
 import api from '../services/api';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
@@ -29,6 +29,8 @@ interface AuthContextData {
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+
+export { AuthContext };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const clearPersistedAuth = () => {
@@ -110,12 +112,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     },
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const hasBrowserSessionMarker = sessionStorage.getItem(AUTH_SESSION_MARKER) === '1';
 
     // Recuperar token do localStorage ao iniciar
     const storedToken = localStorage.getItem('@BingoComunidade:token');
-    const storedUser = localStorage.getItem('@BingoComunidade:user');
 
     if (storedToken && !hasBrowserSessionMarker) {
       clearPersistedAuth();
@@ -125,6 +126,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const effectiveStoredUser = localStorage.getItem('@BingoComunidade:user');
 
     if (effectiveStoredToken && effectiveStoredUser) {
+      // Esta inicialização é necessária e segura (executada uma única vez no carregamento)
+      // eslint-disable-next-line
       setToken(effectiveStoredToken);
       
       // Converter dados do backend (português) para o formato do contexto (inglês)
@@ -146,7 +149,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     sessionStorage.setItem(AUTH_SESSION_MARKER, '1');
 
     setLoading(false);
+  }, []);
 
+  useEffect(() => {
     // Limpar carrinho de itens expirados ao iniciar
     limparItensExpirados();
 
@@ -188,6 +193,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
 
       return authenticatedUser;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error('Erro ao fazer login:', error);
       throw new Error(error.response?.data?.detail || 'Erro ao fazer login');
@@ -229,12 +235,4 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
-  return context;
 };

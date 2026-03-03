@@ -158,7 +158,7 @@ const AdminSiteLogin: React.FC = () => {
       }
       const detail = error.response?.data?.detail as unknown;
 
-      if (error.response?.status === 428 && detail && typeof detail === 'object' && (detail as any).needs_password_change) {
+      if (error.response?.status === 428 && detail && typeof detail === 'object' && (detail as any).needs_password_change) { // eslint-disable-line @typescript-eslint/no-explicit-any
         navigate('/admin-site/primeira-senha', {
           state: {
             login: username.trim(),

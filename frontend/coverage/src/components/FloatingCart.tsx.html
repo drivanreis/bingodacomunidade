@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">68.53% </span>
+                <span class="strong">69.05% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>183/267</span>
+                <span class='fraction'>183/265</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">16.66% </span>
+                <span class="strong">18.18% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/12</span>
+                <span class='fraction'>2/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">68.53% </span>
+                <span class="strong">69.05% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>183/267</span>
+                <span class='fraction'>183/265</span>
             </div>
         
             
@@ -370,28 +370,21 @@
 <a name='L305'></a><a href='#L305'>305</a>
 <a name='L306'></a><a href='#L306'>306</a>
 <a name='L307'></a><a href='#L307'>307</a>
-<a name='L308'></a><a href='#L308'>308</a>
-<a name='L309'></a><a href='#L309'>309</a>
-<a name='L310'></a><a href='#L310'>310</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L308'></a><a href='#L308'>308</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">136x</span>
@@ -410,6 +403,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -453,6 +447,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -473,6 +468,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -683,6 +679,7 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import { CART_REFRESH_EVENT } from '../utils/cartRefresh';
 &nbsp;
 interface CartItem {
   id: string;
@@ -695,12 +692,6 @@ interface CartItem {
 interface FloatingCartProps {
   onPaymentSuccess?: () =&gt; void | Promise&lt;void&gt;;
 }
-&nbsp;
-const CART_REFRESH_EVENT = 'bingo-cart-refresh';
-&nbsp;
-export const notifyCartRefresh = <span class="fstat-no" title="function not covered" >() =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  window.dispatchEvent(new Event(CART_REFRESH_EVENT));</span>
-<span class="cstat-no" title="statement not covered" >};</span>
 &nbsp;
 const FloatingCart: React.FC&lt;FloatingCartProps&gt; = ({ onPaymentSuccess }) =&gt; {
   const [cartItems, setCartItems] = useState&lt;CartItem[]&gt;([]);
@@ -719,6 +710,7 @@ const FloatingCart: React.FC&lt;FloatingCartProps&gt; = ({ onPaymentSuccess }) =
 &nbsp;
       setCartItems(openItems);
       setVisible(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error?.<span class="branch-0 cbranch-no" title="branch not covered" >response?.status === 4</span>03) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
 <span class="cstat-no" title="statement not covered" >        setVisible(false);</span>
@@ -762,6 +754,7 @@ const FloatingCart: React.FC&lt;FloatingCartProps&gt; = ({ onPaymentSuccess }) =
 <span class="cstat-no" title="statement not covered" >      await api.post(`/games/${item.game_id}/cards/${item.id}/pay`);</span>
 <span class="cstat-no" title="statement not covered" >      await runPaymentSuccess();</span>
 <span class="cstat-no" title="statement not covered" >      alert('Pagamento confirmado com sucesso!');</span>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
 <span class="cstat-no" title="statement not covered" >    } catch (error: any) {</span>
 <span class="cstat-no" title="statement not covered" >      alert(error?.message || error.response?.data?.detail?.leigo || error.response?.data?.detail || 'Erro ao pagar cartela');</span>
 <span class="cstat-no" title="statement not covered" >    } finally {</span>
@@ -782,6 +775,7 @@ const FloatingCart: React.FC&lt;FloatingCartProps&gt; = ({ onPaymentSuccess }) =
 <span class="cstat-no" title="statement not covered" >      await runPaymentSuccess();</span>
 <span class="cstat-no" title="statement not covered" >      alert('Todas as cartelas do carrinho foram pagas!');</span>
 <span class="cstat-no" title="statement not covered" >      setCartOpen(false);</span>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
 <span class="cstat-no" title="statement not covered" >    } catch (error: any) {</span>
 <span class="cstat-no" title="statement not covered" >      alert(error?.message || error.response?.data?.detail?.leigo || error.response?.data?.detail || 'Erro ao pagar carrinho');</span>
 <span class="cstat-no" title="statement not covered" >      await loadCartItems();</span>
@@ -997,7 +991,7 @@ export default FloatingCart;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-01T22:48:04.378Z
+                at 2026-03-03T00:59:08.647Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

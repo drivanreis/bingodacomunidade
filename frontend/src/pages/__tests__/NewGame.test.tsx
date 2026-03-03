@@ -16,6 +16,17 @@ vi.mock('../../services/api', () => ({
 }));
 
 vi.mock('../../contexts/AuthContext', () => ({
+  AuthContext: {
+    Provider: ({ children }) => children,
+  },
+  useAuth: () => ({
+    user: {
+      role: 'admin_paroquia',
+    },
+  }),
+}));
+
+vi.mock('../../contexts/useAuth', () => ({
   useAuth: () => ({
     user: {
       role: 'admin_paroquia',

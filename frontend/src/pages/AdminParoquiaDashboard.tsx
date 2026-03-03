@@ -111,11 +111,14 @@ const AdminParoquiaDashboard: React.FC = () => {
       const isScheduledStatus = (status: string) => status === 'scheduled' || status === 'agendado';
       const isFinishedStatus = (status: string) => status === 'finished' || status === 'finalizado';
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const jogos = games.filter((game: any) => {
         const status = normalizeStatus(game?.status);
         return isActiveStatus(status) || isScheduledStatus(status);
       }).length;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const jogosFinalizados = games.filter((game: any) => isFinishedStatus(normalizeStatus(game?.status))).length;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const totalVendas = games.reduce((acc: number, game: any) => {
         const value = Number(game?.total_arrecadado ?? 0);
         return acc + (Number.isFinite(value) ? value : 0);

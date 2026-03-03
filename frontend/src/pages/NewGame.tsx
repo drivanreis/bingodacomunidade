@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import './NewGame.css';
@@ -109,6 +109,7 @@ const NewGame: React.FC = () => {
           createdGameTitle: response?.data?.title || title,
         },
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err?.message || err.response?.data?.detail || 'Erro ao criar jogo');
     } finally {

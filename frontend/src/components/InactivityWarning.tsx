@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 export const InactivityWarning: React.FC = () => {
   const { showInactivityWarning, timeRemaining } = useAuth();

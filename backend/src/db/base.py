@@ -21,24 +21,32 @@ import os
 # ============================================================================
 
 # Detecta se deve usar SQLite (desenvolvimento) ou PostgreSQL (produção)
-USE_SQLITE = os.getenv('USE_SQLITE', 'true').lower() == 'true'
+USE_SQLITE = os.getenv("USE_SQLITE", "true").lower() == "true"
 
 if USE_SQLITE:
     # SQLite para testes locais (não requer instalação de PostgreSQL)
     # No Docker, salva em /app/data (volume persistente)
-    os.makedirs('/app/data', exist_ok=True) if os.path.exists('/app') else os.makedirs('./data', exist_ok=True)
-    DATABASE_URL = "sqlite:////app/data/bingo.db" if os.path.exists('/app') else "sqlite:///./data/bingo.db"
+    (
+        os.makedirs("/app/data", exist_ok=True)
+        if os.path.exists("/app")
+        else os.makedirs("./data", exist_ok=True)
+    )
+    DATABASE_URL = (
+        "sqlite:////app/data/bingo.db" if os.path.exists("/app") else "sqlite:///./data/bingo.db"
+    )
     print("⚠️  MODO DESENVOLVIMENTO: Usando SQLite local")
-    print(f"   Arquivo: {'data/bingo.db' if not os.path.exists('/app') else '/app/data/bingo.db'}")
+    print(
+        f"   Arquivo: {'data/bingo.db' if not os.path.exists('/app') else '/app/data/bingo.db'}"
+    )  # noqa: F541  # noqa: E501
 else:
     # PostgreSQL para produção
-    DB_USER = os.getenv('DB_USER', 'postgres')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
-    DB_HOST = os.getenv('DB_HOST', 'localhost')
-    DB_PORT = os.getenv('DB_PORT', '5432')
-    DB_NAME = os.getenv('DB_NAME', 'bingo_comunidade')
+    DB_USER = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = os.getenv("DB_PORT", "5432")
+    DB_NAME = os.getenv("DB_NAME", "bingo_comunidade")
     DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    print(f"✓ MODO PRODUÇÃO: Usando PostgreSQL")
+    print("✓ MODO PRODUÇÃO: Usando PostgreSQL")
     print(f"   Banco: {DB_NAME}@{DB_HOST}:{DB_PORT}")
 
 # ============================================================================
@@ -59,13 +67,13 @@ else:
     engine = create_engine(
         DATABASE_URL,
         poolclass=QueuePool,
-        pool_size=10,              # Número de conexões mantidas no pool
-        max_overflow=20,            # Conexões extras permitidas além do pool_size
-        pool_timeout=30,            # Timeout para obter conexão do pool (segundos)
-        pool_recycle=3600,          # Reciclar conexões a cada 1 hora
-        pool_pre_ping=True,         # Testar conexão antes de usar
-        echo=False,                 # Não logar SQL (ative para debug)
-        future=True,                # Usar SQLAlchemy 2.0 style
+        pool_size=10,  # Número de conexões mantidas no pool
+        max_overflow=20,  # Conexões extras permitidas além do pool_size
+        pool_timeout=30,  # Timeout para obter conexão do pool (segundos)
+        pool_recycle=3600,  # Reciclar conexões a cada 1 hora
+        pool_pre_ping=True,  # Testar conexão antes de usar
+        echo=False,  # Não logar SQL (ative para debug)
+        future=True,  # Usar SQLAlchemy 2.0 style
     )
 
 
@@ -75,14 +83,15 @@ else:
 
 # Event listener para timezone (apenas PostgreSQL)
 if not USE_SQLITE:
+
     @event.listens_for(engine, "connect")
     def set_fortaleza_timezone(dbapi_conn, connection_record):
         """
         Event listener que força o timezone de Fortaleza em toda nova conexão.
-        
+
         Isto garante que TODAS as operações de data/hora no PostgreSQL
         usem o fuso horário correto, independente da configuração do servidor.
-        
+
         Args:
             dbapi_conn: Conexão DBAPI
             connection_record: Registro da conexão
@@ -90,6 +99,7 @@ if not USE_SQLITE:
         cursor = dbapi_conn.cursor()
         cursor.execute("SET timezone='America/Fortaleza';")
         cursor.close()
+
 else:
     # SQLite não suporta SET timezone, mas usamos datetime com tzinfo em Python
     print("   ℹ️  SQLite: Timezone gerenciado pelo Python (pytz)")
@@ -120,16 +130,17 @@ Base = declarative_base()
 # DEPENDENCY INJECTION PARA FASTAPI
 # ============================================================================
 
+
 def get_db() -> Generator[Session, None, None]:
     """
     Dependency injection para FastAPI.
-    
+
     Cria uma sessão de banco de dados para cada request,
     garante que seja fechada após o uso, e faz rollback em caso de erro.
-    
+
     Yields:
         Session: Sessão do SQLAlchemy
-        
+
     Example:
         @app.get("/users/")
         def read_users(db: Session = Depends(get_db)):
@@ -146,20 +157,20 @@ def get_db() -> Generator[Session, None, None]:
 # FUNÇÕES AUXILIARES
 # ============================================================================
 
+
 def init_db() -> None:
     """
     Inicializa o banco de dados criando todas as tabelas.
-    
+
     Esta função deve ser chamada apenas uma vez, no início da aplicação.
     Em produção, use Alembic para migrations.
     """
     # Import de todos os modelos para garantir que estejam registrados
     from src.models import models  # noqa: F401
-    
+
     # Cria apenas tabelas gerenciadas (legados com managed=False ficam fora)
     managed_tables = [
-        table for table in Base.metadata.sorted_tables
-        if table.info.get("managed", True)
+        table for table in Base.metadata.sorted_tables if table.info.get("managed", True)
     ]
     Base.metadata.create_all(bind=engine, tables=managed_tables)
 
@@ -167,21 +178,23 @@ def init_db() -> None:
     inspector = inspect(engine)
     table_names = set(inspector.get_table_names())
 
-    if 'sorteios' in table_names:
-        sorteios_cols = {col['name'] for col in inspector.get_columns('sorteios')}
-        if 'max_cards' not in sorteios_cols:
+    if "sorteios" in table_names:
+        sorteios_cols = {col["name"] for col in inspector.get_columns("sorteios")}
+        if "max_cards" not in sorteios_cols:
             with engine.begin() as conn:
-                conn.execute(text('ALTER TABLE sorteios ADD COLUMN max_cards INTEGER'))
+                conn.execute(text("ALTER TABLE sorteios ADD COLUMN max_cards INTEGER"))
             print("✓ Migração automática aplicada: coluna sorteios.max_cards")
 
-    if 'cartelas' in table_names:
-        cartelas_cols = {col['name'] for col in inspector.get_columns('cartelas')}
-        missing_card_cols = [f'n{i}' for i in range(1, 25) if f'n{i}' not in cartelas_cols]
+    if "cartelas" in table_names:
+        cartelas_cols = {col["name"] for col in inspector.get_columns("cartelas")}
+        missing_card_cols = [f"n{i}" for i in range(1, 25) if f"n{i}" not in cartelas_cols]
         if missing_card_cols:
             with engine.begin() as conn:
                 for col in missing_card_cols:
-                    conn.execute(text(f'ALTER TABLE cartelas ADD COLUMN {col} CHAR(2)'))
-            print(f"✓ Migração automática aplicada: colunas cartelas ({', '.join(missing_card_cols)})")
+                    conn.execute(text(f"ALTER TABLE cartelas ADD COLUMN {col} CHAR(2)"))
+            print(
+                f"✓ Migração automática aplicada: colunas cartelas ({', '.join(missing_card_cols)})"
+            )
 
     print("✓ Banco de dados inicializado com sucesso")
 
@@ -189,7 +202,7 @@ def init_db() -> None:
 def drop_all_tables() -> None:
     """
     Remove todas as tabelas do banco de dados.
-    
+
     ⚠️ CUIDADO: Esta função é DESTRUTIVA e deve ser usada apenas em desenvolvimento.
     """
     Base.metadata.drop_all(bind=engine)
@@ -199,7 +212,7 @@ def drop_all_tables() -> None:
 def verify_connection() -> bool:
     """
     Verifica se a conexão com o banco está funcionando.
-    
+
     Returns:
         bool: True se conectado, False caso contrário
     """
@@ -216,12 +229,12 @@ def verify_connection() -> bool:
 
 # Exportações públicas do módulo
 __all__ = [
-    'engine',
-    'SessionLocal',
-    'Base',
-    'get_db',
-    'init_db',
-    'drop_all_tables',
-    'verify_connection',
-    'DATABASE_URL',
+    "engine",
+    "SessionLocal",
+    "Base",
+    "get_db",
+    "init_db",
+    "drop_all_tables",
+    "verify_connection",
+    "DATABASE_URL",
 ]

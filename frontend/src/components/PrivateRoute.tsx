@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { getSessionScope, resolveDashboardPath } from '../utils/sessionScope';
 
 interface PrivateRouteProps {
@@ -12,6 +12,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const location = useLocation();
   const persistedToken = localStorage.getItem('@BingoComunidade:token');
   const persistedUserRaw = localStorage.getItem('@BingoComunidade:user');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let persistedUser: any = null;
   try {
     persistedUser = persistedUserRaw ? JSON.parse(persistedUserRaw) : null;

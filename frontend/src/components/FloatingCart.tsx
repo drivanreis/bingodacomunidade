@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import { CART_REFRESH_EVENT } from '../utils/cartRefresh';
 
 interface CartItem {
   id: string;
@@ -12,12 +13,6 @@ interface CartItem {
 interface FloatingCartProps {
   onPaymentSuccess?: () => void | Promise<void>;
 }
-
-const CART_REFRESH_EVENT = 'bingo-cart-refresh';
-
-export const notifyCartRefresh = () => {
-  window.dispatchEvent(new Event(CART_REFRESH_EVENT));
-};
 
 const FloatingCart: React.FC<FloatingCartProps> = ({ onPaymentSuccess }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -36,6 +31,7 @@ const FloatingCart: React.FC<FloatingCartProps> = ({ onPaymentSuccess }) => {
 
       setCartItems(openItems);
       setVisible(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error?.response?.status === 403) {
         setVisible(false);
@@ -79,6 +75,7 @@ const FloatingCart: React.FC<FloatingCartProps> = ({ onPaymentSuccess }) => {
       await api.post(`/games/${item.game_id}/cards/${item.id}/pay`);
       await runPaymentSuccess();
       alert('Pagamento confirmado com sucesso!');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert(error?.message || error.response?.data?.detail?.leigo || error.response?.data?.detail || 'Erro ao pagar cartela');
     } finally {
@@ -99,6 +96,7 @@ const FloatingCart: React.FC<FloatingCartProps> = ({ onPaymentSuccess }) => {
       await runPaymentSuccess();
       alert('Todas as cartelas do carrinho foram pagas!');
       setCartOpen(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert(error?.message || error.response?.data?.detail?.leigo || error.response?.data?.detail || 'Erro ao pagar carrinho');
       await loadCartItems();

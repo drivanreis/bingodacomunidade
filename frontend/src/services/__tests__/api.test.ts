@@ -4,21 +4,23 @@ const {
   createMock,
   getMock,
   postMock,
-  requestUseMock,
-  responseUseMock,
   instanceMock,
   handlers,
 } = vi.hoisted(() => {
   const handlersRef: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     requestFulfilled?: (config: any) => any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     responseRejected?: (error: any) => Promise<never>;
   } = {};
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestUse = vi.fn((onFulfilled: (config: any) => any) => {
     handlersRef.requestFulfilled = onFulfilled;
     return 0;
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const responseUse = vi.fn((_: unknown, onRejected: (error: any) => Promise<never>) => {
     handlersRef.responseRejected = onRejected;
     return 0;
@@ -38,7 +40,6 @@ const {
     getMock: instance.get,
     postMock: instance.post,
     requestUseMock: requestUse,
-    responseUseMock: responseUse,
     instanceMock: instance,
     handlers: handlersRef,
   };
@@ -134,6 +135,7 @@ describe('services/api', () => {
 
     try {
       await handlers.responseRejected?.(error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (caught: any) {
       expect(caught.message).toBe('CPF invalido, Email invalido');
     }
@@ -148,6 +150,7 @@ describe('services/api', () => {
 
     try {
       await handlers.responseRejected?.(error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (caught: any) {
       expect(caught.message).toBe('Servidor indisponível ou bloqueio de segurança (CORS).');
     }
@@ -161,7 +164,10 @@ describe('services/api', () => {
       },
     });
 
-    await authService.login({ login: 'maria@exemplo.com', senha: 'Senha@123' } as any);
+    await authService.login(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { login: 'maria@exemplo.com', senha: 'Senha@123' } as any
+    );
 
     expect(postMock).toHaveBeenCalledWith('/auth/login', {
       email: 'maria@exemplo.com',
@@ -176,7 +182,10 @@ describe('services/api', () => {
       data: { access_token: 'token-cpf', usuario: { id: 'USR-2', nome: 'João' } },
     });
 
-    await authService.login({ cpf: '11144477735', senha: 'Senha@123' } as any);
+    await authService.login(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { cpf: '11144477735', senha: 'Senha@123' } as any
+    );
 
     expect(postMock).toHaveBeenCalledWith('/auth/login', {
       cpf: '11144477735',

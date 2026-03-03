@@ -69,6 +69,7 @@ const defaultConfig: AppConfig = {
 /**
  * Converte valor string do backend para o tipo correto
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseValue(valor: string, tipo: string): any {
   switch (tipo) {
     case 'number':
@@ -88,6 +89,7 @@ export async function fetchConfig(): Promise<AppConfig> {
     const response = await api.get('/configuracoes');
     const configs: ConfiguracaoBackend[] = response.data;
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parsedConfig: any = {};
     
     configs.forEach(config => {

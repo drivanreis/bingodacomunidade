@@ -18,7 +18,6 @@ import AdminParoquiaLogin from './pages/AdminParoquiaLogin';
 import AdminParoquiaDashboard from './pages/AdminParoquiaDashboard';
 import AdminInitialPasswordChange from './pages/AdminInitialPasswordChange';
 import AdminParoquiaConfiguracoes from './pages/AdminParoquiaConfiguracoes';
-import AdminParoquiaUsuarios from './pages/AdminParoquiaUsuarios';
 
 // Páginas de Gerenciamento Admin
 import ParoquiaManager from './pages/ParoquiaManager';

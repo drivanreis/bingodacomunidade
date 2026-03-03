@@ -61,7 +61,12 @@ class GameCreateRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_business_rules(self):
-        total = self.prize_percent + self.parish_percent + self.operation_percent + self.evolution_percent
+        total = (
+            self.prize_percent
+            + self.parish_percent
+            + self.operation_percent
+            + self.evolution_percent
+        )
         if abs(total - 100.0) > 0.01:
             raise ValueError("A soma dos percentuais deve ser 100%")
         if self.prize_percent < 49.0:
@@ -86,12 +91,16 @@ class MaintenanceLockRequest(BaseModel):
 
 
 class CloseSalesRequest(BaseModel):
-    iniciar_sorteio: bool = Field(True, description="Se true, move jogo para em_andamento após fechamento")
+    iniciar_sorteio: bool = Field(
+        True, description="Se true, move jogo para em_andamento após fechamento"
+    )
 
 
 class GameRescheduleRequest(BaseModel):
     novo_horario_sorteio: datetime
-    mode: Literal["single", "cascade"] = Field("single", description="single = somente este jogo | cascade = este + próximos")
+    mode: Literal["single", "cascade"] = Field(
+        "single", description="single = somente este jogo | cascade = este + próximos"
+    )
     preview: bool = Field(False, description="Quando true, apenas simula impacto sem persistir")
 
 
@@ -130,12 +139,14 @@ def _normalize_datetime_for_compare(value: Optional[datetime]) -> Optional[datet
     return value.replace(tzinfo=None) if value.tzinfo else value
 
 
-
 def _is_admin_payload(user_payload: dict[str, Any]) -> bool:
     nivel = (user_payload.get("nivel_acesso") or "").strip().lower()
     tipo = (user_payload.get("tipo") or "").strip().lower()
-    return nivel in {"admin_site", "admin_paroquia"} or tipo in {"admin_site", "usuario_paroquia", "usuario_administrativo"}
-
+    return nivel in {"admin_site", "admin_paroquia"} or tipo in {
+        "admin_site",
+        "usuario_paroquia",
+        "usuario_administrativo",
+    }
 
 
 def _is_fiel_payload(user_payload: dict[str, Any]) -> bool:
@@ -143,11 +154,12 @@ def _is_fiel_payload(user_payload: dict[str, Any]) -> bool:
     return tipo == "usuario_comum"
 
 
-
 def _resolve_single_paroquia(db: Session) -> Paroquia:
     paroquias = db.query(Paroquia).all()
     if not paroquias:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhuma paróquia cadastrada")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhuma paróquia cadastrada"
+        )
     if len(paroquias) > 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -156,13 +168,32 @@ def _resolve_single_paroquia(db: Session) -> Paroquia:
     return paroquias[0]
 
 
-
 def _extract_card_numbers(card: Cartela) -> list[str]:
     return [
-        str(card.n1), str(card.n2), str(card.n3), str(card.n4), str(card.n5), str(card.n6),
-        str(card.n7), str(card.n8), str(card.n9), str(card.n10), str(card.n11), str(card.n12),
-        str(card.n13), str(card.n14), str(card.n15), str(card.n16), str(card.n17), str(card.n18),
-        str(card.n19), str(card.n20), str(card.n21), str(card.n22), str(card.n23), str(card.n24),
+        str(card.n1),
+        str(card.n2),
+        str(card.n3),
+        str(card.n4),
+        str(card.n5),
+        str(card.n6),
+        str(card.n7),
+        str(card.n8),
+        str(card.n9),
+        str(card.n10),
+        str(card.n11),
+        str(card.n12),
+        str(card.n13),
+        str(card.n14),
+        str(card.n15),
+        str(card.n16),
+        str(card.n17),
+        str(card.n18),
+        str(card.n19),
+        str(card.n20),
+        str(card.n21),
+        str(card.n22),
+        str(card.n23),
+        str(card.n24),
     ]
 
 
@@ -170,28 +201,37 @@ def _card_columns_from_numbers(numbers_24: list[str]) -> dict[str, str]:
     return {f"n{idx}": numbers_24[idx - 1] for idx in range(1, 25)}
 
 
-
 def _validate_24_numbers(values: list[str]) -> list[str]:
     if len(values) != 24:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A cartela deve conter exatamente 24 números")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A cartela deve conter exatamente 24 números",
+        )
 
     normalized: list[str] = []
     seen = set()
     for raw in values:
         digits = "".join(ch for ch in str(raw) if ch.isdigit())
         if not digits:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Todos os campos da cartela devem ser numéricos")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Todos os campos da cartela devem ser numéricos",
+            )
         num = int(digits)
         if num < 1 or num > 75:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Os números da cartela devem estar entre 01 e 75")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Os números da cartela devem estar entre 01 e 75",
+            )
         token = f"{num:02d}"
         if token in seen:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A cartela não pode repetir números")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="A cartela não pode repetir números"
+            )
         seen.add(token)
         normalized.append(token)
 
     return normalized
-
 
 
 def _cartela_signature(numbers_24: list[str]) -> str:
@@ -226,7 +266,6 @@ def _raise_persona_http_error(
     )
 
 
-
 def _existing_signatures_for_game(db: Session, sorteio_id: str) -> set[str]:
     signatures = set()
     cartelas = db.query(Cartela).filter(Cartela.sorteio_id == sorteio_id).all()
@@ -239,21 +278,23 @@ def _existing_signatures_for_game(db: Session, sorteio_id: str) -> set[str]:
 
 def _is_cartela_unique_violation(exc: IntegrityError) -> bool:
     message = str(exc.orig).lower() if getattr(exc, "orig", None) else str(exc).lower()
-    return (
-        "uq_cartela_sorteio_n1_n24" in message
-        or ("unique constraint failed" in message and "cartelas.sorteio_id" in message and "cartelas.n1" in message)
+    return "uq_cartela_sorteio_n1_n24" in message or (
+        "unique constraint failed" in message
+        and "cartelas.sorteio_id" in message
+        and "cartelas.n1" in message
     )
 
 
 def _is_paid_card_lock_violation(exc: IntegrityError) -> bool:
     message = str(exc.orig).lower() if getattr(exc, "orig", None) else str(exc).lower()
-    return (
-        "paid_card_unique::" in message
-        or ("unique constraint failed" in message and "configuracoes.chave" in message)
+    return "paid_card_unique::" in message or (
+        "unique constraint failed" in message and "configuracoes.chave" in message
     )
 
 
-def _get_or_create_config(db: Session, chave: str, valor_padrao: str, descricao: str) -> Configuracao:
+def _get_or_create_config(
+    db: Session, chave: str, valor_padrao: str, descricao: str
+) -> Configuracao:
     row = db.query(Configuracao).filter(Configuracao.chave == chave).first()
     if row:
         return row
@@ -290,8 +331,14 @@ def _is_maintenance_write_locked(db: Session) -> bool:
 
 def _ensure_not_in_maintenance(db: Session):
     if _is_maintenance_write_locked(db):
-        reason_row = db.query(Configuracao).filter(Configuracao.chave == "maintenance_reason").first()
-        reason = reason_row.valor if reason_row and reason_row.valor else "Sistema em manutenção para processamento de resultados"
+        reason_row = (
+            db.query(Configuracao).filter(Configuracao.chave == "maintenance_reason").first()
+        )
+        reason = (
+            reason_row.valor
+            if reason_row and reason_row.valor
+            else "Sistema em manutenção para processamento de resultados"
+        )
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail=reason,
@@ -304,11 +351,19 @@ def _ensure_sales_open_for_game(game: Sorteio, now: datetime):
     fim_vendas_cmp = _normalize_datetime_for_compare(game.fim_vendas)
 
     if game.status in {StatusSorteio.CANCELADO, StatusSorteio.FINALIZADO}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Jogo não está disponível para compra de cartelas")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jogo não está disponível para compra de cartelas",
+        )
     if inicio_vendas_cmp and now_cmp and now_cmp < inicio_vendas_cmp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="As vendas ainda não iniciaram")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="As vendas ainda não iniciaram"
+        )
     if fim_vendas_cmp and now_cmp and now_cmp >= fim_vendas_cmp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="As vendas para este jogo já foram encerradas")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="As vendas para este jogo já foram encerradas",
+        )
 
 
 def _snapshot_path_for_game(game_id: str) -> str:
@@ -339,11 +394,15 @@ def _to_dt_compare(value: Optional[datetime]) -> Optional[datetime]:
     return _normalize_datetime_for_compare(value)
 
 
-def _build_reschedule_preview(game: Sorteio, new_draw_datetime: datetime, mode: str, future_games: list[Sorteio]) -> dict[str, Any]:
+def _build_reschedule_preview(
+    game: Sorteio, new_draw_datetime: datetime, mode: str, future_games: list[Sorteio]
+) -> dict[str, Any]:
     base_draw_cmp = _to_dt_compare(game.horario_sorteio)
     new_draw_cmp = _to_dt_compare(new_draw_datetime)
     if not base_draw_cmp or not new_draw_cmp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Datas inválidas para remarcação")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Datas inválidas para remarcação"
+        )
 
     delta = new_draw_cmp - base_draw_cmp
     conflicts: list[dict[str, Any]] = []
@@ -378,8 +437,14 @@ def _build_reschedule_preview(game: Sorteio, new_draw_datetime: datetime, mode: 
                 "title": future_game.titulo,
                 "old_draw": old_draw.isoformat() if old_draw else None,
                 "new_draw": new_draw.isoformat() if new_draw else None,
-                "old_sales_end": future_game.fim_vendas.isoformat() if future_game.fim_vendas else None,
-                "new_sales_end": (future_game.fim_vendas + delta).isoformat() if (mode == "cascade" and future_game.fim_vendas) else (future_game.fim_vendas.isoformat() if future_game.fim_vendas else None),
+                "old_sales_end": (
+                    future_game.fim_vendas.isoformat() if future_game.fim_vendas else None
+                ),
+                "new_sales_end": (
+                    (future_game.fim_vendas + delta).isoformat()
+                    if (mode == "cascade" and future_game.fim_vendas)
+                    else (future_game.fim_vendas.isoformat() if future_game.fim_vendas else None)
+                ),
                 "shifted": shifted,
                 "is_target": False,
             }
@@ -394,7 +459,7 @@ def _build_reschedule_preview(game: Sorteio, new_draw_datetime: datetime, mode: 
                         "id": future_game.id,
                         "title": future_game.titulo,
                         "draw_date": old_draw.isoformat() if old_draw else None,
-                        "reason": "Conflito de cronograma: próximo jogo ocorre no mesmo horário ou antes da nova data proposta.",
+                        "reason": "Conflito de cronograma: próximo jogo ocorre no mesmo horário ou antes da nova data proposta.",  # noqa: E501
                     }
                 )
 
@@ -407,9 +472,10 @@ def _build_reschedule_preview(game: Sorteio, new_draw_datetime: datetime, mode: 
     }
 
 
-
 def _to_game_response(game: Sorteio) -> dict[str, Any]:
-    status_public = STATUS_TO_PUBLIC.get(game.status.value if hasattr(game.status, "value") else str(game.status), "scheduled")
+    status_public = STATUS_TO_PUBLIC.get(
+        game.status.value if hasattr(game.status, "value") else str(game.status), "scheduled"
+    )
     return {
         "id": game.id,
         "title": game.titulo,
@@ -482,7 +548,9 @@ def create_game(
     user_payload: dict[str, Any] = Depends(get_current_user),
 ):
     if not _is_admin_payload(user_payload):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores podem criar jogos")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores podem criar jogos"
+        )
 
     _ensure_not_in_maintenance(db)
 
@@ -547,7 +615,10 @@ def update_game(
     user_payload: dict[str, Any] = Depends(get_current_user),
 ):
     if not _is_admin_payload(user_payload):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores podem editar jogos")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores podem editar jogos",
+        )
 
     _ensure_not_in_maintenance(db)
 
@@ -556,28 +627,64 @@ def update_game(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Jogo não encontrado")
 
     if game.status in {StatusSorteio.FINALIZADO, StatusSorteio.CANCELADO}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Não é possível editar jogo finalizado ou cancelado")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível editar jogo finalizado ou cancelado",
+        )
 
     next_title = payload.title if payload.title is not None else game.titulo
     next_description = payload.description if payload.description is not None else game.descricao
-    next_card_price = payload.card_price if payload.card_price is not None else float(game.valor_cartela or 0)
+    next_card_price = (
+        payload.card_price if payload.card_price is not None else float(game.valor_cartela or 0)
+    )
     next_max_cards = payload.max_cards if payload.max_cards is not None else game.max_cards
-    next_prize_percent = payload.prize_percent if payload.prize_percent is not None else float(game.rateio_premio or 0)
-    next_parish_percent = payload.parish_percent if payload.parish_percent is not None else float(game.rateio_paroquia or 0)
-    next_operation_percent = payload.operation_percent if payload.operation_percent is not None else float(game.rateio_operacao or 0)
-    next_evolution_percent = payload.evolution_percent if payload.evolution_percent is not None else float(game.rateio_evolucao or 0)
+    next_prize_percent = (
+        payload.prize_percent
+        if payload.prize_percent is not None
+        else float(game.rateio_premio or 0)
+    )
+    next_parish_percent = (
+        payload.parish_percent
+        if payload.parish_percent is not None
+        else float(game.rateio_paroquia or 0)
+    )
+    next_operation_percent = (
+        payload.operation_percent
+        if payload.operation_percent is not None
+        else float(game.rateio_operacao or 0)
+    )
+    next_evolution_percent = (
+        payload.evolution_percent
+        if payload.evolution_percent is not None
+        else float(game.rateio_evolucao or 0)
+    )
 
-    total = next_prize_percent + next_parish_percent + next_operation_percent + next_evolution_percent
+    total = (
+        next_prize_percent + next_parish_percent + next_operation_percent + next_evolution_percent
+    )
     if abs(total - 100.0) > 0.01:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A soma dos percentuais deve ser 100%")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="A soma dos percentuais deve ser 100%"
+        )
     if next_prize_percent < 49.0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Prêmio não pode ser menor que 49%")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Prêmio não pode ser menor que 49%"
+        )
     if next_evolution_percent < 1.0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Seguro operacional não pode ser menor que 1%")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Seguro operacional não pode ser menor que 1%",
+        )
     if next_operation_percent < (next_parish_percent / 3):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Operação não pode ser menor que 1/3 do percentual da Paróquia")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Operação não pode ser menor que 1/3 do percentual da Paróquia",
+        )
     if next_card_price <= 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Valor da cartela deve ser maior que zero")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Valor da cartela deve ser maior que zero",
+        )
 
     sold_cards = int(game.total_cartelas_vendidas or 0)
     if next_max_cards is not None and int(next_max_cards) < sold_cards:
@@ -609,7 +716,10 @@ def reschedule_game(
     user_payload: dict[str, Any] = Depends(get_current_user),
 ):
     if not _is_admin_payload(user_payload):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores podem remarcar jogos")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores podem remarcar jogos",
+        )
 
     _ensure_not_in_maintenance(db)
 
@@ -618,10 +728,15 @@ def reschedule_game(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Jogo não encontrado")
 
     if game.status in {StatusSorteio.CANCELADO, StatusSorteio.FINALIZADO}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Não é possível remarcar jogo finalizado ou cancelado")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível remarcar jogo finalizado ou cancelado",
+        )
 
     if not game.horario_sorteio:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Jogo sem horário de sorteio definido")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Jogo sem horário de sorteio definido"
+        )
 
     now = get_fortaleza_time()
     new_draw_cmp = _to_dt_compare(request.novo_horario_sorteio)
@@ -629,10 +744,15 @@ def reschedule_game(
     inicio_vendas_cmp = _to_dt_compare(game.inicio_vendas)
 
     if not new_draw_cmp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nova data/hora de sorteio inválida")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Nova data/hora de sorteio inválida"
+        )
 
     if now_cmp and new_draw_cmp <= now_cmp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A nova data/hora do sorteio deve ser futura")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A nova data/hora do sorteio deve ser futura",
+        )
 
     if inicio_vendas_cmp and new_draw_cmp <= inicio_vendas_cmp:
         raise HTTPException(
@@ -642,11 +762,15 @@ def reschedule_game(
 
     old_draw_cmp = _to_dt_compare(game.horario_sorteio)
     if old_draw_cmp and new_draw_cmp == old_draw_cmp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A nova data/hora é igual à data atual")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="A nova data/hora é igual à data atual"
+        )
 
     effective_new_draw = new_draw_cmp
     if not effective_new_draw:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nova data/hora de sorteio inválida")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Nova data/hora de sorteio inválida"
+        )
 
     future_games = _future_games_for_reschedule(db, game)
     preview = _build_reschedule_preview(game, effective_new_draw, request.mode, future_games)
@@ -663,13 +787,15 @@ def reschedule_game(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
-                "message": "A remarcação deste jogo gera conflito com jogos futuros. Use modo cascade para remarcar próximos jogos.",
+                "message": "A remarcação deste jogo gera conflito com jogos futuros. Use modo cascade para remarcar próximos jogos.",  # noqa: E501
                 "conflicts": preview["conflicts"],
             },
         )
 
     if not old_draw_cmp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Horário atual de sorteio inválido")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Horário atual de sorteio inválido"
+        )
 
     delta = effective_new_draw - old_draw_cmp
 
@@ -718,7 +844,12 @@ def list_game_cards(
     if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Jogo não encontrado")
 
-    cards = db.query(Cartela).filter(Cartela.sorteio_id == game_id).order_by(Cartela.criado_em.desc()).all()
+    cards = (
+        db.query(Cartela)
+        .filter(Cartela.sorteio_id == game_id)
+        .order_by(Cartela.criado_em.desc())
+        .all()
+    )
     return [
         {
             "id": card.id,
@@ -740,7 +871,10 @@ def create_card(
     user_payload: dict[str, Any] = Depends(get_current_user),
 ):
     if not _is_fiel_payload(user_payload):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Somente usuário comum (fiel) pode criar cartela")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Somente usuário comum (fiel) pode criar cartela",
+        )
 
     _ensure_not_in_maintenance(db)
 
@@ -763,7 +897,10 @@ def create_card(
     modo = (body.modo or "aleatoria").strip().lower()
     if modo == "personalizada":
         if not body.numeros:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe os 24 números da cartela personalizada")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Informe os 24 números da cartela personalizada",
+            )
         requested_numbers = _validate_24_numbers(body.numeros)
         numbers_24 = requested_numbers.copy()
         signature = _cartela_signature(requested_numbers)
@@ -823,7 +960,7 @@ def create_card(
     _raise_persona_http_error(
         status_code=status.HTTP_409_CONFLICT,
         leigo="Não foi possível reservar sua cartela agora. Tente novamente.",
-        medio="A reserva de cartela não conseguiu persistir uma combinação válida após múltiplas tentativas.",
+        medio="A reserva de cartela não conseguiu persistir uma combinação válida após múltiplas tentativas.",  # noqa: E501
         codigo="CARD_RESERVATION_RETRY_EXHAUSTED",
     )
 
@@ -849,10 +986,18 @@ def list_my_cards(
     user_payload: dict[str, Any] = Depends(get_current_user),
 ):
     if not _is_fiel_payload(user_payload):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Somente usuário comum (fiel) possui cartelas")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Somente usuário comum (fiel) possui cartelas",
+        )
 
     user_id = user_payload.get("sub")
-    cards = db.query(Cartela).filter(Cartela.usuario_id == user_id).order_by(Cartela.criado_em.desc()).all()
+    cards = (
+        db.query(Cartela)
+        .filter(Cartela.usuario_id == user_id)
+        .order_by(Cartela.criado_em.desc())
+        .all()
+    )
 
     return [
         {
@@ -874,7 +1019,10 @@ def pay_card(
     user_payload: dict[str, Any] = Depends(get_current_user),
 ):
     if not _is_fiel_payload(user_payload):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Somente usuário comum (fiel) pode pagar cartela")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Somente usuário comum (fiel) pode pagar cartela",
+        )
 
     _ensure_not_in_maintenance(db)
 
@@ -886,7 +1034,10 @@ def pay_card(
     if not card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cartela não encontrada")
     if card.usuario_id != user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Você só pode pagar suas próprias cartelas")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você só pode pagar suas próprias cartelas",
+        )
 
     game = db.query(Sorteio).filter(Sorteio.id == game_id).first()
     if not game:
@@ -903,10 +1054,16 @@ def pay_card(
         }
 
     if card.status != StatusCartela.NO_CARRINHO:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cartela não está disponível para pagamento")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cartela não está disponível para pagamento",
+        )
 
     if game.max_cards and int(game.total_cartelas_vendidas or 0) >= int(game.max_cards):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Limite máximo de cartelas atingido para este jogo")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Limite máximo de cartelas atingido para este jogo",
+        )
 
     current_numbers = _extract_card_numbers(card)
     paid_lock_key = _build_paid_card_lock_key(game.id, current_numbers)
@@ -936,7 +1093,7 @@ def pay_card(
             _raise_persona_http_error(
                 status_code=status.HTTP_409_CONFLICT,
                 leigo="Esta cartela já foi adquirida por outro jogador. Escolha novos números.",
-                medio="Checkout rejeitado por cartela duplicada: a combinação de 24 números já foi confirmada em pagamento anterior.",
+                medio="Checkout rejeitado por cartela duplicada: a combinação de 24 números já foi confirmada em pagamento anterior.",  # noqa: E501
                 codigo="CARD_ALREADY_SOLD",
                 technical=str(exc),
             )
@@ -966,7 +1123,10 @@ def close_sales_for_game(
     user_payload: dict[str, Any] = Depends(get_current_user),
 ):
     if not _is_admin_payload(user_payload):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores podem encerrar vendas")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores podem encerrar vendas",
+        )
 
     game = db.query(Sorteio).filter(Sorteio.id == game_id).first()
     if not game:
@@ -981,10 +1141,14 @@ def close_sales_for_game(
             detail="Ainda não é possível encerrar: o horário de fim das vendas não foi atingido",
         )
 
-    carts_in_cart = db.query(Cartela).filter(
-        Cartela.sorteio_id == game_id,
-        Cartela.status == StatusCartela.NO_CARRINHO,
-    ).all()
+    carts_in_cart = (
+        db.query(Cartela)
+        .filter(
+            Cartela.sorteio_id == game_id,
+            Cartela.status == StatusCartela.NO_CARRINHO,
+        )
+        .all()
+    )
 
     canceled_count = 0
     for card in carts_in_cart:
@@ -992,10 +1156,14 @@ def close_sales_for_game(
         card.atualizado_em = now
         canceled_count += 1
 
-    paid_count = db.query(Cartela).filter(
-        Cartela.sorteio_id == game_id,
-        Cartela.status.in_([StatusCartela.PAGA, StatusCartela.ATIVA]),
-    ).count()
+    paid_count = (
+        db.query(Cartela)
+        .filter(
+            Cartela.sorteio_id == game_id,
+            Cartela.status.in_([StatusCartela.PAGA, StatusCartela.ATIVA]),
+        )
+        .count()
+    )
 
     if payload.iniciar_sorteio and game.status == StatusSorteio.AGENDADO:
         game.status = StatusSorteio.EM_ANDAMENTO
@@ -1021,16 +1189,23 @@ def snapshot_game_results(
     user_payload: dict[str, Any] = Depends(get_current_user),
 ):
     if not _is_admin_payload(user_payload):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores podem gerar snapshot")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores podem gerar snapshot",
+        )
 
     game = db.query(Sorteio).filter(Sorteio.id == game_id).first()
     if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Jogo não encontrado")
 
-    vencedoras = db.query(Cartela).filter(
-        Cartela.sorteio_id == game_id,
-        Cartela.status == StatusCartela.VENCEDORA,
-    ).all()
+    vencedoras = (
+        db.query(Cartela)
+        .filter(
+            Cartela.sorteio_id == game_id,
+            Cartela.status == StatusCartela.VENCEDORA,
+        )
+        .all()
+    )
 
     payload = {
         "snapshot_at": get_fortaleza_time().isoformat(),
@@ -1064,7 +1239,10 @@ def lock_writes_for_maintenance(
     user_payload: dict[str, Any] = Depends(get_current_user),
 ):
     if not _is_admin_payload(user_payload):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores podem ativar manutenção")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores podem ativar manutenção",
+        )
 
     now = get_fortaleza_time()
     lock_until = now + timedelta(minutes=payload.minutes)
@@ -1110,7 +1288,10 @@ def unlock_writes_after_maintenance(
     user_payload: dict[str, Any] = Depends(get_current_user),
 ):
     if not _is_admin_payload(user_payload):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores podem desativar manutenção")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores podem desativar manutenção",
+        )
 
     now = get_fortaleza_time()
     mode = _get_or_create_config(

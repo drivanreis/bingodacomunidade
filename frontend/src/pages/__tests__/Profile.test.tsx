@@ -19,6 +19,22 @@ vi.mock('../../services/api', () => ({
 }));
 
 vi.mock('../../contexts/AuthContext', () => ({
+  AuthContext: {
+    Provider: ({ children }) => children,
+  },
+  useAuth: () => ({
+    user: {
+      id: 'USR-1',
+      name: 'João da Silva',
+      email: 'joao@example.com',
+      role: 'fiel',
+      cpf: '11144477735',
+    },
+    updateUser: updateUserMock,
+  }),
+}));
+
+vi.mock('../../contexts/useAuth', () => ({
   useAuth: () => ({
     user: {
       id: 'USR-1',

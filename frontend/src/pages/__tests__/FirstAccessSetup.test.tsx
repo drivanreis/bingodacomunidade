@@ -18,6 +18,15 @@ vi.mock('../../services/api', () => ({
 }));
 
 vi.mock('../../contexts/AuthContext', () => ({
+  AuthContext: {
+    Provider: ({ children }) => children,
+  },
+  useAuth: () => ({
+    updateUser: updateUserMock,
+  }),
+}));
+
+vi.mock('../../contexts/useAuth', () => ({
   useAuth: () => ({
     updateUser: updateUserMock,
   }),

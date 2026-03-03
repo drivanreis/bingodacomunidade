@@ -6,7 +6,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import api from '../services/api';
 import { resolveDashboardPath } from '../utils/sessionScope';
 

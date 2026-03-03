@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import { buildBrazilContact, isBrazilContactValid } from '../components/form/ContactModule';
+import { buildBrazilContact, isBrazilContactValid } from '../utils/contactValidation';
 import PhoneModule from '../components/form/PhoneModule';
 import WhatsAppModule from '../components/form/WhatsAppModule';
 import PasswordField from '../components/form/PasswordField';

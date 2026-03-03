@@ -103,6 +103,7 @@ describe('SystemSettings', () => {
   });
 
   it('exibe spinner durante carregamento inicial', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let resolver: (value: any) => void = () => undefined;
     getMock.mockReturnValueOnce(
       new Promise((resolve) => {

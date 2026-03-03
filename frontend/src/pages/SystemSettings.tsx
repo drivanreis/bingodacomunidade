@@ -88,6 +88,7 @@ const SystemSettings: React.FC = () => {
         to_email: testEmail.trim(),
       });
       alert(response.data?.message || 'E-mail de teste enviado com sucesso');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const detail = error?.response?.data?.detail || 'Falha ao enviar e-mail de teste';
       alert(detail);

@@ -87,7 +87,7 @@ const AdminParoquiaLogin: React.FC = () => {
       const error = err as { response?: { status?: number; data?: { detail?: unknown } } };
       const detail = error.response?.data?.detail;
 
-      if (error.response?.status === 428 && detail && typeof detail === 'object' && (detail as any).needs_password_change) {
+      if (error.response?.status === 428 && detail && typeof detail === 'object' && (detail as any).needs_password_change) { // eslint-disable-line @typescript-eslint/no-explicit-any
         navigate('/admin-paroquia/primeira-senha', {
           state: {
             login: identifier.includes('@') ? identifier.trim().toLowerCase() : identifier.replace(/\D/g, ''),

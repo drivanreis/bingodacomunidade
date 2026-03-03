@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import ParoquiaManager from '../../pages/ParoquiaManager';
 
@@ -120,16 +120,16 @@ describe('ParoquiaManager Component', () => {
   });
 
   it('ParoquiaManager: Deve gerenciar APENAS sua paróquia', () => {
-    const userParoquiaId = 'paroquia-1';
-    const targetParoquiaId = 'paroquia-1';
+    const userParoquiaId: string = 'paroquia-1';
+    const targetParoquiaId: string = 'paroquia-1';
     
     const canManage = userParoquiaId === targetParoquiaId;
     expect(canManage).toBe(true);
   });
 
   it('ParoquiaManager: ❌ Não deve gerenciar outra paróquia', () => {
-    const userParoquiaId = 'paroquia-1';
-    const targetParoquiaId = 'paroquia-999';
+    const userParoquiaId: string = 'paroquia-1';
+    const targetParoquiaId: string = 'paroquia-999';
     
     const canManage = userParoquiaId === targetParoquiaId;
     expect(canManage).toBe(false);

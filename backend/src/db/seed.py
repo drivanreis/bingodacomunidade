@@ -25,7 +25,7 @@ from src.models.models import (
     Configuracao,
     TipoConfiguracao,
     CategoriaConfiguracao,
-    SistemaAuditoria
+    SistemaAuditoria,
 )
 from src.utils.time_manager import generate_temporal_id_with_microseconds, get_fortaleza_time
 
@@ -38,19 +38,19 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str) -> str:
     """
     Gera hash bcrypt da senha.
-    
+
     Bcrypt tem limite de 72 bytes, então truncamos se necessário.
     """
     # Garantir que senha não ultrapasse 72 bytes
     if isinstance(password, str):
-        password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+        password = password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
     return pwd_context.hash(password)
 
 
 def check_seed_needed(db: Session) -> bool:
     """
     Verifica se precisa criar dados de bootstrap.
-    
+
     Returns:
         True se precisa criar seed, False se já existe ADMIN_SITE
     """
@@ -70,14 +70,16 @@ def ensure_roles_paroquia_defaults(db: Session) -> None:
     for codigo, nome, descricao, nivel in roles_default:
         existente = db.query(RoleParoquia).filter(RoleParoquia.codigo == codigo).first()
         if not existente:
-            db.add(RoleParoquia(
-                id=generate_temporal_id_with_microseconds('ROL'),
-                codigo=codigo,
-                nome=nome,
-                descricao=descricao,
-                nivel=nivel,
-                ativo=True,
-            ))
+            db.add(
+                RoleParoquia(
+                    id=generate_temporal_id_with_microseconds("ROL"),
+                    codigo=codigo,
+                    nome=nome,
+                    descricao=descricao,
+                    nivel=nivel,
+                    ativo=True,
+                )
+            )
 
     db.flush()
 
@@ -89,10 +91,10 @@ def registrar_auditoria_sistema(db: Session) -> None:
     agora = get_fortaleza_time()
     registro = db.query(SistemaAuditoria).filter(SistemaAuditoria.id == "SYSTEM").first()
 
-    seed_ativo = db.query(AdminSiteUser).filter(
-        AdminSiteUser.login == "Admin",
-        AdminSiteUser.ativo == True
-    ).first() is not None
+    seed_ativo = (
+        db.query(AdminSiteUser).filter(AdminSiteUser.login == "Admin", AdminSiteUser.ativo).first()
+        is not None
+    )
 
     if registro:
         registro.ultima_inicializacao_em = agora
@@ -110,7 +112,7 @@ def registrar_auditoria_sistema(db: Session) -> None:
             ambiente=os.getenv("APP_ENV", "dev"),
             versao_api=os.getenv("API_VERSION", "2.0.0"),
             timezone=os.getenv("TIMEZONE", "America/Fortaleza"),
-            seed_ativo=seed_ativo
+            seed_ativo=seed_ativo,
         )
         db.add(registro)
 
@@ -120,16 +122,16 @@ def registrar_auditoria_sistema(db: Session) -> None:
 def seed_database(db: Session) -> bool:
     """
     Cria usuário temporário de bootstrap para configuração inicial.
-    
+
     ⚠️ IMPORTANTE:
     - Este usuário é TEMPORÁRIO
     - Serve APENAS para forçar a criação do primeiro SUPER_ADMIN
     - Será INATIVADO após o primeiro acesso real
     - NÃO tem acesso real ao sistema
-    
+
     Args:
         db: Sessão do banco de dados
-        
+
     Returns:
         bool: True se dados foram criados, False se já existiam
     """
@@ -141,16 +143,16 @@ def seed_database(db: Session) -> bool:
             db.commit()
             logger.info("✓ Sistema já possui ADMIN_SITE - Bootstrap não necessário")
             return False
-        
+
         logger.info("🔧 Criando paróquia padrão e usuário temporário de bootstrap...")
 
         # ====================================================================
         # CRIAR PARÓQUIA PADRÃO
         # ====================================================================
         # Necessária para permitir cadastro de FIELs desde o início
-        
+
         paroquia_default = Paroquia(
-            id=generate_temporal_id_with_microseconds('PAR'),
+            id=generate_temporal_id_with_microseconds("PAR"),
             nome="Paróquia Padrão",
             email="contato@paroquia.padrao.com.br",
             telefone="8599999999",
@@ -159,19 +161,19 @@ def seed_database(db: Session) -> bool:
             estado="CE",
             cep="60000000",
             chave_pix="contato@paroquia.padrao.com.br",
-            ativa=True
+            ativa=True,
         )
-        
+
         db.add(paroquia_default)
         db.flush()  # Garante que o ID está disponível
-        
+
         logger.info(f"✓ Paróquia padrão criada: {paroquia_default.nome}")
-        
+
         # ====================================================================
         # CRIAR ADMIN SITE TEMPORÁRIO (BOOTSTRAP)
         # ====================================================================
         bootstrap_admin = AdminSiteUser(
-            id=generate_temporal_id_with_microseconds('ADM'),
+            id=generate_temporal_id_with_microseconds("ADM"),
             nome="Admin",
             login="Admin",
             senha_hash=hash_password("admin123"),
@@ -181,12 +183,12 @@ def seed_database(db: Session) -> bool:
             whatsapp=None,
             criado_por_id=None,
             paroquia_referencia_id=paroquia_default.id,
-            ativo=True
+            ativo=True,
         )
 
         db.add(bootstrap_admin)
         db.commit()
-        
+
         logger.info("=" * 70)
         logger.info("🔐 SISTEMA DE BOOTSTRAP INICIALIZADO")
         logger.info("=" * 70)
@@ -215,13 +217,13 @@ def seed_database(db: Session) -> bool:
         logger.info("  🌐 Acesso público depende das regras de manutenção configuradas")
         logger.info("")
         logger.info("=" * 70)
-        
+
         # ====================================================================
         # CRIAR CONFIGURAÇÕES PADRÃO DO SISTEMA
         # ====================================================================
-        
+
         logger.info("🔧 Criando configurações padrão do sistema...")
-        
+
         configs_default = [
             # MENSAGENS E NOTIFICAÇÕES
             Configuracao(
@@ -229,197 +231,192 @@ def seed_database(db: Session) -> bool:
                 valor="3.0",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="Duração de exibição de mensagens de erro (em segundos)"
+                descricao="Duração de exibição de mensagens de erro (em segundos)",
             ),
             Configuracao(
                 chave="successMessageDuration",
                 valor="2.0",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="Duração de exibição de mensagens de sucesso (em segundos)"
+                descricao="Duração de exibição de mensagens de sucesso (em segundos)",
             ),
             Configuracao(
                 chave="emailDevMode",
                 valor="true",
                 tipo=TipoConfiguracao.BOOLEAN,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="Se true, não envia e-mail real (apenas log). Para produção, use false"
+                descricao="Se true, não envia e-mail real (apenas log). Para produção, use false",
             ),
             Configuracao(
                 chave="smtpHost",
                 valor="smtp.gmail.com",
                 tipo=TipoConfiguracao.STRING,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="Servidor SMTP para envio de e-mails"
+                descricao="Servidor SMTP para envio de e-mails",
             ),
             Configuracao(
                 chave="smtpPort",
                 valor="587",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="Porta SMTP (geralmente 587 com TLS)"
+                descricao="Porta SMTP (geralmente 587 com TLS)",
             ),
             Configuracao(
                 chave="smtpSecurity",
                 valor="tls",
                 tipo=TipoConfiguracao.STRING,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="Segurança SMTP: tls (porta 587), ssl (porta 465) ou none"
+                descricao="Segurança SMTP: tls (porta 587), ssl (porta 465) ou none",
             ),
             Configuracao(
                 chave="smtpUser",
                 valor="",
                 tipo=TipoConfiguracao.STRING,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="Usuário SMTP (normalmente seu e-mail remetente)"
+                descricao="Usuário SMTP (normalmente seu e-mail remetente)",
             ),
             Configuracao(
                 chave="smtpPasswordEncrypted",
                 valor="",
                 tipo=TipoConfiguracao.STRING,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="Senha SMTP protegida (criptografada no backend)"
+                descricao="Senha SMTP protegida (criptografada no backend)",
             ),
             Configuracao(
                 chave="fromEmail",
                 valor="",
                 tipo=TipoConfiguracao.STRING,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="E-mail remetente exibido no envio"
+                descricao="E-mail remetente exibido no envio",
             ),
             Configuracao(
                 chave="fromName",
                 valor="Bingo da Comunidade",
                 tipo=TipoConfiguracao.STRING,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="Nome exibido como remetente"
+                descricao="Nome exibido como remetente",
             ),
             Configuracao(
                 chave="frontendUrl",
                 valor="http://localhost:5173",
                 tipo=TipoConfiguracao.STRING,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="URL pública do frontend usada em links de e-mail"
+                descricao="URL pública do frontend usada em links de e-mail",
             ),
             Configuracao(
                 chave="smtpValidatedAt",
                 valor="",
                 tipo=TipoConfiguracao.STRING,
                 categoria=CategoriaConfiguracao.MENSAGENS,
-                descricao="Timestamp ISO da última validação SMTP com envio real"
+                descricao="Timestamp ISO da última validação SMTP com envio real",
             ),
-            
             # SEGURANÇA E AUTENTICAÇÃO
             Configuracao(
                 chave="maxLoginAttempts",
                 valor="5",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.SEGURANCA,
-                descricao="Máximo de tentativas de login antes de bloquear temporariamente"
+                descricao="Máximo de tentativas de login antes de bloquear temporariamente",
             ),
             Configuracao(
                 chave="lockoutDuration",
                 valor="15",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.SEGURANCA,
-                descricao="Tempo de bloqueio após exceder tentativas (em minutos)"
+                descricao="Tempo de bloqueio após exceder tentativas (em minutos)",
             ),
             Configuracao(
                 chave="tokenExpirationHours",
                 valor="16",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.SEGURANCA,
-                descricao="Tempo de validade do token JWT (em horas) - Máximo 16 horas"
+                descricao="Tempo de validade do token JWT (em horas) - Máximo 16 horas",
             ),
             Configuracao(
                 chave="inactivityTimeout",
                 valor="15",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.SEGURANCA,
-                descricao="Tempo de inatividade antes de logout automático (em minutos)"
+                descricao="Tempo de inatividade antes de logout automático (em minutos)",
             ),
             Configuracao(
                 chave="inactivityWarningMinutes",
                 valor="2",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.SEGURANCA,
-                descricao="Avisar usuário X minutos antes de logout por inatividade"
+                descricao="Avisar usuário X minutos antes de logout por inatividade",
             ),
-            
             # CARRINHO DE CARTELAS
             Configuracao(
                 chave="cartExpirationMinutes",
                 valor="30",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.CARRINHO,
-                descricao="Tempo máximo que cartelas não pagas ficam no carrinho (em minutos)"
+                descricao="Tempo máximo que cartelas não pagas ficam no carrinho (em minutos)",
             ),
             Configuracao(
                 chave="autoCleanExpiredCarts",
                 valor="true",
                 tipo=TipoConfiguracao.BOOLEAN,
                 categoria=CategoriaConfiguracao.CARRINHO,
-                descricao="Limpar automaticamente carrinhos de jogos que já iniciaram"
+                descricao="Limpar automaticamente carrinhos de jogos que já iniciaram",
             ),
             Configuracao(
                 chave="autoCleanFinishedGameCarts",
                 valor="true",
                 tipo=TipoConfiguracao.BOOLEAN,
                 categoria=CategoriaConfiguracao.CARRINHO,
-                descricao="Limpar automaticamente carrinhos de jogos finalizados"
+                descricao="Limpar automaticamente carrinhos de jogos finalizados",
             ),
-            
             # FORMULÁRIOS E RASCUNHOS
             Configuracao(
                 chave="warnOnUnsavedForm",
                 valor="true",
                 tipo=TipoConfiguracao.BOOLEAN,
                 categoria=CategoriaConfiguracao.FORMULARIOS,
-                descricao="Avisar ao sair de formulário não salvo"
+                descricao="Avisar ao sair de formulário não salvo",
             ),
             Configuracao(
                 chave="autoSaveDraftSeconds",
                 valor="0",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.FORMULARIOS,
-                descricao="Salvar rascunho automaticamente a cada X segundos (0 = desabilitado)"
+                descricao="Salvar rascunho automaticamente a cada X segundos (0 = desabilitado)",
             ),
-            
             # RECUPERAÇÃO DE SENHA
             Configuracao(
                 chave="passwordResetTokenMinutes",
                 valor="30",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.RECUPERACAO_SENHA,
-                descricao="Tempo de validade do token de recuperação de senha (em minutos)"
+                descricao="Tempo de validade do token de recuperação de senha (em minutos)",
             ),
             Configuracao(
                 chave="emailVerificationTokenHours",
                 valor="24",
                 tipo=TipoConfiguracao.NUMBER,
                 categoria=CategoriaConfiguracao.RECUPERACAO_SENHA,
-                descricao="Tempo de validade do token de verificação de email (em horas)"
+                descricao="Tempo de validade do token de verificação de email (em horas)",
             ),
-
             # CADASTRO PÚBLICO POR UF (ADMIN-PARÓQUIA)
             Configuracao(
                 chave="signup_ufs_permitidas",
                 valor="ALL",
                 tipo=TipoConfiguracao.STRING,
                 categoria=CategoriaConfiguracao.FORMULARIOS,
-                descricao="UFs permitidas para cadastro público (ALL ou lista CSV, ex: CE,PB,RN,PI)"
+                descricao="UFs permitidas para cadastro público (ALL ou lista CSV, ex: CE,PB,RN,PI)",  # noqa: E501
             ),
         ]
-        
+
         for config in configs_default:
             db.add(config)
-        
+
         db.commit()
-        
+
         logger.info(f"✓ {len(configs_default)} configurações padrão criadas")
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Erro ao criar seed: {str(e)}")
         db.rollback()
@@ -427,4 +424,4 @@ def seed_database(db: Session) -> bool:
 
 
 # Exportações
-__all__ = ['seed_database', 'check_seed_needed', 'hash_password']
+__all__ = ["seed_database", "check_seed_needed", "hash_password"]

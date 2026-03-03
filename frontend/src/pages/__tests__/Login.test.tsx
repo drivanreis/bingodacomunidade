@@ -10,6 +10,15 @@ const { mockNavigate, mockLogin } = vi.hoisted(() => ({
 }));
 
 vi.mock('../../contexts/AuthContext', () => ({
+  AuthContext: {
+    Provider: ({ children }) => children,
+  },
+  useAuth: () => ({
+    login: mockLogin,
+  }),
+}));
+
+vi.mock('../../contexts/useAuth', () => ({
   useAuth: () => ({
     login: mockLogin,
   }),

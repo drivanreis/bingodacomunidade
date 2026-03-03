@@ -3,7 +3,8 @@ import api from '../services/api';
 import AdminIdentityHeader from '../components/AdminIdentityHeader';
 import TextField from '../components/form/TextField';
 import PasswordField from '../components/form/PasswordField';
-import ContactModule, { buildBrazilContact, isBrazilContactValid } from '../components/form/ContactModule';
+import ContactModule from '../components/form/ContactModule';
+import { buildBrazilContact, isBrazilContactValid } from '../utils/contactValidation';
 import { getHumanRoleLabel } from '../utils/userRoles';
 import { getSessionScope } from '../utils/sessionScope';
 
@@ -102,7 +103,8 @@ const UserManagement: React.FC = () => {
       return;
     }
 
-    if (!ALLOWED_TYPES.includes(formData.tipo as typeof ALLOWED_TYPES[number])) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!ALLOWED_TYPES.includes(formData.tipo as any)) {
       alert('Função inválida para cadastro nesta área');
       return;
     }
@@ -227,8 +229,10 @@ const UserManagement: React.FC = () => {
       senhaAtual: '',
       novaSenha: '',
       confirmarNovaSenha: '',
-      tipo: (ALLOWED_TYPES.includes(usuario.tipo as typeof ALLOWED_TYPES[number])
-        ? (usuario.tipo as typeof ALLOWED_TYPES[number])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tipo: (ALLOWED_TYPES.includes(usuario.tipo as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? (usuario.tipo as any)
         : 'paroquia_recepcao'),
       paroquia_id: String(paroquias[0]?.id || usuario.paroquia_id || ''),
       ativo: usuario.ativo

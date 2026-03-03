@@ -7,7 +7,6 @@ Acesso restrito para SUPER_ADMIN (via UsuarioAdministrativo com nivel_acesso=ADM
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import List
 from datetime import datetime
 from pydantic import BaseModel, EmailStr
 import asyncio
@@ -19,17 +18,13 @@ from src.models.models import (
     UsuarioParoquia,
     RoleParoquia,
     RoleParoquiaCodigo,
-    UsuarioAdministrativo,
-    UsuarioLegado,
     Sorteio,
-    TipoUsuario,
-    NivelAcessoAdmin,
     Configuracao,
     TipoConfiguracao,
     CategoriaConfiguracao,
     Feedback,
     TipoFeedback,
-    StatusFeedback
+    StatusFeedback,
 )
 from src.utils.auth import hash_password, verify_password
 from src.utils.time_manager import generate_temporal_id_with_microseconds
@@ -41,6 +36,7 @@ router = APIRouter(tags=["Admin"])
 # ============================================================================
 # SCHEMAS
 # ============================================================================
+
 
 class UpdateUserTipo(BaseModel):
     tipo: str
@@ -115,20 +111,24 @@ def _get_single_paroquia_or_raise(db: Session) -> Paroquia:
     if len(paroquias) == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nenhuma paróquia cadastrada. Edite a paróquia seed antes de cadastrar usuários."
+            detail="Nenhuma paróquia cadastrada. Edite a paróquia seed antes de cadastrar usuários.",  # noqa: E501
         )
     if len(paroquias) > 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Configuração inválida: o sistema deve possuir apenas uma paróquia."
+            detail="Configuração inválida: o sistema deve possuir apenas uma paróquia.",
         )
     return paroquias[0]
 
 
 def _get_or_create_role_paroquia(db: Session, codigo: str) -> RoleParoquia:
-    role = db.query(RoleParoquia).filter(
-        RoleParoquia.codigo == codigo,
-    ).first()
+    role = (
+        db.query(RoleParoquia)
+        .filter(
+            RoleParoquia.codigo == codigo,
+        )
+        .first()
+    )
     if role:
         if not role.ativo:
             role.ativo = True
@@ -142,7 +142,7 @@ def _get_or_create_role_paroquia(db: Session, codigo: str) -> RoleParoquia:
         "paroquia_porteiro": "Porteiro",
     }
     role = RoleParoquia(
-        id=generate_temporal_id_with_microseconds('ROL'),
+        id=generate_temporal_id_with_microseconds("ROL"),
         codigo=codigo,
         nome=nomes.get(codigo, codigo.replace("paroquia_", "").title()),
         descricao=f"Role auto-criada para {codigo}",
@@ -158,6 +158,7 @@ def _get_or_create_role_paroquia(db: Session, codigo: str) -> RoleParoquia:
 # ============================================================================
 # PARÓQUIAS - CRUD
 # ============================================================================
+
 
 @router.get("/paroquias", tags=["Admin - Paróquias"])
 def listar_paroquias(db: Session = Depends(get_db)):
@@ -176,33 +177,29 @@ def listar_paroquias(db: Session = Depends(get_db)):
                 "cep": p.cep or "",
                 "chave_pix": p.chave_pix,
                 "ativa": p.ativa,
-                "criado_em": p.criado_em.isoformat() if p.criado_em else None
+                "criado_em": p.criado_em.isoformat() if p.criado_em else None,
             }
             for p in paroquias
         ]
-    except Exception as e:
+    except Exception:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao listar paróquias"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao listar paróquias"
         )
 
 
 @router.post("/paroquias", tags=["Admin - Paróquias"])
-def criar_paroquia(
-    payload: CreateParoquiaRequest,
-    db: Session = Depends(get_db)
-):
+def criar_paroquia(payload: CreateParoquiaRequest, db: Session = Depends(get_db)):
     """Cria uma nova paróquia"""
     try:
         existe_paroquia = db.query(Paroquia).count() > 0
         if existe_paroquia:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Já existe uma paróquia cadastrada. Neste sistema, a paróquia seed deve apenas ser editada."
+                detail="Já existe uma paróquia cadastrada. Neste sistema, a paróquia seed deve apenas ser editada.",  # noqa: E501
             )
 
         nova_paroquia = Paroquia(
-            id=generate_temporal_id_with_microseconds('PAR'),
+            id=generate_temporal_id_with_microseconds("PAR"),
             nome=payload.nome,
             email=payload.email,
             chave_pix=payload.chave_pix,
@@ -213,11 +210,11 @@ def criar_paroquia(
             cep=payload.cep,
             ativa=payload.ativa,
         )
-        
+
         db.add(nova_paroquia)
         db.commit()
         db.refresh(nova_paroquia)
-        
+
         return {
             "id": nova_paroquia.id,
             "nome": nova_paroquia.nome,
@@ -229,32 +226,28 @@ def criar_paroquia(
             "cep": nova_paroquia.cep,
             "chave_pix": nova_paroquia.chave_pix,
             "ativa": nova_paroquia.ativa,
-            "criado_em": nova_paroquia.criado_em.isoformat()
+            "criado_em": nova_paroquia.criado_em.isoformat(),
         }
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao criar paróquia"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao criar paróquia"
         )
 
 
 @router.put("/paroquias/{paroquia_id}", tags=["Admin - Paróquias"])
 def atualizar_paroquia(
-    paroquia_id: str,
-    payload: UpdateParoquiaRequest,
-    db: Session = Depends(get_db)
+    paroquia_id: str, payload: UpdateParoquiaRequest, db: Session = Depends(get_db)
 ):
     """Atualiza uma paróquia existente"""
     try:
         paroquia = db.query(Paroquia).filter(Paroquia.id == paroquia_id).first()
-        
+
         if not paroquia:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Paróquia não encontrada"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Paróquia não encontrada"
             )
-        
+
         if payload.nome is not None:
             paroquia.nome = payload.nome
         if payload.cidade is not None:
@@ -273,10 +266,10 @@ def atualizar_paroquia(
             paroquia.chave_pix = payload.chave_pix
         if payload.ativa is not None:
             paroquia.ativa = payload.ativa
-        
+
         db.commit()
         db.refresh(paroquia)
-        
+
         return {
             "id": paroquia.id,
             "nome": paroquia.nome,
@@ -288,15 +281,14 @@ def atualizar_paroquia(
             "cep": paroquia.cep,
             "chave_pix": paroquia.chave_pix,
             "ativa": paroquia.ativa,
-            "criado_em": paroquia.criado_em.isoformat() if paroquia.criado_em else None
+            "criado_em": paroquia.criado_em.isoformat() if paroquia.criado_em else None,
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao atualizar paróquia"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao atualizar paróquia"
         )
 
 
@@ -308,27 +300,26 @@ def excluir_paroquia(paroquia_id: str, db: Session = Depends(get_db)):
 
         if not paroquia:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Paróquia não encontrada"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Paróquia não encontrada"
             )
 
         if bool(getattr(paroquia, "is_seed", False)):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="A paróquia seed não pode ser excluída. Apenas edição é permitida."
+                detail="A paróquia seed não pode ser excluída. Apenas edição é permitida.",
             )
 
-        usuarios_comuns_vinculados = db.query(UsuarioComum).filter(
-            UsuarioComum.paroquia_id == paroquia_id
-        ).count()
-        usuarios_paroquia_vinculados = db.query(UsuarioParoquia).filter(
-            UsuarioParoquia.paroquia_id == paroquia_id
-        ).count()
+        usuarios_comuns_vinculados = (
+            db.query(UsuarioComum).filter(UsuarioComum.paroquia_id == paroquia_id).count()
+        )
+        usuarios_paroquia_vinculados = (
+            db.query(UsuarioParoquia).filter(UsuarioParoquia.paroquia_id == paroquia_id).count()
+        )
 
         if usuarios_comuns_vinculados > 0 or usuarios_paroquia_vinculados > 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Não é possível excluir paróquia com usuários vinculados"
+                detail="Não é possível excluir paróquia com usuários vinculados",
             )
 
         db.delete(paroquia)
@@ -340,17 +331,17 @@ def excluir_paroquia(paroquia_id: str, db: Session = Depends(get_db)):
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao excluir paróquia"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao excluir paróquia"
         )
 
 
 # ============================================================================
 # USUÁRIOS - CRUD
 # ============================================================================
+
 
 @router.get("/usuarios", tags=["Admin - Usuários"])
 def listar_usuarios(db: Session = Depends(get_db)):
@@ -372,7 +363,7 @@ def listar_usuarios(db: Session = Depends(get_db)):
                 "paroquia_nome": u.paroquia.nome if u.paroquia else None,
                 "ativo": u.ativo,
                 "is_bootstrap": False,
-                "criado_em": u.criado_em.isoformat() if u.criado_em else None
+                "criado_em": u.criado_em.isoformat() if u.criado_em else None,
             }
             for u in usuarios_paroquia
         ]
@@ -390,16 +381,15 @@ def listar_usuarios(db: Session = Depends(get_db)):
                 "paroquia_nome": u.paroquia.nome if u.paroquia else None,
                 "ativo": u.ativo,
                 "is_bootstrap": bool(getattr(u, "is_bootstrap", False)),
-                "criado_em": u.criado_em.isoformat() if u.criado_em else None
+                "criado_em": u.criado_em.isoformat() if u.criado_em else None,
             }
             for u in usuarios_comuns
         ]
 
         return dados_paroquia + dados_comuns
-    except Exception as e:
+    except Exception:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao listar usuários"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao listar usuários"
         )
 
 
@@ -415,7 +405,7 @@ def criar_usuario(
     whatsapp: str | None = Query(None),
     paroquia_id: str | None = Query(None),
     ativo: bool | None = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Cria um novo usuário"""
     try:
@@ -423,7 +413,7 @@ def criar_usuario(
             if not nome or not tipo or not senha:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="Campos obrigatórios ausentes"
+                    detail="Campos obrigatórios ausentes",
                 )
             payload = CreateUsuarioRequest(
                 nome=nome,
@@ -443,56 +433,54 @@ def criar_usuario(
         if tipo_usuario not in ALLOWED_ADMIN_SITE_USER_TYPES:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Tipo de usuário inválido para esta área. Permitidos: paroquia_admin, paroquia_caixa, paroquia_recepcao, paroquia_bingo, paroquia_porteiro"
+                detail="Tipo de usuário inválido para esta área. Permitidos: paroquia_admin, paroquia_caixa, paroquia_recepcao, paroquia_bingo, paroquia_porteiro",  # noqa: E501
             )
 
         # Validações
         if not payload.email or not payload.email.strip():
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="E-mail é obrigatório"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail é obrigatório"
             )
 
         if not payload.telefone or not payload.telefone.strip():
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Telefone com DDD é obrigatório"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Telefone com DDD é obrigatório"
             )
 
         if not payload.cpf:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="CPF é obrigatório para usuário da paróquia"
+                detail="CPF é obrigatório para usuário da paróquia",
             )
 
         # Verificar duplicatas
         if payload.email:
-            existe = db.query(UsuarioParoquia).filter(UsuarioParoquia.email == payload.email).first()
+            existe = (
+                db.query(UsuarioParoquia).filter(UsuarioParoquia.email == payload.email).first()
+            )
             if not existe:
                 existe = db.query(UsuarioComum).filter(UsuarioComum.email == payload.email).first()
             if existe:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="E-mail já cadastrado"
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail já cadastrado"
                 )
-        
+
         if payload.cpf:
             existe = db.query(UsuarioParoquia).filter(UsuarioParoquia.cpf == payload.cpf).first()
             if not existe:
                 existe = db.query(UsuarioComum).filter(UsuarioComum.cpf == payload.cpf).first()
             if existe:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="CPF já cadastrado"
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="CPF já cadastrado"
                 )
 
         role = _get_or_create_role_paroquia(db, tipo_usuario)
-        
+
         # Criar usuário
         login = payload.email.strip().lower()
 
         novo_usuario = UsuarioParoquia(
-            id=generate_temporal_id_with_microseconds('USR'),
+            id=generate_temporal_id_with_microseconds("USR"),
             nome=payload.nome,
             login=login,
             email=payload.email,
@@ -503,13 +491,13 @@ def criar_usuario(
             paroquia_id=paroquia_unica.id,
             role_id=role.id,
             ativo=True,
-            criado_em=datetime.utcnow()
+            criado_em=datetime.utcnow(),
         )
-        
+
         db.add(novo_usuario)
         db.commit()
         db.refresh(novo_usuario)
-        
+
         return {
             "id": novo_usuario.id,
             "nome": novo_usuario.nome,
@@ -518,15 +506,14 @@ def criar_usuario(
             "tipo": role.codigo,
             "paroquia_id": novo_usuario.paroquia_id,
             "ativo": novo_usuario.ativo,
-            "criado_em": novo_usuario.criado_em.isoformat()
+            "criado_em": novo_usuario.criado_em.isoformat(),
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao criar usuário"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao criar usuário"
         )
 
 
@@ -545,7 +532,7 @@ def atualizar_usuario(
     tipo: str | None = Query(None),
     paroquia_id: str | None = Query(None),
     ativo: bool | None = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Atualiza um usuário existente"""
     try:
@@ -568,11 +555,10 @@ def atualizar_usuario(
         usuario_legacy = None
         if not usuario:
             usuario_legacy = db.query(UsuarioComum).filter(UsuarioComum.id == usuario_id).first()
-        
+
         if not usuario and not usuario_legacy:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuário não encontrado"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
             )
 
         paroquia_unica = _get_single_paroquia_or_raise(db)
@@ -587,35 +573,36 @@ def atualizar_usuario(
             if payload.cpf != usuario_ref.cpf:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="CPF não pode ser alterado após o cadastro"
+                    detail="CPF não pode ser alterado após o cadastro",
                 )
         if payload.telefone is not None:
             usuario_ref.telefone = payload.telefone
         if payload.whatsapp is not None:
             usuario_ref.whatsapp = payload.whatsapp
-        if payload.senha is not None and (payload.senha_atual is not None or payload.nova_senha is not None):
+        if payload.senha is not None and (
+            payload.senha_atual is not None or payload.nova_senha is not None
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Informe apenas um fluxo de troca de senha por vez"
+                detail="Informe apenas um fluxo de troca de senha por vez",
             )
 
         if payload.senha_atual is not None or payload.nova_senha is not None:
             if not payload.senha_atual or not payload.nova_senha:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Para trocar a senha, informe senha atual e nova senha"
+                    detail="Para trocar a senha, informe senha atual e nova senha",
                 )
 
             if not verify_password(payload.senha_atual, usuario_ref.senha_hash):
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Senha atual inválida"
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Senha atual inválida"
                 )
 
             if verify_password(payload.nova_senha, usuario_ref.senha_hash):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="A nova senha deve ser diferente da senha atual"
+                    detail="A nova senha deve ser diferente da senha atual",
                 )
 
             usuario_ref.senha_hash = hash_password(payload.nova_senha)
@@ -629,7 +616,7 @@ def atualizar_usuario(
             if novo_tipo not in ALLOWED_ADMIN_SITE_USER_TYPES:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Tipo de usuário inválido para esta área. Permitidos: paroquia_admin, paroquia_caixa, paroquia_recepcao, paroquia_bingo, paroquia_porteiro"
+                    detail="Tipo de usuário inválido para esta área. Permitidos: paroquia_admin, paroquia_caixa, paroquia_recepcao, paroquia_bingo, paroquia_porteiro",  # noqa: E501
                 )
             if usuario is not None:
                 role = _get_or_create_role_paroquia(db, novo_tipo)
@@ -639,10 +626,10 @@ def atualizar_usuario(
         usuario_ref.paroquia_id = paroquia_unica.id
         if payload.ativo is not None:
             usuario_ref.ativo = payload.ativo
-        
+
         db.commit()
         db.refresh(usuario_ref)
-        
+
         return {
             "id": usuario_ref.id,
             "nome": usuario_ref.nome,
@@ -650,50 +637,58 @@ def atualizar_usuario(
             "cpf": usuario_ref.cpf,
             "telefone": usuario_ref.telefone,
             "whatsapp": usuario_ref.whatsapp,
-            "tipo": (usuario.role.codigo if usuario is not None and usuario.role else (usuario_ref.tipo.value if hasattr(usuario_ref.tipo, "value") else usuario_ref.tipo)),
+            "tipo": (
+                usuario.role.codigo
+                if usuario is not None and usuario.role
+                else (
+                    usuario_ref.tipo.value
+                    if hasattr(usuario_ref.tipo, "value")
+                    else usuario_ref.tipo
+                )
+            ),
             "paroquia_id": usuario_ref.paroquia_id,
             "ativo": usuario_ref.ativo,
-            "criado_em": usuario_ref.criado_em.isoformat() if usuario_ref.criado_em else None
+            "criado_em": usuario_ref.criado_em.isoformat() if usuario_ref.criado_em else None,
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao atualizar usuário"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao atualizar usuário"
         )
 
 
 @router.put("/usuarios/{usuario_id}/tipo", tags=["Admin - Usuários"])
-def atualizar_tipo_usuario(
-    usuario_id: str,
-    dados: UpdateUserTipo,
-    db: Session = Depends(get_db)
-):
+def atualizar_tipo_usuario(usuario_id: str, dados: UpdateUserTipo, db: Session = Depends(get_db)):
     """Atualiza apenas o tipo de usuário"""
     try:
         usuario = db.query(UsuarioParoquia).filter(UsuarioParoquia.id == usuario_id).first()
         usuario_legacy = None
         if not usuario:
             usuario_legacy = db.query(UsuarioComum).filter(UsuarioComum.id == usuario_id).first()
-        
+
         if not usuario and not usuario_legacy:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuário não encontrado"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
             )
-        
+
         novo_tipo = dados.tipo
-        
+
         # Validar tipo
-        tipos_validos = ['paroquia_admin', 'paroquia_caixa', 'paroquia_recepcao', 'paroquia_bingo', 'paroquia_porteiro']
+        tipos_validos = [
+            "paroquia_admin",
+            "paroquia_caixa",
+            "paroquia_recepcao",
+            "paroquia_bingo",
+            "paroquia_porteiro",
+        ]
         if novo_tipo not in tipos_validos:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Tipo inválido. Deve ser um de: {', '.join(tipos_validos)}"
+                detail=f"Tipo inválido. Deve ser um de: {', '.join(tipos_validos)}",
             )
-        
+
         if usuario is not None:
             role = _get_or_create_role_paroquia(db, novo_tipo)
             usuario.role_id = role.id
@@ -710,28 +705,32 @@ def atualizar_tipo_usuario(
             criado_em_retorno = usuario.criado_em
         else:
             db.refresh(usuario_legacy)
-            tipo_retorno = usuario_legacy.tipo.value if hasattr(usuario_legacy.tipo, "value") else usuario_legacy.tipo
+            tipo_retorno = (
+                usuario_legacy.tipo.value
+                if hasattr(usuario_legacy.tipo, "value")
+                else usuario_legacy.tipo
+            )
             id_retorno = usuario_legacy.id
             nome_retorno = usuario_legacy.nome
             email_retorno = usuario_legacy.email
             cpf_retorno = usuario_legacy.cpf
             criado_em_retorno = usuario_legacy.criado_em
-        
+
         return {
             "id": id_retorno,
             "nome": nome_retorno,
             "email": email_retorno,
             "cpf": cpf_retorno,
             "tipo": tipo_retorno,
-            "criado_em": criado_em_retorno.isoformat() if criado_em_retorno else None
+            "criado_em": criado_em_retorno.isoformat() if criado_em_retorno else None,
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao atualizar tipo de usuário"
+            detail="Erro ao atualizar tipo de usuário",
         )
 
 
@@ -743,30 +742,29 @@ def excluir_usuario(usuario_id: str, db: Session = Depends(get_db)):
         usuario_legacy = None
         if not usuario:
             usuario_legacy = db.query(UsuarioComum).filter(UsuarioComum.id == usuario_id).first()
-        
+
         if not usuario and not usuario_legacy:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuário não encontrado"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
             )
-        
+
         db.delete(usuario if usuario is not None else usuario_legacy)
         db.commit()
-        
+
         return {"message": "Usuário excluído com sucesso"}
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao excluir usuário"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao excluir usuário"
         )
 
 
 # ============================================================================
 # JOGOS - LISTAGEM
 # ============================================================================
+
 
 @router.get("/jogos", tags=["Admin - Jogos"])
 def listar_jogos(db: Session = Depends(get_db)):
@@ -783,20 +781,20 @@ def listar_jogos(db: Session = Depends(get_db)):
                 "valor_cartela": float(j.valor_cartela) if j.valor_cartela else 0,
                 "quantidade_cartelas": j.total_cartelas_vendidas,
                 "status": j.status.value if j.status else None,
-                "criado_em": j.criado_em.isoformat() if j.criado_em else None
+                "criado_em": j.criado_em.isoformat() if j.criado_em else None,
             }
             for j in jogos
         ]
-    except Exception as e:
+    except Exception:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao listar jogos"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao listar jogos"
         )
 
 
 # ============================================================================
 # CONFIGURAÇÕES - CRUD
 # ============================================================================
+
 
 @router.get("/configuracoes", tags=["Admin - Configurações"])
 def listar_configuracoes(db: Session = Depends(get_db)):
@@ -812,23 +810,18 @@ def listar_configuracoes(db: Session = Depends(get_db)):
                 "descricao": c.descricao,
                 "sensitive": email_service.is_sensitive_config_key(c.chave),
                 "alterado_em": c.alterado_em.isoformat() if c.alterado_em else None,
-                "alterado_por_id": c.alterado_por_id
+                "alterado_por_id": c.alterado_por_id,
             }
             for c in configs
         ]
-    except Exception as e:
+    except Exception:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao listar configurações"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao listar configurações"
         )
 
 
 @router.put("/configuracoes/{chave}", tags=["Admin - Configurações"])
-def atualizar_configuracao(
-    chave: str,
-    valor: str,
-    db: Session = Depends(get_db)
-):
+def atualizar_configuracao(chave: str, valor: str, db: Session = Depends(get_db)):
     """Atualiza o valor de uma configuração"""
     try:
         smtp_dependency_keys = {
@@ -847,9 +840,9 @@ def atualizar_configuracao(
             if config_key not in smtp_dependency_keys:
                 return
 
-            validacao = db.query(Configuracao).filter(
-                Configuracao.chave == "smtpValidatedAt"
-            ).first()
+            validacao = (
+                db.query(Configuracao).filter(Configuracao.chave == "smtpValidatedAt").first()
+            )
 
             if not validacao:
                 validacao = Configuracao(
@@ -868,7 +861,7 @@ def atualizar_configuracao(
             "signup_ufs_permitidas": {
                 "tipo": TipoConfiguracao.STRING,
                 "categoria": CategoriaConfiguracao.FORMULARIOS,
-                "descricao": "UFs permitidas para cadastro público (ALL ou lista CSV, ex: CE,PB,RN,PI)",
+                "descricao": "UFs permitidas para cadastro público (ALL ou lista CSV, ex: CE,PB,RN,PI)",  # noqa: E501
             },
             "default_rateio_premio": {
                 "tipo": TipoConfiguracao.NUMBER,
@@ -903,7 +896,7 @@ def atualizar_configuracao(
             "comunicacao_operacional_canal": {
                 "tipo": TipoConfiguracao.STRING,
                 "categoria": CategoriaConfiguracao.MENSAGENS,
-                "descricao": "Canal operacional preferencial (whatsapp, email, sms, ambos, todos ou CSV ex.: whatsapp,sms)",
+                "descricao": "Canal operacional preferencial (whatsapp, email, sms, ambos, todos ou CSV ex.: whatsapp,sms)",  # noqa: E501
             },
             "comunicacao_operacional_alerta_conflito": {
                 "tipo": TipoConfiguracao.BOOLEAN,
@@ -918,7 +911,7 @@ def atualizar_configuracao(
             "emailDevMode": {
                 "tipo": TipoConfiguracao.BOOLEAN,
                 "categoria": CategoriaConfiguracao.MENSAGENS,
-                "descricao": "Se true, não envia e-mail real (apenas log). Para produção, use false",
+                "descricao": "Se true, não envia e-mail real (apenas log). Para produção, use false",  # noqa: E501
             },
             "smtpHost": {
                 "tipo": TipoConfiguracao.STRING,
@@ -968,7 +961,7 @@ def atualizar_configuracao(
         }
 
         config = db.query(Configuracao).filter(Configuracao.chave == chave).first()
-        
+
         if not config:
             if chave in config_defaults:
                 valor_inicial = valor
@@ -992,14 +985,14 @@ def atualizar_configuracao(
                     "tipo": config.tipo.value,
                     "categoria": config.categoria.value,
                     "descricao": config.descricao,
-                    "alterado_em": config.alterado_em.isoformat() if config.alterado_em else None
+                    "alterado_em": config.alterado_em.isoformat() if config.alterado_em else None,
                 }
 
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Configuração '{chave}' não encontrada"
+                detail=f"Configuração '{chave}' não encontrada",
             )
-        
+
         # Atualiza o valor
         if email_service.is_sensitive_config_key(chave):
             if valor == email_service._mask_secret():
@@ -1014,33 +1007,30 @@ def atualizar_configuracao(
         invalidar_validacao_smtp_se_necessario(chave)
         # TODO: Pegar ID do usuário autenticado do token JWT
         # config.alterado_por_id = usuario_id_do_token
-        
+
         db.commit()
         db.refresh(config)
-        
+
         return {
             "chave": config.chave,
             "valor": email_service.mask_if_sensitive(config.chave, config.valor),
             "tipo": config.tipo.value,
             "categoria": config.categoria.value,
             "descricao": config.descricao,
-            "alterado_em": config.alterado_em.isoformat()
+            "alterado_em": config.alterado_em.isoformat(),
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao atualizar configuração"
+            detail="Erro ao atualizar configuração",
         )
 
 
 @router.post("/configuracoes/email/teste", tags=["Admin - Configurações"])
-def testar_envio_email_configurado(
-    payload: EmailTestRequest,
-    db: Session = Depends(get_db)
-):
+def testar_envio_email_configurado(payload: EmailTestRequest, db: Session = Depends(get_db)):
     """Envia e-mail de teste usando a configuração SMTP salva no sistema."""
     try:
         enviado = asyncio.run(
@@ -1056,12 +1046,10 @@ def testar_envio_email_configurado(
         if not enviado:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Falha ao enviar e-mail de teste. Verifique SMTP_HOST/PORT/USER/PASSWORD e EMAIL_DEV_MODE."
+                detail="Falha ao enviar e-mail de teste. Verifique SMTP_HOST/PORT/USER/PASSWORD e EMAIL_DEV_MODE.",  # noqa: E501
             )
 
-        validacao = db.query(Configuracao).filter(
-            Configuracao.chave == "smtpValidatedAt"
-        ).first()
+        validacao = db.query(Configuracao).filter(Configuracao.chave == "smtpValidatedAt").first()
         if not validacao:
             validacao = Configuracao(
                 chave="smtpValidatedAt",
@@ -1082,16 +1070,17 @@ def testar_envio_email_configurado(
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao testar envio de e-mail"
+            detail="Erro ao testar envio de e-mail",
         )
 
 
 # ============================================================================
 # FEEDBACKS - CRUD
 # ============================================================================
+
 
 @router.post("/feedbacks", tags=["Feedbacks"])
 def criar_feedback(
@@ -1102,41 +1091,39 @@ def criar_feedback(
     satisfacao: int,
     user_agent: str = None,
     url_origem: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Cria um novo feedback (usado por qualquer usuário autenticado).
-    
+
     Parâmetros preparados para análise futura por IA.
     """
     try:
         # Valida satisfacao
         if satisfacao < 1 or satisfacao > 5:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Satisfação deve ser entre 1 e 5"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Satisfação deve ser entre 1 e 5"
             )
-        
+
         # Valida tipo
         try:
             tipo_enum = TipoFeedback(tipo)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Tipo inválido. Use: {', '.join([t.value for t in TipoFeedback])}"
+                detail=f"Tipo inválido. Use: {', '.join([t.value for t in TipoFeedback])}",
             )
-        
+
         # Verifica se usuário existe
         usuario = db.query(UsuarioComum).filter(UsuarioComum.id == usuario_id).first()
         if not usuario:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuário não encontrado"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
             )
-        
+
         # Cria feedback
         feedback = Feedback(
-            id=generate_temporal_id_with_microseconds('FDB'),
+            id=generate_temporal_id_with_microseconds("FDB"),
             usuario_id=usuario_id,
             tipo=tipo_enum,
             assunto=assunto,
@@ -1148,27 +1135,26 @@ def criar_feedback(
             tags=[],  # Futuramente preenchido por IA
             sentimento_score=None,  # Futuramente calculado por IA
             categoria_ia=None,  # Futuramente classificado por IA
-            prioridade_ia=None  # Futuramente calculado por IA
+            prioridade_ia=None,  # Futuramente calculado por IA
         )
-        
+
         db.add(feedback)
         db.commit()
         db.refresh(feedback)
-        
+
         return {
             "id": feedback.id,
             "tipo": feedback.tipo.value,
             "assunto": feedback.assunto,
             "status": feedback.status.value,
-            "criado_em": feedback.criado_em.isoformat()
+            "criado_em": feedback.criado_em.isoformat(),
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao criar feedback"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao criar feedback"
         )
 
 
@@ -1177,134 +1163,123 @@ def listar_feedbacks(db: Session = Depends(get_db)):
     """Lista todos os feedbacks (apenas Super Admin)"""
     try:
         feedbacks = db.query(Feedback).order_by(Feedback.criado_em.desc()).all()
-        
+
         resultado = []
         for f in feedbacks:
             # Busca dados do usuário
             usuario = db.query(UsuarioComum).filter(UsuarioComum.id == f.usuario_id).first()
             usuario_nome = usuario.nome if usuario else "Usuário Desconhecido"
-            
+
             # Busca paróquia do usuário (se tiver)
             paroquia_nome = None
             if usuario and usuario.paroquia_id:
                 paroquia = db.query(Paroquia).filter(Paroquia.id == usuario.paroquia_id).first()
                 paroquia_nome = paroquia.nome if paroquia else None
-            
+
             # Busca quem respondeu (se foi respondido)
             respondido_por_nome = None
             if f.respondido_por_id:
-                respondido_por = db.query(UsuarioComum).filter(UsuarioComum.id == f.respondido_por_id).first()
+                respondido_por = (
+                    db.query(UsuarioComum).filter(UsuarioComum.id == f.respondido_por_id).first()
+                )
                 respondido_por_nome = respondido_por.nome if respondido_por else None
-            
-            resultado.append({
-                "id": f.id,
-                "usuario_id": f.usuario_id,
-                "usuario_nome": usuario_nome,
-                "paroquia_nome": paroquia_nome,
-                "tipo": f.tipo.value,
-                "assunto": f.assunto,
-                "mensagem": f.mensagem,
-                "satisfacao": f.satisfacao,
-                "status": f.status.value,
-                "resposta": f.resposta,
-                "respondido_por": respondido_por_nome,
-                "respondido_em": f.respondido_em.isoformat() if f.respondido_em else None,
-                "criado_em": f.criado_em.isoformat(),
-                # Campos para IA (futuros)
-                "tags": f.tags or [],
-                "sentimento_score": f.sentimento_score,
-                "categoria_ia": f.categoria_ia,
-                "prioridade_ia": f.prioridade_ia
-            })
-        
+
+            resultado.append(
+                {
+                    "id": f.id,
+                    "usuario_id": f.usuario_id,
+                    "usuario_nome": usuario_nome,
+                    "paroquia_nome": paroquia_nome,
+                    "tipo": f.tipo.value,
+                    "assunto": f.assunto,
+                    "mensagem": f.mensagem,
+                    "satisfacao": f.satisfacao,
+                    "status": f.status.value,
+                    "resposta": f.resposta,
+                    "respondido_por": respondido_por_nome,
+                    "respondido_em": f.respondido_em.isoformat() if f.respondido_em else None,
+                    "criado_em": f.criado_em.isoformat(),
+                    # Campos para IA (futuros)
+                    "tags": f.tags or [],
+                    "sentimento_score": f.sentimento_score,
+                    "categoria_ia": f.categoria_ia,
+                    "prioridade_ia": f.prioridade_ia,
+                }
+            )
+
         return resultado
-    except Exception as e:
+    except Exception:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao listar feedbacks"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao listar feedbacks"
         )
 
 
 @router.put("/feedbacks/{feedback_id}/responder", tags=["Admin - Feedbacks"])
 def responder_feedback(
-    feedback_id: str,
-    resposta: str,
-    respondido_por_id: str,
-    db: Session = Depends(get_db)
+    feedback_id: str, resposta: str, respondido_por_id: str, db: Session = Depends(get_db)
 ):
     """Responde a um feedback (apenas Super Admin)"""
     try:
         feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
-        
+
         if not feedback:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Feedback não encontrado"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Feedback não encontrado"
             )
-        
+
         # Atualiza feedback
         feedback.resposta = resposta
         feedback.respondido_por_id = respondido_por_id
         feedback.respondido_em = datetime.now()
         feedback.status = StatusFeedback.RESOLVIDO
-        
+
         db.commit()
         db.refresh(feedback)
-        
+
         return {
             "id": feedback.id,
             "status": feedback.status.value,
             "resposta": feedback.resposta,
-            "respondido_em": feedback.respondido_em.isoformat()
+            "respondido_em": feedback.respondido_em.isoformat(),
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao responder feedback"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao responder feedback"
         )
 
 
 @router.put("/feedbacks/{feedback_id}/status", tags=["Admin - Feedbacks"])
-def atualizar_status_feedback(
-    feedback_id: str,
-    novo_status: str,
-    db: Session = Depends(get_db)
-):
+def atualizar_status_feedback(feedback_id: str, novo_status: str, db: Session = Depends(get_db)):
     """Atualiza o status de um feedback"""
     try:
         feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
-        
+
         if not feedback:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Feedback não encontrado"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Feedback não encontrado"
             )
-        
+
         # Valida status
         try:
             status_enum = StatusFeedback(novo_status)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Status inválido. Use: {', '.join([s.value for s in StatusFeedback])}"
+                detail=f"Status inválido. Use: {', '.join([s.value for s in StatusFeedback])}",
             )
-        
+
         feedback.status = status_enum
         db.commit()
         db.refresh(feedback)
-        
-        return {
-            "id": feedback.id,
-            "status": feedback.status.value
-        }
+
+        return {"id": feedback.id, "status": feedback.status.value}
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao atualizar status"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao atualizar status"
         )

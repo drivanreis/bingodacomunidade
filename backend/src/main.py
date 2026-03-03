@@ -35,8 +35,7 @@ from src.routers.games_routes import router as games_router
 # ============================================================================
 
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -49,15 +48,15 @@ app = FastAPI(
     title="Bingo da Comunidade - API",
     description="""
     ## 🎱 Sistema de Bingo Comunitário
-    
+
     Uma plataforma digital de bingo transparente para paróquias e igrejas.
-    
+
     ### Características Principais:
     - 🕒 **IDs Temporais**: Todos os registros usam timestamps de Fortaleza-CE
     - 💰 **Rateio Dinâmico**: Divisão automática em 4 partes configuráveis
     - 🔐 **Transparência Total**: Todos os dados auditáveis
     - ⛪ **Multi-Paróquia**: Sistema centralizado para múltiplas igrejas
-    
+
     ### Hierarquia de Usuários:
     - **Admin-Site**: Guardião da infraestrutura
     - **Admin-Paroquia**: Operador da paróquia
@@ -110,6 +109,7 @@ app.add_middleware(
 # TRATAMENTO GLOBAL DE ERROS (EXCEPTION HANDLERS)
 # ============================================================================
 
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """
@@ -117,17 +117,17 @@ async def global_exception_handler(request: Request, exc: Exception):
     """
     error_msg = str(exc)
     error_trace = traceback.format_exc()
-    
+
     # Log detalhado no servidor
     logger.error(f"FATAL ERROR 500 em {request.url.path}: {error_msg}")
     logger.error(error_trace)
-    
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "detail": "Erro interno do servidor. O administrador foi notificado.",
             "type": "INTERNAL_ERROR",
-        }
+        },
     )
 
 
@@ -135,11 +135,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 # EVENTOS DE INICIALIZAÇÃO
 # ============================================================================
 
+
 @app.on_event("startup")
 async def startup_event():
     """
     Executado quando a aplicação inicia.
-    
+
     Responsabilidades:
     - Verificar conexão com banco de dados
     - Criar tabelas se não existirem (init_db)
@@ -148,17 +149,17 @@ async def startup_event():
     logger.info("=" * 70)
     logger.info("🚀 INICIANDO SERVIDOR - BINGO DA COMUNIDADE")
     logger.info("=" * 70)
-    
+
     try:
         # Verificar conexão com banco
         is_connected = verify_connection()
-        
+
         if is_connected:
             logger.info("✅ Banco de dados conectado com sucesso")
         else:
             logger.warning("⚠️ Falha ao conectar com banco de dados")
             return
-        
+
         # Inicializar banco (criar tabelas)
         init_db()
         logger.info("✅ Schema de banco de dados inicializado")
@@ -170,13 +171,13 @@ async def startup_event():
             registrar_auditoria_sistema(db)
         finally:
             db.close()
-        
+
         logger.info("=" * 70)
         logger.info("✅ SERVIDOR INICIADO COM SUCESSO")
         logger.info("📍 Acesse a API em: http://localhost:8000")
         logger.info("📖 Documentação em: http://localhost:8000/docs")
         logger.info("=" * 70)
-        
+
     except Exception as e:
         logger.error(f"❌ ERRO CRÍTICO ao iniciar servidor: {str(e)}")
         logger.error(traceback.format_exc())
@@ -205,11 +206,12 @@ app.include_router(games_router)
 # HEALTH CHECKS
 # ============================================================================
 
+
 @app.get("/", response_model=HealthCheckResponse, tags=["Health"])
 async def root() -> HealthCheckResponse:
     """
     Verificação de status da API.
-    
+
     Endpoint raiz que retorna informações básicas de saúde da API.
     """
     agora = get_fortaleza_time()
@@ -224,25 +226,21 @@ async def root() -> HealthCheckResponse:
 async def health_check(db: Session = Depends(get_db)) -> Dict[str, str]:
     """
     Verificação detalhada de saúde (com banco de dados).
-    
+
     Valida conexão com banco de dados e retorna status completo.
     """
     try:
         # Testar conexão com banco
-        result = db.execute(text("SELECT 1"))
-        
+        db.execute(text("SELECT 1"))
+
         return {
             "status": "healthy",
             "database": "connected",
-            "timestamp": get_fortaleza_time().isoformat()
+            "timestamp": get_fortaleza_time().isoformat(),
         }
     except Exception as e:
         logger.error(f"❌ Health check falhou: {str(e)}")
-        return {
-            "status": "unhealthy",
-            "database": "disconnected",
-            "error": "internal_error"
-        }
+        return {"status": "unhealthy", "database": "disconnected", "error": "internal_error"}
 
 
 @app.get("/ping", tags=["Health"])
@@ -259,12 +257,12 @@ async def ping() -> Dict[str, str]:
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     # Configuração para desenvolvimento
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True,           # Auto-reload em desenvolvimento
+        reload=True,  # Auto-reload em desenvolvimento
         log_level="info",
     )
