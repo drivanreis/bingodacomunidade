@@ -1,0 +1,73 @@
+Você é responsável por criar uma ATA DE DESENVOLVIMENTO para o projeto Bingo da Comunidade.
+
+Esta ata será o registro histórico de tudo que foi feito, problemas identificados, decisões tomadas e código produzido.
+
+## Contexto da Reunião
+
+Data: [DATA - DD de mês de YYYY]
+Projeto: Bingo da Comunidade
+Objetivo Principal: [DESCREVER O OBJETIVO]
+
+## Informações a incluir na ata:
+
+1. **PROBLEMA IDENTIFICADO**
+   - Qual era o problema/flaw encontrado?
+   - Como foi identificado?
+   - Qual era o impacto?
+
+2. **DECISÕES ARQUITETURAIS**
+   - Que decisões foram tomadas?
+   - Por quê?
+   - Alternativas consideradas?
+
+3. **IMPLEMENTAÇÕES CONCLUÍDAS**
+   - Quais arquivos foram criados/modificados?
+   - Quantas linhas de código?
+   - Quais funções/classes principais?
+
+4. **DOCUMENTAÇÃO CRIADA**
+   - Quais documentos foram criados?
+   - Qual o escopo?
+
+5. **TESTES/VALIDAÇÃO**
+   - Como foi testado?
+   - Qual foi o resultado?
+   - Há algo que ainda precisa ser testado?
+
+6. **CONTRIBUIÇÕES DO USUÁRIO**
+   - Qual insight/decision do usuário foi crítico?
+   - Como isso mudou a abordagem?
+
+7. **PRODUTOS ENTREGÁVEIS**
+   - O que é esperado que funcione?
+   - O que está pronto para produção?
+
+8. **PRÓXIMOS PASSOS**
+   - O que precisa ser feito depois?
+   - Há bloqueadores?
+
+9. **CONCLUSÃO**
+   - Resumo do progresso
+   - Status geral (em progresso/completo/bloqueado)
+
+## Formato da Resposta
+
+Gere a ata em MARKDOWN com:
+- Título descritivo com emojis (ex: 📋 ATA DE DESENVOLVIMENTO - YYYY-MM-DD)
+- Data, local e participantes no topo
+- Seções claramente delimitadas com headers (#, ##)
+- Listas com bullet points
+- Destaque com ✅, ❌, ⚠️, emojis relevantes
+- Tabelas para dados estruturados
+- Code blocks markdown para código
+- Links quando apropriado
+
+## Resultado Esperado
+
+Uma ata que:
+- Qualquer pessoa possa entender o progresso sem estar presente
+- Funcione como referência daqui a meses/anos
+- Documente decisões e seus motivos
+- Registre o estado atual do projeto
+- Identifique próximos passos claros
+- Tenha boa formatação visual e seja agradável de ler
