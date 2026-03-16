@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { buildBrazilContact, isBrazilContactValid } from '../utils/contactValidation';
 import PhoneModule from '../components/form/PhoneModule';
-import WhatsAppModule from '../components/form/WhatsAppModule';
 import PasswordField from '../components/form/PasswordField';
 import AdminIdentityHeader from '../components/AdminIdentityHeader';
 
@@ -27,8 +26,6 @@ interface CreateAdminSiteForm {
   cpf: string;
   telefoneDdd: string;
   telefoneNumero: string;
-  whatsappDdd: string;
-  whatsappNumero: string;
   senhaTemporaria: string;
   confirmarSenhaTemporaria: string;
 }
@@ -39,8 +36,6 @@ const INITIAL_FORM: CreateAdminSiteForm = {
   cpf: '',
   telefoneDdd: '',
   telefoneNumero: '',
-  whatsappDdd: '',
-  whatsappNumero: '',
   senhaTemporaria: '',
   confirmarSenhaTemporaria: '',
 };
@@ -71,6 +66,7 @@ const AdminUsers: React.FC = () => {
   const [showTargetConfirmPassword, setShowTargetConfirmPassword] = useState(false);
   const [showCreateTempPassword, setShowCreateTempPassword] = useState(false);
   const [showCreateTempConfirmPassword, setShowCreateTempConfirmPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string }>({});
 
   const normalizeCpf = (value: string) => value.replace(/\D/g, '').slice(0, 11);
 
@@ -91,6 +87,18 @@ const AdminUsers: React.FC = () => {
     const d2 = calcDigit(cpf.slice(0, 10));
     return Number(cpf[9]) === d1 && Number(cpf[10]) === d2;
   };
+
+  const telefoneValido = isBrazilContactValid(formData.telefoneDdd, formData.telefoneNumero);
+  const cpfValido = Boolean(formData.cpf) && isValidCpf(formData.cpf);
+  const senhasPreenchidas = Boolean(formData.senhaTemporaria && formData.confirmarSenhaTemporaria);
+  const senhasCoincidem = formData.senhaTemporaria === formData.confirmarSenhaTemporaria;
+  const isFormValid =
+    formData.nome.trim().length >= 3 &&
+    Boolean(formData.email.trim()) &&
+    telefoneValido &&
+    cpfValido &&
+    senhasPreenchidas &&
+    senhasCoincidem;
 
   useEffect(() => {
     loadAdmins();
@@ -115,6 +123,7 @@ const AdminUsers: React.FC = () => {
     setFormData(INITIAL_FORM);
     setShowCreateTempPassword(false);
     setShowCreateTempConfirmPassword(false);
+    setFieldErrors({});
   };
 
   const openDetailsModal = (admin: AdminSiteUser) => {
@@ -149,7 +158,8 @@ const AdminUsers: React.FC = () => {
       return;
     }
 
-    if (!formData.email || !isBrazilContactValid(formData.telefoneDdd, formData.telefoneNumero)) {
+    const telefoneValidoLocal = isBrazilContactValid(formData.telefoneDdd, formData.telefoneNumero);
+    if (!formData.email.trim() || !telefoneValidoLocal) {
       alert('Preencha e-mail, DDD e telefone válido (9 ou 10 dígitos)');
       return;
     }
@@ -170,11 +180,10 @@ const AdminUsers: React.FC = () => {
     }
 
     const telefone = buildBrazilContact(formData.telefoneDdd, formData.telefoneNumero);
-    const whatsapp = isBrazilContactValid(formData.whatsappDdd, formData.whatsappNumero)
-      ? buildBrazilContact(formData.whatsappDdd, formData.whatsappNumero)
-      : telefone;
+    const whatsapp = telefone;
 
     try {
+      setFieldErrors({});
       setSaving(true);
       await api.post('/auth/admin-site/criar-admin-site', {
         nome: formData.nome.trim(),
@@ -190,8 +199,13 @@ const AdminUsers: React.FC = () => {
       await loadAdmins();
     } catch (err) {
       console.error('Erro ao criar usuário do site:', err);
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      alert(`❌ Erro ao criar usuário do site: ${detail || 'Falha inesperada'}`);
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
+      const detail = axiosErr.response?.data?.detail;
+      if (axiosErr.response?.status === 409 && detail) {
+        setFieldErrors({ email: detail });
+      } else {
+        alert(`❌ Erro ao criar usuário do site: ${detail || 'Falha inesperada'}`);
+      }
     } finally {
       setSaving(false);
     }
@@ -427,9 +441,17 @@ const AdminUsers: React.FC = () => {
                       type="email"
                       className="form-control"
                       value={formData.email}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, email: e.target.value }));
+                        setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                      }}
                       required
                     />
+                    {fieldErrors.email && (
+                      <div className="form-text text-danger" role="alert">
+                        {fieldErrors.email}
+                      </div>
+                    )}
                   </div>
 
                   <div className="mb-3">
@@ -452,13 +474,6 @@ const AdminUsers: React.FC = () => {
                     onDddChange={(value) => setFormData((prev) => ({ ...prev, telefoneDdd: value }))}
                     onTelefoneChange={(value) => setFormData((prev) => ({ ...prev, telefoneNumero: value }))}
                     required
-                  />
-
-                  <WhatsAppModule
-                    ddd={formData.whatsappDdd}
-                    telefone={formData.whatsappNumero}
-                    onDddChange={(value) => setFormData((prev) => ({ ...prev, whatsappDdd: value }))}
-                    onTelefoneChange={(value) => setFormData((prev) => ({ ...prev, whatsappNumero: value }))}
                   />
 
                   <div className="row g-2">
@@ -509,7 +524,7 @@ const AdminUsers: React.FC = () => {
                   <button type="button" className="btn btn-secondary" onClick={closeModal}>
                     Cancelar
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                  <button type="submit" className="btn btn-primary" disabled={saving || !isFormValid}>
                     {saving ? 'Criando...' : 'Criar reserva'}
                   </button>
                 </div>
