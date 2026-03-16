@@ -1,6 +1,7 @@
 Você é responsável por criar uma ATA DE DESENVOLVIMENTO para o projeto Bingo da Comunidade.
 
 Esta ata será o registro histórico de tudo que foi feito, problemas identificados, decisões tomadas e código produzido.
+Você deve tratá-la como um documento vivo: atualize este prompt e gere novas versões sempre que a reunião ainda estiver em andamento (início, meio ou fim).
 
 ## Contexto da Reunião
 
@@ -71,3 +72,7 @@ Uma ata que:
 - Registre o estado atual do projeto
 - Identifique próximos passos claros
 - Tenha boa formatação visual e seja agradável de ler
+
+## Entrega Adicional
+
+- Ao final, salve a ata completa em `atas-dev/YYYY-MM-DD.md`, substituindo `YYYY-MM-DD` pela data da reunião. O conteúdo do arquivo deve ser exatamente o mesmo que foi apresentado na resposta final.
