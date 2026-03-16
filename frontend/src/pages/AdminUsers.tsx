@@ -4,6 +4,7 @@ import { buildBrazilContact, isBrazilContactValid } from '../utils/contactValida
 import PhoneModule from '../components/form/PhoneModule';
 import PasswordField from '../components/form/PasswordField';
 import AdminIdentityHeader from '../components/AdminIdentityHeader';
+import './AdminUsers.css';
 
 interface AdminSiteUser {
   id: string;
@@ -376,9 +377,11 @@ const AdminUsers: React.FC = () => {
                     <td className="text-start align-middle">{admin.email}</td>
                     <td className="text-start align-middle">{admin.telefone || '-'}</td>
                     <td className="text-start align-middle">
-                      <span className={`badge ${admin.ativo ? 'bg-success' : 'bg-secondary'}`}>
-                        {admin.ativo ? 'Ativo' : 'Inativo'}
-                      </span>
+                    <span
+                      className={`status-label ${admin.ativo ? 'status-label--active' : 'status-label--inactive'}`}
+                    >
+                      {admin.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
                     </td>
                     <td className="text-start align-middle">
                       <div className="d-flex gap-2 flex-wrap">
