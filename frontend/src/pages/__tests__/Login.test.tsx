@@ -56,7 +56,7 @@ describe('Login (público)', () => {
     await user.type(screen.getByPlaceholderText('••••••••'), 'Senha@123');
     await user.click(screen.getByRole('button', { name: /entrar/i }));
 
-    expect(mockLogin).toHaveBeenCalledWith('11144477735', 'Senha@123');
+    expect(mockLogin).toHaveBeenCalledWith('11144477735', 'Senha@123', false);
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
     });
@@ -176,7 +176,25 @@ describe('Login (público)', () => {
     await user.type(screen.getByPlaceholderText('••••••••'), 'Senha@123');
     await user.click(screen.getByRole('button', { name: /entrar/i }));
 
-    expect(mockLogin).toHaveBeenCalledWith('joao@example.com', 'Senha@123');
+    expect(mockLogin).toHaveBeenCalledWith('joao@example.com', 'Senha@123', false);
+  });
+
+  it('marca a opção "Sempre lembra de mim" e envia a flag para o contexto', async () => {
+    const user = userEvent.setup();
+    mockLogin.mockResolvedValueOnce({ role: 'fiel' });
+
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByPlaceholderText('000.000.000-00'), 'joao@example.com');
+    await user.type(screen.getByPlaceholderText('••••••••'), 'Senha@123');
+    await user.click(screen.getByLabelText(/sempre lembra de mim!/i));
+    await user.click(screen.getByRole('button', { name: /entrar/i }));
+
+    expect(mockLogin).toHaveBeenCalledWith('joao@example.com', 'Senha@123', true);
   });
 
   it('exibe erro quando CPF/Email não existe no banco', async () => {

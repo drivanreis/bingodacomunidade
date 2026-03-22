@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import FloatingCart from '../components/FloatingCart';
 import api from '../services/api';
 import { resolveDashboardPath, resolveGameDetailPath } from '../utils/sessionScope';
+import { formatServerDateTime } from '../services/timeService';
 import './Games.css';
 
 interface Game {
@@ -11,6 +12,8 @@ interface Game {
   title: string;
   description: string;
   scheduled_date: string;
+  data_inicio_vendas?: string;
+  data_sorteio?: string;
   status: 'scheduled' | 'active' | 'finished' | 'cancelled';
   card_price: number;
   total_prize: number;
@@ -88,16 +91,7 @@ const Games: React.FC = () => {
     return game.status === filter;
   });
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatDateTime = (dateString?: string) => formatServerDateTime(dateString);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -193,8 +187,16 @@ const Games: React.FC = () => {
 
               <div className="gm-cardInfo">
                 <div className="gm-infoRow">
-                  <span className="gm-infoLabel">📅 Data:</span>
-                  <span className="gm-infoValue">{formatDate(game.scheduled_date)}</span>
+                  <span className="gm-infoLabel">🗓️ Início das Vendas:</span>
+                  <span className="gm-infoValue">
+                    {formatDateTime(game.data_inicio_vendas || game.scheduled_date)}
+                  </span>
+                </div>
+                <div className="gm-infoRow">
+                  <span className="gm-infoLabel">🎲 Data/Hora do Sorteio:</span>
+                  <span className="gm-infoValue">
+                    {formatDateTime(game.data_sorteio || game.scheduled_date)}
+                  </span>
                 </div>
                 <div className="gm-infoRow">
                   <span className="gm-infoLabel">💰 Valor da Cartela:</span>

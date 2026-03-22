@@ -154,9 +154,10 @@ export const authService = {
    * Login com CPF e senha
    */
   login: async (data: LoginRequest): Promise<TokenResponse> => {
+    const rememberFlag = Boolean(data.lembrar);
     const payload = data.email || data.login
-      ? { email: data.email || data.login, senha: data.senha }
-      : { cpf: data.cpf, senha: data.senha }
+      ? { email: data.email || data.login, senha: data.senha, lembrar: rememberFlag }
+      : { cpf: data.cpf, senha: data.senha, lembrar: rememberFlag }
 
     const response = await api.post<TokenResponse>('/auth/login', payload)
     const { access_token, usuario } = response.data

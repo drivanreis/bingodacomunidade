@@ -11,6 +11,7 @@ const Login: React.FC = () => {
   const [cpf, setCpf] = useState(location.state?.cpf || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(location.state?.message || '');
   const [loading, setLoading] = useState(false);
@@ -91,7 +92,7 @@ const Login: React.FC = () => {
 
     void (async () => {
       try {
-        const authenticatedUser = await login(loginValue, password);
+        const authenticatedUser = await login(loginValue, password, rememberMe);
         navigate(resolveDashboardPath(authenticatedUser.role));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
@@ -157,6 +158,18 @@ const Login: React.FC = () => {
             </div>
           </div>
 
+          <div className="lg-remember">
+            <label htmlFor="rememberMe" className="lg-rememberLabel">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={loading}
+              />
+              Sempre lembra de mim!
+            </label>
+          </div>
 
           <button
             type="button"

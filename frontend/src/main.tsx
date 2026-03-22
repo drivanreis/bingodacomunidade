@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { syncServerTime } from './services/timeService'
 
 // Log para debug
 console.log('🚀 main.tsx carregado!');
@@ -14,15 +15,19 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
-try {
-  createRoot(rootElement).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  );
-  console.log('✅ App renderizado com sucesso!');
-} catch (error) {
-  console.error('❌ Erro ao renderizar:', error);
-  document.body.innerHTML = `<h1 style="color:red;padding:50px;">ERRO: ${error}</h1>`;
-}
+const bootstrap = async () => {
+  try {
+    await syncServerTime();
+    createRoot(rootElement).render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+    console.log('✅ App renderizado com sucesso!');
+  } catch (error) {
+    console.error('❌ Erro ao renderizar:', error);
+    document.body.innerHTML = `<h1 style="color:red;padding:50px;">ERRO: ${error}</h1>`;
+  }
+};
 
+bootstrap();

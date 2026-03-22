@@ -20,6 +20,61 @@
   margin: 0 auto;
 }
 
+.db-subHeader {
+  margin: 0 auto 30px;
+  max-width: 1200px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-md);
+  border: 1px solid #e6e8ec;
+  padding: 18px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.db-subHeaderInfo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px 24px;
+  flex: 1;
+}
+
+.db-subItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.db-subLabel {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.db-subValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+.db-subBadge {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--gradient-brand);
+  align-self: flex-start;
+}
+
+.db-subHeaderButton {
+  align-self: flex-start;
+  border-color: #667eea;
+}
+
 .db-card {
   background: var(--color-white);
   border-radius: var(--radius-md);

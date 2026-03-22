@@ -663,6 +663,7 @@ class LoginFielRequest(BaseModel):
     cpf: Optional[str] = Field(None, description="CPF do fiel (11 dígitos)")
     email: Optional[EmailStr] = Field(None, description="Email do fiel")
     senha: str = Field(..., description="Senha cadastrada")
+    lembrar: bool = Field(False, description="Indica se deve manter a sessão ativa (lembrar-me).")
 
     @model_validator(mode="after")
     def _validate_identifier(self):
@@ -689,6 +690,7 @@ class AdminParoquiaLoginRequest(BaseModel):
 
     login: str = Field(..., description="Login único do administrador paroquial")
     senha: str = Field(..., description="Senha do administrador")
+    lembrar: bool = Field(False, description="Indica se a sessão deverá ser persistida (lembrar-me).")
 
 
 class AdminInitialPasswordChangeRequest(BaseModel):

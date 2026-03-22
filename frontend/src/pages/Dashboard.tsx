@@ -35,37 +35,37 @@ const Dashboard: React.FC = () => {
         <h1 className="db-title">🎉 Dashboard - Bingo da Comunidade</h1>
       </div>
 
-      <div className="db-content">
-        <div className="db-card">
-          <h2 className="db-cardTitle">👤 Informações do Usuário</h2>
-          <div className="db-infoGrid">
-            <div className="db-infoItem">
-              <span className="db-infoLabel">Nome:</span>
-              <span className="db-infoValue">{user?.name}</span>
-            </div>
-            <div className="db-infoItem">
-              <span className="db-infoLabel">Email:</span>
-              <span className="db-infoValue">{user?.email || 'Não informado'}</span>
-            </div>
-            <div className="db-infoItem">
-              <span className="db-infoLabel">Perfil:</span>
-              <span className="db-infoBadge">{getRoleName(user?.role || '')}</span>
-            </div>
-            {user?.cpf && (
-              <div className="db-infoItem">
-                <span className="db-infoLabel">CPF:</span>
-                <span className="db-infoValue">{user.cpf}</span>
-              </div>
-            )}
-            <div className="db-infoItem">
-              <span className="db-infoLabel">ID:</span>
-              <span className="db-infoValue">{user?.id}</span>
-            </div>
+      <div className="db-subHeader">
+        <div className="db-subHeaderInfo">
+          <div className="db-subItem">
+            <span className="db-subLabel">Nome</span>
+            <span className="db-subValue">{user?.name || '—'}</span>
           </div>
-          <button onClick={() => navigate('/profile')} className="db-linkButton">
-            Editar Perfil →
-          </button>
+          <div className="db-subItem">
+            <span className="db-subLabel">Email</span>
+            <span className="db-subValue">{user?.email || 'Não informado'}</span>
+          </div>
+          <div className="db-subItem">
+            <span className="db-subLabel">Perfil</span>
+            <span className="db-subBadge">{getRoleName(user?.role || '')}</span>
+          </div>
+          {user?.cpf && (
+            <div className="db-subItem">
+              <span className="db-subLabel">CPF</span>
+              <span className="db-subValue">{user.cpf}</span>
+            </div>
+          )}
+          <div className="db-subItem">
+            <span className="db-subLabel">ID</span>
+            <span className="db-subValue">{user?.id}</span>
+          </div>
         </div>
+        <button onClick={() => navigate('/profile')} className="db-linkButton db-subHeaderButton">
+          Editar Perfil →
+        </button>
+      </div>
+
+      <div className="db-content">
 
         <div className="db-card">
           <h2 className="db-cardTitle">🎯 Ações Rápidas</h2>

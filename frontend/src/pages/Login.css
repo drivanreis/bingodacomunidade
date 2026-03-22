@@ -147,3 +147,23 @@
   padding-top: 20px;
   border-top: 1px solid #e0e0e0;
 }
+
+.lg-remember {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.lg-rememberLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.lg-rememberLabel input {
+  width: 18px;
+  height: 18px;
+}

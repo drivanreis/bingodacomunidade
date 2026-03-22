@@ -41,6 +41,18 @@ async def test_ping_endpoint_returns_pong(test_app):
 
 
 @pytest.mark.asyncio
+async def test_info_time_endpoint_returns_server_clock(test_app):
+    async with AsyncClient(app=test_app, base_url="http://test") as client:
+        response = await client.get("/info/time")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["timezone"] == "America/Fortaleza"
+    assert "now" in data
+    assert data["epoch_ms"].isdigit()
+
+
+@pytest.mark.asyncio
 async def test_global_exception_handler_returns_structured_500():
     request = Request(
         {

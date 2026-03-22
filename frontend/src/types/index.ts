@@ -82,6 +82,7 @@ export interface LoginRequest {
   email?: string
   login?: string
   senha: string
+  lembrar?: boolean
 }
 
 export interface TokenResponse {

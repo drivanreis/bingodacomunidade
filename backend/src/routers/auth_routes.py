@@ -775,9 +775,10 @@ def login_fiel(request: LoginFielRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(fiel)
 
+        session_duration = timedelta(days=30) if request.lembrar else timedelta(hours=24)
         access_token = create_access_token(
             data={"sub": fiel.id, "cpf": fiel.cpf, "email": fiel.email, "tipo": "usuario_comum"},
-            expires_delta=timedelta(hours=24),
+            expires_delta=session_duration,
         )
 
         logger.info(f"✅ Login FIEL bem-sucedido: {fiel.id}")
@@ -1010,6 +1011,7 @@ def login_admin_paroquia(request: AdminParoquiaLoginRequest, db: Session = Depen
         db.commit()
         db.refresh(admin)
 
+        session_duration = timedelta(days=30) if request.lembrar else timedelta(hours=24)
         access_token = create_access_token(
             data={
                 "sub": admin.id,
@@ -1018,7 +1020,7 @@ def login_admin_paroquia(request: AdminParoquiaLoginRequest, db: Session = Depen
                 "paroquia_id": admin.paroquia_id,
                 "tipo": "usuario_paroquia",
             },
-            expires_delta=timedelta(hours=24),
+            expires_delta=session_duration,
         )
 
         logger.info(f"✅ Login Admin-Paroquia bem-sucedido: {admin.id}")

@@ -59,8 +59,43 @@ describe('AdminParoquiaLogin', () => {
     expect(postMock).toHaveBeenCalledWith('/auth/admin-paroquia/login', {
       login: 'admin.paroquia@exemplo.com',
       senha: 'Senha@123',
+      lembrar: false,
     });
     expect(mockNavigate).toHaveBeenCalledWith('/admin-paroquia/dashboard');
+  });
+
+  it('ativa lembrar-me e envia a flag ao backend', async () => {
+    const user = userEvent.setup();
+
+    postMock.mockResolvedValueOnce({
+      data: {
+        access_token: 'token-paroq-remember',
+        usuario: {
+          id: 'ADM-P-2',
+          nome: 'Admin Paróquia',
+          login: 'admin.paroquia@exemplo.com',
+          nivel_acesso: 'admin_paroquia',
+          tipo: 'usuario_administrativo',
+        },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <AdminParoquiaLogin />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByLabelText(/login ou email/i), 'admin.paroquia@exemplo.com');
+    await user.type(screen.getByPlaceholderText('••••••••'), 'Senha@123');
+    await user.click(screen.getByLabelText(/sempre lembra de mim!/i));
+    await user.click(screen.getByRole('button', { name: /acessar sistema/i }));
+
+    expect(postMock).toHaveBeenCalledWith('/auth/admin-paroquia/login', {
+      login: 'admin.paroquia@exemplo.com',
+      senha: 'Senha@123',
+      lembrar: true,
+    });
   });
 
   it('Perfil Admin-Paróquia Burro (UX/Resiliência): senha incorreta retorna erro amigável', async () => {

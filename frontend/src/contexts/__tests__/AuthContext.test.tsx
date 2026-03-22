@@ -127,6 +127,7 @@ describe('AuthContext', () => {
     expect(postMock).toHaveBeenCalledWith('/auth/login', {
       email: 'joao@example.com',
       senha: 'Senha@123',
+      lembrar: false,
     });
     expect(screen.getByTestId('login-result')).toHaveTextContent('fiel');
     expect(localStorage.getItem('@BingoComunidade:token')).toBe('token-email');
@@ -160,6 +161,7 @@ describe('AuthContext', () => {
     expect(postMock).toHaveBeenCalledWith('/auth/login', {
       cpf: '11144477735',
       senha: 'Senha@123',
+      lembrar: false,
     });
     expect(screen.getByTestId('login-result')).toHaveTextContent('fiel');
   });

@@ -15,6 +15,7 @@ const AdminParoquiaLogin: React.FC = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -57,7 +58,8 @@ const AdminParoquiaLogin: React.FC = () => {
       // Chamar endpoint específico de Admin Paroquial
       const response = await api.post('/auth/admin-paroquia/login', {
         login: loginValue,
-        senha: password
+        senha: password,
+        lembrar: rememberMe,
       });
 
       const { access_token, usuario } = response.data;
@@ -120,8 +122,11 @@ const AdminParoquiaLogin: React.FC = () => {
           )}
 
           <div className="apl-inputGroup">
-            <label className="apl-label">Login ou Email</label>
+            <label className="apl-label" htmlFor="admin-login-identifier">
+              Login ou Email
+            </label>
             <input
+              id="admin-login-identifier"
               type="text"
               value={identifier}
               onChange={handleIdentifierChange}
@@ -151,6 +156,18 @@ const AdminParoquiaLogin: React.FC = () => {
                 {showPassword ? '👁️' : '👁️‍🗨️'}
               </button>
             </div>
+          </div>
+
+          <div className="apl-rememberRow">
+            <label className="apl-rememberLabel">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={loading}
+              />
+              Sempre lembra de mim!
+            </label>
           </div>
 
           <button

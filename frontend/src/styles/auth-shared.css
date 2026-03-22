@@ -162,3 +162,26 @@
   color: var(--color-text);
   line-height: 2;
 }
+
+.apl-rememberRow,
+.asl-rememberRow {
+  margin-top: -4px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.apl-rememberLabel,
+.asl-rememberLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.apl-rememberLabel input,
+.asl-rememberLabel input {
+  width: 18px;
+  height: 18px;
+}

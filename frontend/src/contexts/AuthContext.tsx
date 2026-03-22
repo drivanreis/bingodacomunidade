@@ -6,6 +6,7 @@ import { limparItensExpirados } from '../utils/carrinhoManager';
 import { clearSessionScope, resolveScopeFromRole, setSessionScope } from '../utils/sessionScope';
 
 const AUTH_SESSION_MARKER = '@BingoComunidade:session-active';
+const AUTH_REMEMBER_ME_MARKER = '@BingoComunidade:remember-me';
 
 interface User {
   id: string;
@@ -20,7 +21,7 @@ interface AuthContextData {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (identificador: string, password: string) => Promise<User>;
+  login: (identificador: string, password: string, rememberMe?: boolean) => Promise<User>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   isAuthenticated: boolean;
@@ -33,12 +34,13 @@ const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 export { AuthContext };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const clearPersistedAuth = () => {
-      localStorage.removeItem('@BingoComunidade:token');
-      localStorage.removeItem('@BingoComunidade:user');
-      clearSessionScope();
-      delete api.defaults.headers.common['Authorization'];
-    };
+  const clearPersistedAuth = () => {
+    localStorage.removeItem('@BingoComunidade:token');
+    localStorage.removeItem('@BingoComunidade:user');
+    localStorage.removeItem(AUTH_REMEMBER_ME_MARKER);
+    clearSessionScope();
+    delete api.defaults.headers.common['Authorization'];
+  };
 
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -114,11 +116,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useLayoutEffect(() => {
     const hasBrowserSessionMarker = sessionStorage.getItem(AUTH_SESSION_MARKER) === '1';
+    const rememberedSession = localStorage.getItem(AUTH_REMEMBER_ME_MARKER) === '1';
 
     // Recuperar token do localStorage ao iniciar
     const storedToken = localStorage.getItem('@BingoComunidade:token');
 
-    if (storedToken && !hasBrowserSessionMarker) {
+    if (storedToken && !hasBrowserSessionMarker && !rememberedSession) {
       clearPersistedAuth();
     }
 
@@ -161,11 +164,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => clearInterval(carrinhoInterval);
   }, []);
 
-  const login = async (identificador: string, password: string): Promise<User> => {
+  const login = async (identificador: string, password: string, rememberMe = false): Promise<User> => {
     try {
       const payload = identificador.includes('@')
-        ? { email: identificador, senha: password }
-        : { cpf: identificador, senha: password };
+        ? { email: identificador, senha: password, lembrar: rememberMe }
+        : { cpf: identificador, senha: password, lembrar: rememberMe };
 
       const response = await api.post('/auth/login', payload);
 
@@ -187,6 +190,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('@BingoComunidade:token', access_token);
       localStorage.setItem('@BingoComunidade:user', JSON.stringify(usuario));
       setSessionScope('public');
+      if (rememberMe) {
+        localStorage.setItem(AUTH_REMEMBER_ME_MARKER, '1');
+      } else {
+        localStorage.removeItem(AUTH_REMEMBER_ME_MARKER);
+      }
       sessionStorage.setItem(AUTH_SESSION_MARKER, '1');
       
       // Configurar token para próximas requisições

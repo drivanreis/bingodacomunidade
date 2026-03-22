@@ -172,6 +172,7 @@ describe('services/api', () => {
     expect(postMock).toHaveBeenCalledWith('/auth/login', {
       email: 'maria@exemplo.com',
       senha: 'Senha@123',
+      lembrar: false,
     });
     expect(localStorage.getItem('access_token')).toBe('token-login');
     expect(localStorage.getItem('usuario')).toContain('USR-1');
@@ -190,6 +191,7 @@ describe('services/api', () => {
     expect(postMock).toHaveBeenCalledWith('/auth/login', {
       cpf: '11144477735',
       senha: 'Senha@123',
+      lembrar: false,
     });
   });
 

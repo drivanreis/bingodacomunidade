@@ -251,6 +251,19 @@ async def ping() -> Dict[str, str]:
     return {"message": "pong"}
 
 
+@app.get("/info/time", tags=["Info"])
+async def get_info_time() -> Dict[str, str]:
+    """
+    Endpoint central que retorna o tempo oficial da aplicação e serve como referência para todos os clientes.
+    """
+    agora = get_fortaleza_time()
+    return {
+        "now": agora.isoformat(),
+        "timezone": "America/Fortaleza",
+        "epoch_ms": str(int(agora.timestamp() * 1000)),
+    }
+
+
 # ============================================================================
 # PONTO DE ENTRADA
 # ============================================================================
