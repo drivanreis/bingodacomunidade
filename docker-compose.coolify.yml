@@ -1,0 +1,89 @@
+# ===========================================================================
+# Docker Compose - Sistema de Bingo Comunitário
+# ===========================================================================
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bingo_backend
+    
+    ports:
+      - "8000:8000"
+
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
+    
+    environment:
+      - USE_SQLITE=true
+      - DATABASE_URL=sqlite:////app/data/bingo.db
+      - TIMEZONE=America/Fortaleza
+      
+      # ==================================================================
+      # SEED_ENABLED: Sistema de Bootstrap
+      # ==================================================================
+      # Agora o sistema SEMPRE cria usuário bootstrap: Admin / admin123
+      # Este flag foi mantido por compatibilidade mas não afeta o bootstrap
+      # ==================================================================
+      - SEED_ENABLED=false
+      
+      # Dados dos usuários de teste (REMOVIDOS - usar bootstrap)
+      # - OWNER_NAME=Administrador Sistema
+      # - OWNER_EMAIL=admin@bingodacomunidade.com.br
+      # - OWNER_PASSWORD=Admin@2026
+      - PARISH_NAME=Paróquia São José
+      - PARISH_EMAIL=contato@paroquiasaojose.com.br
+      - PARISH_PHONE=85999999999
+      - PARISH_PIX=contato@paroquiasaojose.com.br
+      - PARISH_CITY=Fortaleza
+      - PARISH_STATE=CE
+      
+      # Email Configuration (Modo Desenvolvimento)
+      - EMAIL_DEV_MODE=true
+      - FRONTEND_URL=http://localhost:5173
+      # Para produção, configure estas variáveis:
+      # - EMAIL_DEV_MODE=false
+      # - SMTP_HOST=smtp.gmail.com
+      # - SMTP_PORT=587
+      # - SMTP_USER=seu_email@gmail.com
+      # - SMTP_PASSWORD=sua_senha_de_app
+      # - FROM_EMAIL=seu_email@gmail.com
+      # - FROM_NAME=Bingo da Comunidade
+
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/tests:/app/tests
+      - ./data:/app/data
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bingo_frontend
+    
+    ports:
+      - "5173:5173"
+    
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    
+    depends_on:
+      backend:
+        condition: service_healthy
+    
+    restart: unless-stopped
