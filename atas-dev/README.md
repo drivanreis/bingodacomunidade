@@ -1,191 +1,261 @@
-# 📋 ATAS DE DESENVOLVIMENTO
+# ATAS-DEV
 
-Sistema de documentação de reuniões/sessões de desenvolvimento do projeto.
+## Objetivo
 
-## O Que É
+Esta pasta deve ser a memória operacional do projeto.
 
-Assim como as atas de reunião corporativas, aqui criamos um registro de:
-- Problemas identificados
-- Decisões tomadas
-- Código produzido
-- Documentação criada
-- Próximos passos
+Quando houver troca de:
+- LLM
+- extensão
+- desenvolvedor
+- sessão de trabalho
 
-Para manter contexto histórico e facilitar onboarding de novos devs.
+o ponto de partida deve estar aqui.
 
-## Estrutura
+## Regra Principal
 
+Cada ata precisa ser forte o suficiente para que a próxima pessoa ou IA consiga continuar o trabalho sem depender da conversa anterior.
+
+Em outras palavras:
+
+- a verdade deve estar na ata
+- a continuidade deve estar na ata
+- as decisões devem estar na ata
+- os problemas devem estar na ata
+- os próximos passos devem estar na ata
+- o ponto de retomada deve estar na ata
+
+## O Que Uma Ata Precisa Conter
+
+Toda reunião ou sessão relevante deve gerar uma ata com contexto suficiente para retomada.
+
+No mínimo, a ata precisa registrar:
+
+1. O que foi discutido
+2. Quais problemas foram identificados
+3. Quais decisões foram tomadas
+4. O que foi implementado
+5. O que NÃO foi implementado
+6. Impacto em banco, backend, frontend e processo
+7. O que foi testado
+8. O que ainda está pendente
+9. Quais são os próximos passos
+10. De onde a próxima sessão deve continuar
+11. O que precisa ser documentado antes de encerrar a sessão
+
+## Princípio de Continuidade
+
+Se uma nova IA abrir este projeto sem conhecer nada antes, ela deve conseguir:
+
+- ler as atas
+- entender o contexto atual
+- entender o histórico recente
+- identificar o estado do projeto
+- continuar sem inventar contexto
+
+Se isso não for possível, a ata está fraca.
+
+## Relação com a Pasta docs
+
+- `atas-dev/` guarda o histórico operacional e decisório
+- `docs/` guarda a documentação técnica e funcional do sistema
+
+Resumo:
+
+- `atas-dev` responde: "como chegamos até aqui e o que fazer agora?"
+- `docs` responde: "como o sistema funciona e como deve funcionar?"
+
+As duas pastas são complementares.
+
+## Sobre Arquivos de Prompt
+
+Arquivos de prompt podem existir como apoio, mas não podem ser a única fonte de contexto.
+
+Se houver conflito entre:
+
+- conversa
+- prompt
+- memória informal
+- ata
+
+a ata deve prevalecer como registro histórico da sessão.
+
+## Nome dos Arquivos
+
+Use o padrão:
+
+`YYYY-MM-DD.md`
+
+Exemplos:
+
+- `2026-03-17.md`
+- `2026-03-22.md`
+
+## Critério de Qualidade
+
+Uma ata boa:
+
+- não é genérica
+- não omite problemas
+- não mistura discutido com implementado
+- não depende da memória de quem participou
+- permite retomada real
+- empurra a próxima ata adiante
+
+## Modelo Base de Ata
+
+Use este modelo como estrutura mínima para novas atas.
+
+O objetivo do modelo é impedir o problema mais perigoso de continuidade:
+
+- uma ata decidir algo
+- a sessão seguinte não executar nem verificar aquilo
+- a próxima ata ter que corrigir a anterior
+- o histórico virar remendo em vez de trilha
+
+### Regra de Abertura Obrigatória
+
+Toda nova ata deve começar verificando a ata anterior.
+
+Antes de registrar qualquer tema novo, a ata precisa responder:
+
+1. qual era o ponto de retomada deixado pela ata anterior
+2. o que foi implantado antes desta nova sessão
+3. o que não foi implantado
+4. se a sessão atual está continuando o plano anterior ou mudando a prioridade
+5. por que houve essa mudança, se houver
+
+Se isso não estiver explícito, a continuidade quebrou.
+
+### Template
+
+```md
+# ATA DE DESENVOLVIMENTO - YYYY-MM-DD
+
+**Data:** YYYY-MM-DD
+**Local:** ...
+**Participantes:** ...
+**Projeto:** Bingo da Comunidade
+**Tipo de sessão:** decisão | implantação | correção | revisão | processo
+
+## 1. Conexão com a Ata Anterior
+
+**Ata anterior:** `YYYY-MM-DD.md`
+
+### Ponto de retomada herdado
+
+- ...
+
+### Status antes desta sessão
+
+- ✅ O que foi implantado desde a ata anterior
+- ❌ O que deveria ter sido implantado e não foi
+- ⚠️ O que ficou parcial
+
+### Impacto no fluxo
+
+- Explicar se a sessão atual continua o plano anterior ou se precisou corrigir desvio.
+
+## 2. O que Foi Discutido
+
+- ...
+
+## 3. Problemas Identificados
+
+- ...
+
+## 4. Decisões Tomadas
+
+- ...
+
+## 5. Implementações Realizadas Nesta Sessão
+
+- Arquivo / área:
+- Mudança:
+- Resultado:
+
+## 6. O que NÃO Foi Implementado
+
+- ...
+
+## 7. Impacto por Área
+
+- Banco:
+- Backend:
+- Frontend:
+- Processo / documentação:
+
+## 8. Testes e Validação
+
+- O que foi testado:
+- O que não foi testado:
+- Resultado:
+
+## 9. Pendências Reais ao Encerrar
+
+- ...
+
+## 10. Próximos Passos
+
+1. ...
+2. ...
+3. ...
+
+## 11. Ponto de Retomada Imediato
+
+Se a próxima sessão começar daqui, deve iniciar por:
+
+1. ...
+2. ...
+3. ...
+
+## 12. Registro de Sobrevivência da Sessão
+
+- O estado real ao encerrar é:
+- A decisão que continua valendo é:
+- O risco aberto é:
+- A próxima sessão não deve reabrir:
 ```
-atas-dev/
-├── 00-TEMPLATE-PROMPT.txt      ← ESTE ARQUIVO (como usar)
-├── 2026-03-10.txt              ← Ata do dia 10 de março
-├── 2026-03-11.txt              ← Ata do dia 11 de março
-└── README.md                   ← Este arquivo
-```
 
-## Como Usar
+### Regra de Ouro do Modelo
 
-### 1. No Final de Cada Dia/Reunião
+Uma ata nova não pode apenas registrar o presente.
 
-```bash
-# Copie o prompt de 00-TEMPLATE-PROMPT.txt
-# Personalize a data e contexto
-# Execute com qualquer IA (Copilot, Claude, ChatGPT, etc)
-# Copie a resposta para novo arquivo
-```
+Ela precisa:
 
-### 2. Nomeação de Arquivos
+- confirmar o que herdou
+- declarar o que entregou
+- admitir o que não entregou
+- deixar a próxima sessão pronta
 
-**Formato:** `YYYY-MM-DD.txt`
+## Ideia de Locomotiva
 
-**Exemplos:**
-- `2026-03-10.txt` - Reunião de 10 de março de 2026
-- `2026-03-11.txt` - Reunião de 11 de março de 2026
+Pense `atas-dev` como uma locomotiva de desenvolvimento.
 
-### 3. Estrutura da Ata
+Isso significa:
 
-```
-================================================================================
-ATA DE DESENVOLVIMENTO - DATA
-================================================================================
+- cada ata deve se conectar com a anterior
+- cada ata deve deixar claro o estado do projeto ao final da sessão
+- cada ata deve deixar o próximo passo pronto para a próxima sessão
 
-DATA: DD de mês de YYYY
-LOCAL/CONTEXTO: [Descrição]
-PARTICIPANTE: [Dev + IA]
+Se uma ata não consegue empurrar a próxima, ela ainda está fraca.
 
-================================================================================
-ASSUNTO PRINCIPAL
-================================================================================
+## Regra de Sobrevivência da Sessão
 
-[Descrição do objetivo principal da reunião]
+Mesmo que a LLM, IA, extensão ou sessão de trabalho seja interrompida, encerrada ou "morra" no meio do caminho, o estado atual do trabalho precisa estar documentado na ata mais recente.
 
-================================================================================
-PROBLEMA IDENTIFICADO
-================================================================================
+Isso significa:
 
-[Quais problemas foram encontrados?]
-[Como foram identificados?]
-[Qual era o impacto?]
+- não deixar contexto importante só na conversa
+- não deixar a lista de tarefas só na memória
+- não deixar decisão técnica só implícita
+- registrar o ponto exato de retomada antes de encerrar
 
-... (mais seções)
-```
+## Regra Final
 
-Veja `2026-03-10.txt` para exemplo completo.
+Se tiver dúvida entre:
 
-## Benefícios
+- escrever mais contexto na ata
+- ou confiar que a próxima IA "vai entender"
 
-✅ **Histórico**: Saber exatamente o que foi feito em cada dia
-✅ **Contexto**: Entender decisões tomadas e por quê
-✅ **Onboarding**: Novo dev pode entender evolução do projeto
-✅ **Referência**: Quando algo quebra, saber quando/como foi implementado
-✅ **Retrospectiva**: Analisar progresso e padrões
-
-## Exemplo de Busca
-
-```bash
-# Ver todas as atas
-ls -la
-
-# Ver ata específica
-cat 2026-03-10.txt
-
-# Procurar por palavra-chave em todas as atas
-grep -r "DynamicSelector" .
-
-# Contar linhas de código por dia
-grep "linhas" *.txt
-```
-
-## Checklist Diário
-
-Antes de terminar o dia, pergunte-se:
-
-- [ ] Quais problemas foram identificados?
-- [ ] Quais decisões foram tomadas?
-- [ ] Quantas linhas de código foram escritas?
-- [ ] Quais arquivos foram criados/modificados?
-- [ ] Documentação foi criada?
-- [ ] Tudo foi testado?
-- [ ] Há próximos passos claros?
-
-Se respondeu SIM para a maioria, você tem conteúdo para a ata!
-
-## Integração com Git
-
-Recomendado fazer commit das atas:
-
-```bash
-git add atas-dev/2026-03-10.txt
-git commit -m "docs: ata de desenvolvimento 2026-03-10"
-git push
-```
-
-## Dicas de Redação
-
-### ✅ SIM:
-- Seja específico (não "fez código", mas "criou element_discovery.py com DynamicSelectorFinder")
-- Inclua números (500 linhas, 37 rotas, 6 estratégias)
-- Documente problemas E soluções
-- Destaque insights críticos
-- Use bullet points para listas
-
-### ❌ NÃO:
-- Atas genéricas ou vagas
-- Omitir problemas encontrados
-- Esquecer próximos passos
-- Deixar atas incompletas
-
-## Exemplo de Referência
-
-**Arquivo:** `2026-03-10.txt`
-
-Contém ata real de:
-- Identificação de 3 flaws do TPIC
-- Decisão de arquitetura (intent-based discovery)
-- 500+ linhas de novo codigo
-- 1,200+ linhas de documentação
-- Validação de imports
-- Próximos passos
-
-Use como referência!
-
-## Prompt para Usar
-
-**Arquivo:** `00-TEMPLATE-PROMPT.txt`
-
-Contém o prompt completo pronto para:
-1. Copiar
-2. Personalizar data
-3. Executar com IA
-4. Salvar resultado
-
-## Histórico do Projeto
-
-Com este sistema, você consegue:
-
-```
-2026-03-10 ← Implementação do TPIC com descoberta dinâmica
-2026-03-11 ← Testes contra aplicação rodando
-2026-03-12 ← Bug fixes e otimizações
-...
-```
-
-Sempre sabendo exatamente o que foi feito cada dia!
-
-## FAQ
-
-**P: É obrigatório criar ata todo dia?**
-R: Não, mas recomendado. Crie ao final de cada sessão/reunião significativa.
-
-**P: E se esquecer de criar ata?**
-R: Crie retroativamente! Melhor tarde do que nunca.
-
-**P: Posso editar ata depois?**
-R: Sim, mas documente a edição (adicione nota no final).
-
-**P: Como compartilhar com time?**
-R: Através do Git. Pull, vê as atas, e sempre atualizado.
-
----
-
-**Comece hoje! Crie a primeira ata usando o template em `00-TEMPLATE-PROMPT.txt`** 🚀
+escreva mais contexto na ata.

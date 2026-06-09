@@ -85,6 +85,10 @@ const toApiDateTimeLocal = (localDateTimeValue: string): string => {
   return localDateTimeValue;
 };
 
+const sortNumberTokens = (values: string[]): string[] => {
+  return [...values].sort((a, b) => Number(a) - Number(b));
+};
+
 const GameDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [game, setGame] = useState<Game | null>(null);
@@ -226,7 +230,7 @@ const GameDetail: React.FC = () => {
       }
 
       const payload = purchaseMode === 'personalizada'
-        ? { modo: 'personalizada', numeros: selectedNumbers }
+        ? { modo: 'personalizada', numeros: sortNumberTokens(selectedNumbers) }
         : { modo: 'aleatoria' };
 
       await api.post(`/games/${id}/cards`, payload);
@@ -677,8 +681,7 @@ const GameDetail: React.FC = () => {
                         <span>{selectedNumbers.length}/24</span>
                       </div>
                       <div className="gd-selectedNumbersList">
-                        {[...selectedNumbers]
-                          .sort((a, b) => Number(a) - Number(b))
+                        {sortNumberTokens(selectedNumbers)
                           .map((numberToken) => (
                             <button
                               key={numberToken}

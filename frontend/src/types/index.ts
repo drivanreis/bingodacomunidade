@@ -24,9 +24,12 @@ export const StatusSorteio = {
   CANCELADO: 'cancelado' as const,
 };
 
-export type StatusCartela = 'ativa' | 'vencedora' | 'perdedora';
+export type StatusCartela = 'no_carrinho' | 'paga' | 'cancelada' | 'ativa' | 'vencedora' | 'perdedora';
 
 export const StatusCartela = {
+  NO_CARRINHO: 'no_carrinho' as const,
+  PAGA: 'paga' as const,
+  CANCELADA: 'cancelada' as const,
   ATIVA: 'ativa' as const,
   VENCEDORA: 'vencedora' as const,
   PERDEDORA: 'perdedora' as const,
@@ -112,9 +115,11 @@ export interface Sorteio {
   inicio_vendas: string
   fim_vendas: string
   horario_sorteio: string
+  numeros_sorteados?: string[]
   pedras_sorteadas?: number[]
   hash_integridade?: string
   vencedores_ids: string[]
+  cartela_vencedora_id?: string
   criado_em: string
   atualizado_em: string
   iniciado_em?: string
@@ -143,8 +148,9 @@ export interface Cartela {
   id: string
   sorteio_id: string
   usuario_id: string
-  numeros: number[][]  // Matriz 5x5
-  numeros_marcados: number[]
+  numeros: string[]
+  hash?: string
+  numeros_marcados: string[]
   status: StatusCartela
   valor_premio?: number
   criado_em: string

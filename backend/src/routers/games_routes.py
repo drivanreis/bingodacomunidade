@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import hashlib
 from datetime import datetime, timedelta
 from random import sample
 from typing import Any, List, Literal, Optional
@@ -83,6 +84,14 @@ class GameCreateRequest(BaseModel):
 class CardCreateRequest(BaseModel):
     modo: str = Field("aleatoria", description="aleatoria ou personalizada")
     numeros: Optional[List[str]] = None
+
+
+class DrawNumbersRequest(BaseModel):
+    numeros: List[str] = Field(..., min_length=1, description="Números sorteados em ordem real")
+    finalizar: bool = Field(
+        False,
+        description="Quando true, finaliza o jogo e marca perdedoras as cartelas pagas sem bingo",
+    )
 
 
 class MaintenanceLockRequest(BaseModel):
@@ -169,39 +178,11 @@ def _resolve_single_paroquia(db: Session) -> Paroquia:
 
 
 def _extract_card_numbers(card: Cartela) -> list[str]:
-    return [
-        str(card.n1),
-        str(card.n2),
-        str(card.n3),
-        str(card.n4),
-        str(card.n5),
-        str(card.n6),
-        str(card.n7),
-        str(card.n8),
-        str(card.n9),
-        str(card.n10),
-        str(card.n11),
-        str(card.n12),
-        str(card.n13),
-        str(card.n14),
-        str(card.n15),
-        str(card.n16),
-        str(card.n17),
-        str(card.n18),
-        str(card.n19),
-        str(card.n20),
-        str(card.n21),
-        str(card.n22),
-        str(card.n23),
-        str(card.n24),
-    ]
+    raw_numbers = card.numeros or []
+    return [str(number).zfill(2) for number in raw_numbers]
 
 
-def _card_columns_from_numbers(numbers_24: list[str]) -> dict[str, str]:
-    return {f"n{idx}": numbers_24[idx - 1] for idx in range(1, 25)}
-
-
-def _validate_24_numbers(values: list[str]) -> list[str]:
+def _validate_24_numbers(values: list[str], *, sort_numbers: bool = True) -> list[str]:
     if len(values) != 24:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -231,19 +212,54 @@ def _validate_24_numbers(values: list[str]) -> list[str]:
         seen.add(token)
         normalized.append(token)
 
+    return sorted(normalized) if sort_numbers else normalized
+
+
+def _validate_draw_numbers(values: list[str]) -> list[str]:
+    if not values:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Informe pelo menos um número sorteado",
+        )
+
+    return _validate_24_numbers(values, sort_numbers=False) if len(values) == 24 else _validate_draw_numbers_flexible(values)
+
+
+def _validate_draw_numbers_flexible(values: list[str]) -> list[str]:
+    normalized: list[str] = []
+    seen = set()
+    for raw in values:
+        digits = "".join(ch for ch in str(raw) if ch.isdigit())
+        if not digits:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Todos os números sorteados devem ser numéricos",
+            )
+        num = int(digits)
+        if num < 1 or num > 75:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Os números sorteados devem estar entre 01 e 75",
+            )
+        token = f"{num:02d}"
+        if token in seen:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="O sorteio não pode repetir números",
+            )
+        seen.add(token)
+        normalized.append(token)
+
     return normalized
 
 
-def _cartela_signature(numbers_24: list[str]) -> str:
-    return "|".join(numbers_24)
+def _numbers_hash(numbers_24: list[str]) -> str:
+    payload = json.dumps(numbers_24, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _cartela_signature_checkout(numbers_24: list[str]) -> str:
-    return "|".join(sorted(numbers_24))
-
-
-def _build_paid_card_lock_key(game_id: str, numbers_24: list[str]) -> str:
-    return f"paid_card_unique::{game_id}::{_cartela_signature_checkout(numbers_24)}"
+def _build_paid_card_lock_key(game_id: str, card_hash: str) -> str:
+    return f"paid_card_unique::{game_id}::{card_hash}"
 
 
 def _raise_persona_http_error(
@@ -270,18 +286,17 @@ def _existing_signatures_for_game(db: Session, sorteio_id: str) -> set[str]:
     signatures = set()
     cartelas = db.query(Cartela).filter(Cartela.sorteio_id == sorteio_id).all()
     for cartela in cartelas:
-        flattened = _extract_card_numbers(cartela)
-        if len(flattened) == 24:
-            signatures.add(_cartela_signature(flattened))
+        if cartela.hash:
+            signatures.add(cartela.hash)
     return signatures
 
 
 def _is_cartela_unique_violation(exc: IntegrityError) -> bool:
     message = str(exc.orig).lower() if getattr(exc, "orig", None) else str(exc).lower()
-    return "uq_cartela_sorteio_n1_n24" in message or (
+    return "uq_cartela_sorteio_hash" in message or (
         "unique constraint failed" in message
         and "cartelas.sorteio_id" in message
-        and "cartelas.n1" in message
+        and "cartelas.hash" in message
     )
 
 
@@ -308,6 +323,28 @@ def _get_or_create_config(
     db.add(row)
     db.flush()
     return row
+
+
+def _sync_winners_for_game(game: Sorteio, cards: list[Cartela], drawn_numbers: list[str], *, finalize: bool) -> list[Cartela]:
+    drawn_set = set(drawn_numbers)
+    winners: list[Cartela] = []
+
+    for card in cards:
+        card_numbers = _extract_card_numbers(card)
+        card.numeros_marcados = [number for number in drawn_numbers if number in set(card_numbers)]
+        is_winner = set(card_numbers).issubset(drawn_set)
+
+        if is_winner:
+            card.status = StatusCartela.VENCEDORA
+            winners.append(card)
+        elif finalize and card.status in {StatusCartela.PAGA, StatusCartela.ATIVA, StatusCartela.VENCEDORA}:
+            card.status = StatusCartela.PERDEDORA
+
+        card.atualizado_em = get_fortaleza_time()
+
+    game.vencedores_ids = [card.id for card in winners]
+    game.cartela_vencedora_id = winners[0].id if winners else None
+    return winners
 
 
 def _is_maintenance_write_locked(db: Session) -> bool:
@@ -515,9 +552,11 @@ def _to_sorteio_response(game: Sorteio) -> dict[str, Any]:
         "inicio_vendas": game.inicio_vendas.isoformat() if game.inicio_vendas else None,
         "fim_vendas": game.fim_vendas.isoformat() if game.fim_vendas else None,
         "horario_sorteio": game.horario_sorteio.isoformat() if game.horario_sorteio else None,
-        "pedras_sorteadas": game.pedras_sorteadas or [],
+        "numeros_sorteados": game.numeros_sorteados or game.pedras_sorteadas or [],
+        "pedras_sorteadas": game.pedras_sorteadas or game.numeros_sorteados or [],
         "hash_integridade": game.hash_integridade,
         "vencedores_ids": game.vencedores_ids or [],
+        "cartela_vencedora_id": game.cartela_vencedora_id,
         "criado_em": game.criado_em.isoformat() if game.criado_em else None,
         "atualizado_em": game.atualizado_em.isoformat() if game.atualizado_em else None,
     }
@@ -583,6 +622,7 @@ def create_game(
         fim_vendas=fim_vendas,
         horario_sorteio=payload.data_sorteio,
         status=StatusSorteio.AGENDADO,
+        numeros_sorteados=[],
         pedras_sorteadas=[],
         vencedores_ids=[],
         criado_em=get_fortaleza_time(),
@@ -903,33 +943,33 @@ def create_card(
             )
         requested_numbers = _validate_24_numbers(body.numeros)
         numbers_24 = requested_numbers.copy()
-        signature = _cartela_signature(requested_numbers)
+        card_hash = _numbers_hash(requested_numbers)
         attempts_limit = 25
     else:
-        requested_numbers = []
+        requested_numbers: list[str] = []
         numbers_24 = []
-        signature = ""
+        card_hash = ""
         attempts_limit = 25
 
     for attempt in range(1, attempts_limit + 1):
         if modo != "personalizada":
-            generated = [f"{n:02d}" for n in sample(range(1, 76), 24)]
+            generated = sorted(f"{n:02d}" for n in sample(range(1, 76), 24))
             numbers_24 = generated
-            signature = _cartela_signature(generated)
-        elif attempt > 1:
-            numbers_24 = sample(requested_numbers, len(requested_numbers))
-
-        card_columns = _card_columns_from_numbers(numbers_24)
+            card_hash = _numbers_hash(generated)
+        else:
+            numbers_24 = requested_numbers.copy()
+            card_hash = _numbers_hash(numbers_24)
 
         nova = Cartela(
             id=generate_temporal_id_with_microseconds("CAR"),
             sorteio_id=game.id,
             usuario_id=fiel.id,
+            numeros=numbers_24,
+            hash=card_hash,
             status=StatusCartela.NO_CARRINHO,
             numeros_marcados=[],
             criado_em=get_fortaleza_time(),
             atualizado_em=get_fortaleza_time(),
-            **card_columns,
         )
 
         db.add(nova)
@@ -943,7 +983,7 @@ def create_card(
                 "game_id": game.id,
                 "user_id": fiel.id,
                 "numbers": numbers_24,
-                "signature": signature,
+                "hash": card_hash,
                 "status": nova.status.value if hasattr(nova.status, "value") else str(nova.status),
                 "purchase_date": nova.criado_em.isoformat() if nova.criado_em else None,
             }
@@ -1066,7 +1106,8 @@ def pay_card(
         )
 
     current_numbers = _extract_card_numbers(card)
-    paid_lock_key = _build_paid_card_lock_key(game.id, current_numbers)
+    card_hash = card.hash or _numbers_hash(current_numbers)
+    paid_lock_key = _build_paid_card_lock_key(game.id, card_hash)
     paid_lock_row = Configuracao(
         chave=paid_lock_key,
         valor=card.id,
@@ -1077,6 +1118,7 @@ def pay_card(
     db.add(paid_lock_row)
 
     card.status = StatusCartela.PAGA
+    card.hash = card_hash
     card.atualizado_em = now
 
     game.total_cartelas_vendidas = int(game.total_cartelas_vendidas or 0) + 1
@@ -1179,6 +1221,79 @@ def close_sales_for_game(
         "eligible_paid_cards": int(paid_count),
         "game_status": game.status.value if hasattr(game.status, "value") else str(game.status),
         "closed_at": now.isoformat(),
+    }
+
+
+@router.post("/games/{game_id}/draws", status_code=status.HTTP_200_OK)
+def register_draw_numbers(
+    game_id: str,
+    payload: DrawNumbersRequest,
+    db: Session = Depends(get_db),
+    user_payload: dict[str, Any] = Depends(get_current_user),
+):
+    if not _is_admin_payload(user_payload):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores podem registrar números sorteados",
+        )
+
+    _ensure_not_in_maintenance(db)
+
+    game = db.query(Sorteio).filter(Sorteio.id == game_id).first()
+    if not game:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Jogo não encontrado")
+
+    if game.status in {StatusSorteio.CANCELADO, StatusSorteio.FINALIZADO}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível registrar números em jogo finalizado ou cancelado",
+        )
+
+    drawn_numbers = _validate_draw_numbers(payload.numeros)
+    paid_cards = (
+        db.query(Cartela)
+        .filter(
+            Cartela.sorteio_id == game_id,
+            Cartela.status.in_([
+                StatusCartela.PAGA,
+                StatusCartela.ATIVA,
+                StatusCartela.VENCEDORA,
+                StatusCartela.PERDEDORA,
+            ]),
+        )
+        .order_by(Cartela.criado_em.asc())
+        .all()
+    )
+
+    winners = _sync_winners_for_game(game, paid_cards, drawn_numbers, finalize=payload.finalizar)
+    now = get_fortaleza_time()
+    game.numeros_sorteados = drawn_numbers
+    game.pedras_sorteadas = drawn_numbers
+    if payload.finalizar or winners:
+        game.status = StatusSorteio.FINALIZADO
+        game.finalizado_em = now
+    else:
+        game.status = StatusSorteio.EM_ANDAMENTO
+        game.iniciado_em = game.iniciado_em or now
+    game.atualizado_em = now
+
+    if winners:
+        prize_value = float(game.total_premio or 0) / float(len(winners))
+        for winner in winners:
+            winner.valor_premio = prize_value
+    elif payload.finalizar:
+        game.cartela_vencedora_id = None
+
+    db.commit()
+
+    return {
+        "message": "Números sorteados registrados com sucesso",
+        "game_id": game_id,
+        "status": game.status.value if hasattr(game.status, "value") else str(game.status),
+        "numeros_sorteados": drawn_numbers,
+        "winners_count": len(winners),
+        "winner_card_ids": [card.id for card in winners],
+        "finalizado": payload.finalizar or bool(winners),
     }
 
 

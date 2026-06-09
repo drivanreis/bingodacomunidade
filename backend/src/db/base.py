@@ -8,12 +8,14 @@ Módulo responsável por:
 - Fornecer a classe Base para todos os modelos
 """
 
-from typing import Generator
+from typing import Any, Generator
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool
 import os
+import json
+import hashlib
 
 
 # ============================================================================
@@ -185,18 +187,107 @@ def init_db() -> None:
                 conn.execute(text("ALTER TABLE sorteios ADD COLUMN max_cards INTEGER"))
             print("✓ Migração automática aplicada: coluna sorteios.max_cards")
 
+    if "sorteios" in table_names:
+        sorteios_cols = {col["name"] for col in inspector.get_columns("sorteios")}
+        with engine.begin() as conn:
+            if "numeros_sorteados" not in sorteios_cols:
+                conn.execute(text("ALTER TABLE sorteios ADD COLUMN numeros_sorteados JSON"))
+                print("✓ Migração automática aplicada: coluna sorteios.numeros_sorteados")
+            if "cartela_vencedora_id" not in sorteios_cols:
+                conn.execute(text("ALTER TABLE sorteios ADD COLUMN cartela_vencedora_id VARCHAR(50)"))
+                print("✓ Migração automática aplicada: coluna sorteios.cartela_vencedora_id")
+            if "pedras_sorteadas" in sorteios_cols:
+                conn.execute(text(
+                    "UPDATE sorteios SET numeros_sorteados = pedras_sorteadas "
+                    "WHERE numeros_sorteados IS NULL AND pedras_sorteadas IS NOT NULL"
+                ))
+
     if "cartelas" in table_names:
-        cartelas_cols = {col["name"] for col in inspector.get_columns("cartelas")}
-        missing_card_cols = [f"n{i}" for i in range(1, 25) if f"n{i}" not in cartelas_cols]
-        if missing_card_cols:
-            with engine.begin() as conn:
-                for col in missing_card_cols:
-                    conn.execute(text(f"ALTER TABLE cartelas ADD COLUMN {col} CHAR(2)"))
-            print(
-                f"✓ Migração automática aplicada: colunas cartelas ({', '.join(missing_card_cols)})"
-            )
+        _migrate_cartelas_to_json_hash(inspector)
 
     print("✓ Banco de dados inicializado com sucesso")
+
+
+def _normalize_card_numbers_for_storage(raw_numbers: Any) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+
+    if not isinstance(raw_numbers, list):
+        return normalized
+
+    flat_values: list[Any] = []
+    for item in raw_numbers:
+        if isinstance(item, list):
+            flat_values.extend(item)
+        else:
+            flat_values.append(item)
+
+    for raw in flat_values:
+        digits = "".join(ch for ch in str(raw) if ch.isdigit())
+        if not digits:
+            return []
+        token = f"{int(digits):02d}"
+        if token in seen:
+            return []
+        seen.add(token)
+        normalized.append(token)
+
+    if len(normalized) != 24:
+        return []
+
+    return sorted(normalized)
+
+
+def _cartela_hash(numbers: list[str]) -> str:
+    payload = json.dumps(numbers, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _migrate_cartelas_to_json_hash(inspector) -> None:
+    cartelas_cols = {col["name"] for col in inspector.get_columns("cartelas")}
+
+    with engine.begin() as conn:
+        if "numeros" not in cartelas_cols:
+            conn.execute(text("ALTER TABLE cartelas ADD COLUMN numeros JSON"))
+            print("✓ Migração automática aplicada: coluna cartelas.numeros")
+        if "hash" not in cartelas_cols:
+            conn.execute(text("ALTER TABLE cartelas ADD COLUMN hash VARCHAR(64)"))
+            print("✓ Migração automática aplicada: coluna cartelas.hash")
+
+    legacy_columns = [f"n{i}" for i in range(1, 25) if f"n{i}" in cartelas_cols]
+    if not legacy_columns and "numeros" in cartelas_cols and "hash" in cartelas_cols:
+        with engine.begin() as conn:
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_cartela_sorteio_hash ON cartelas (sorteio_id, hash)"))
+        return
+
+    select_columns = ["id", "numeros", "hash", *legacy_columns]
+    rows_query = ", ".join(select_columns)
+    with engine.begin() as conn:
+        rows = conn.execute(text(f"SELECT {rows_query} FROM cartelas")).mappings().all()
+        migrated = 0
+        for row in rows:
+            normalized = _normalize_card_numbers_for_storage(row.get("numeros"))
+            if not normalized and legacy_columns:
+                normalized = _normalize_card_numbers_for_storage([row.get(col) for col in legacy_columns])
+
+            if not normalized:
+                continue
+
+            current_hash = row.get("hash") or _cartela_hash(normalized)
+            conn.execute(
+                text("UPDATE cartelas SET numeros = :numeros, hash = :hash WHERE id = :id"),
+                {
+                    "id": row["id"],
+                    "numeros": json.dumps(normalized, ensure_ascii=False),
+                    "hash": current_hash,
+                },
+            )
+            migrated += 1
+
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_cartela_sorteio_hash ON cartelas (sorteio_id, hash)"))
+
+    if migrated:
+        print(f"✓ Migração automática aplicada: cartelas normalizadas em JSON/hash ({migrated})")
 
 
 def drop_all_tables() -> None:

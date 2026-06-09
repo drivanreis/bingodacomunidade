@@ -154,6 +154,35 @@ async def test_pay_card_marks_paid_and_updates_totals(test_app, db_session, auth
 
 
 @pytest.mark.asyncio
+async def test_create_personalized_card_sorts_numbers_and_persists_hash(
+    test_app, db_session, auth_payload_state
+):
+    _, fiel, jogo = _seed_game_base(db_session)
+    auth_payload_state["payload"] = {"sub": fiel.id, "tipo": "usuario_comum"}
+
+    numbers = [
+        "24", "03", "75", "11", "42", "07", "68", "19", "51", "33", "02", "44",
+        "57", "14", "28", "61", "09", "36", "72", "05", "18", "47", "63", "30",
+    ]
+
+    async with AsyncClient(app=test_app, base_url="http://test") as client:
+        response = await client.post(
+            f"/games/{jogo.id}/cards",
+            json={"modo": "personalizada", "numeros": numbers},
+        )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["numbers"] == sorted(numbers, key=lambda item: int(item))
+    assert len(payload["hash"]) == 64
+
+    card = db_session.query(Cartela).filter(Cartela.id == payload["id"]).first()
+    assert card is not None
+    assert card.numeros == sorted(numbers, key=lambda item: int(item))
+    assert card.hash == payload["hash"]
+
+
+@pytest.mark.asyncio
 async def test_pay_at_exact_sales_deadline_is_blocked(test_app, db_session, auth_payload_state):
     _, fiel, jogo = _seed_game_base(db_session)
     auth_payload_state["payload"] = {"sub": fiel.id, "tipo": "usuario_comum"}
@@ -203,6 +232,52 @@ async def test_close_sales_cancels_cart_and_keeps_paid(test_app, db_session, aut
     card_cart = db_session.query(Cartela).filter(Cartela.id == card_cart_id).first()
     assert card_paid.status in {StatusCartela.PAGA, StatusCartela.ATIVA}
     assert card_cart.status == StatusCartela.CANCELADA
+
+
+@pytest.mark.asyncio
+async def test_register_draw_numbers_marks_winner_and_finalizes_game(
+    test_app, db_session, auth_payload_state
+):
+    _, fiel, jogo = _seed_game_base(db_session)
+    auth_payload_state["payload"] = {"sub": fiel.id, "tipo": "usuario_comum"}
+    winning_numbers = [
+        "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12",
+        "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24",
+    ]
+
+    async with AsyncClient(app=test_app, base_url="http://test") as client:
+        create_response = await client.post(
+            f"/games/{jogo.id}/cards",
+            json={"modo": "personalizada", "numeros": list(reversed(winning_numbers))},
+        )
+        card_id = create_response.json()["id"]
+        pay_response = await client.post(f"/games/{jogo.id}/cards/{card_id}/pay")
+
+    assert pay_response.status_code == 200
+
+    auth_payload_state["payload"] = {
+        "sub": "ADMIN-1",
+        "tipo": "usuario_administrativo",
+        "nivel_acesso": "admin_paroquia",
+    }
+    async with AsyncClient(app=test_app, base_url="http://test") as client:
+        draw_response = await client.post(
+            f"/games/{jogo.id}/draws",
+            json={"numeros": winning_numbers, "finalizar": True},
+        )
+
+    assert draw_response.status_code == 200
+    payload = draw_response.json()
+    assert payload["winners_count"] == 1
+    assert payload["winner_card_ids"] == [card_id]
+    assert payload["status"] == StatusSorteio.FINALIZADO.value
+
+    db_session.refresh(jogo)
+    card = db_session.query(Cartela).filter(Cartela.id == card_id).first()
+    assert jogo.numeros_sorteados == winning_numbers
+    assert jogo.cartela_vencedora_id == card_id
+    assert card.status == StatusCartela.VENCEDORA
+    assert card.valor_premio == pytest.approx(5.0)
 
 
 @pytest.mark.asyncio

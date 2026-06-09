@@ -21,7 +21,6 @@ from sqlalchemy import (
     Text,
     Enum as SQLEnum,
     JSON,
-    CHAR,
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
@@ -688,7 +687,15 @@ class Sorteio(Base):
 
     # Integridade e Auditoria
     hash_integridade = Column(String(64), nullable=True, index=True)  # SHA-256 dos dados críticos
-    pedras_sorteadas = Column(JSON, nullable=True, default=[])  # Lista de pedras sorteadas
+    numeros_sorteados = Column(JSON, nullable=True, default=[])  # Ordem real do sorteio
+    cartela_vencedora_id = Column(
+        String(50),
+        ForeignKey("cartelas.id", use_alter=True, name="fk_sorteios_cartela_vencedora"),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+    pedras_sorteadas = Column(JSON, nullable=True, default=[])  # Compatibilidade legada
     vencedores_ids = Column(JSON, nullable=True, default=[])  # IDs dos vencedores
 
     # Timestamps
@@ -710,7 +717,8 @@ class Sorteio(Base):
 
     # Relacionamentos
     paroquia = relationship("Paroquia", back_populates="sorteios")
-    cartelas = relationship("Cartela", back_populates="sorteio")
+    cartelas = relationship("Cartela", back_populates="sorteio", foreign_keys="Cartela.sorteio_id")
+    cartela_vencedora = relationship("Cartela", foreign_keys=[cartela_vencedora_id], uselist=False)
 
     def __repr__(self):
         return f"<Sorteio(id={self.id}, titulo={self.titulo}, status={self.status})>"
@@ -735,31 +743,8 @@ class Cartela(Base):
     __table_args__ = (
         UniqueConstraint(
             "sorteio_id",
-            "n1",
-            "n2",
-            "n3",
-            "n4",
-            "n5",
-            "n6",
-            "n7",
-            "n8",
-            "n9",
-            "n10",
-            "n11",
-            "n12",
-            "n13",
-            "n14",
-            "n15",
-            "n16",
-            "n17",
-            "n18",
-            "n19",
-            "n20",
-            "n21",
-            "n22",
-            "n23",
-            "n24",
-            name="uq_cartela_sorteio_n1_n24",
+            "hash",
+            name="uq_cartela_sorteio_hash",
         ),
     )
 
@@ -771,30 +756,8 @@ class Cartela(Base):
     usuario_id = Column(String(50), ForeignKey("usuarios_comuns.id"), nullable=False, index=True)
 
     # Dados da Cartela
-    n1 = Column(CHAR(2), nullable=False)
-    n2 = Column(CHAR(2), nullable=False)
-    n3 = Column(CHAR(2), nullable=False)
-    n4 = Column(CHAR(2), nullable=False)
-    n5 = Column(CHAR(2), nullable=False)
-    n6 = Column(CHAR(2), nullable=False)
-    n7 = Column(CHAR(2), nullable=False)
-    n8 = Column(CHAR(2), nullable=False)
-    n9 = Column(CHAR(2), nullable=False)
-    n10 = Column(CHAR(2), nullable=False)
-    n11 = Column(CHAR(2), nullable=False)
-    n12 = Column(CHAR(2), nullable=False)
-    n13 = Column(CHAR(2), nullable=False)
-    n14 = Column(CHAR(2), nullable=False)
-    n15 = Column(CHAR(2), nullable=False)
-    n16 = Column(CHAR(2), nullable=False)
-    n17 = Column(CHAR(2), nullable=False)
-    n18 = Column(CHAR(2), nullable=False)
-    n19 = Column(CHAR(2), nullable=False)
-    n20 = Column(CHAR(2), nullable=False)
-    n21 = Column(CHAR(2), nullable=False)
-    n22 = Column(CHAR(2), nullable=False)
-    n23 = Column(CHAR(2), nullable=False)
-    n24 = Column(CHAR(2), nullable=False)
+    numeros = Column(JSON, nullable=False, default=[])  # 24 números ordenados em JSON
+    hash = Column(String(64), nullable=False, index=True)  # SHA-256 do JSON ordenado
     numeros_marcados = Column(
         JSON,
         nullable=False,
@@ -826,7 +789,7 @@ class Cartela(Base):
     )
 
     # Relacionamentos
-    sorteio = relationship("Sorteio", back_populates="cartelas")
+    sorteio = relationship("Sorteio", back_populates="cartelas", foreign_keys=[sorteio_id])
     usuario = relationship("UsuarioComum")
 
     def __repr__(self):
